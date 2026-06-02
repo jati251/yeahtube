@@ -11,7 +11,7 @@
 #     yeahtube:latest
 #
 # Required env vars (pass via --env-file or -e):
-#   JWT_SECRET, DATABASE_PATH, STORAGE_TYPE, S3_ENDPOINT,
+#   JWT_SECRET, DATABASE_URL, STORAGE_TYPE, S3_ENDPOINT,
 #   S3_REGION, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY,
 #   S3_FORCE_PATH_STYLE
 
@@ -82,9 +82,6 @@ COPY --from=builder /app/package.json ./package.json
 # Copy the standalone Next.js output (includes server code)
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-
-# Create data directory for SQLite (must be writable)
-RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
 USER nextjs
 
