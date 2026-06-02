@@ -13,6 +13,21 @@ async function seed() {
   sqliteDb.pragma("journal_mode = WAL");
   sqliteDb.pragma("foreign_keys = ON");
 
+  // ── Migration: Add new columns to existing tables ──────
+  // These ALTER TABLE statements will silently fail if the column
+  // already exists (SQLite ignores "duplicate column" errors from
+  // ALTER TABLE ADD COLUMN in older versions, but we catch it).
+  try {
+    sqliteDb.exec(`ALTER TABLE posts ADD COLUMN category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL`);
+  } catch {
+    // Column already exists — this is fine
+  }
+  try {
+    sqliteDb.exec(`ALTER TABLE posts ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`);
+  } catch {
+    // Column already exists
+  }
+
   // Create tables if they don't exist
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS users (
