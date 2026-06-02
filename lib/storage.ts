@@ -5,6 +5,11 @@
  * Proxmox VM at 192.168.1.206:9000. All file operations (upload, download,
  * delete, presigned URLs) go through this module.
  *
+ * ⚠️ IMPORTANT: All config is LAZY — validated only when getS3Client() or
+ * getStorageConfig() is called, NOT at module import time. This allows
+ * `next build` to collect page data without S3 env vars being present
+ * (they're only available at runtime via --env-file in Docker).
+ *
  * Bucket structure:
  *   yeahtube/
  *   ├── uploads/
@@ -16,7 +21,7 @@
 
 import { S3Client } from "@aws-sdk/client-s3";
 
-// ── Configuration ────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────
 
 function requireEnv(key: string): string {
   const value = process.env[key];
@@ -26,14 +31,33 @@ function requireEnv(key: string): string {
   return value;
 }
 
-export const STORAGE_CONFIG = {
-  endpoint: requireEnv("S3_ENDPOINT"),
-  region: requireEnv("S3_REGION"),
-  bucket: requireEnv("S3_BUCKET"),
-  accessKey: requireEnv("S3_ACCESS_KEY"),
-  secretKey: requireEnv("S3_SECRET_KEY"),
-  forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
-} as const;
+// ── Lazy Configuration ────────────────────────────────────────────
+// NOT a module-level constant — validated only when explicitly called.
+
+interface StorageConfig {
+  endpoint: string;
+  region: string;
+  bucket: string;
+  accessKey: string;
+  secretKey: string;
+  forcePathStyle: boolean;
+}
+
+let cachedConfig: StorageConfig | null = null;
+
+export function getStorageConfig(): StorageConfig {
+  if (!cachedConfig) {
+    cachedConfig = {
+      endpoint: requireEnv("S3_ENDPOINT"),
+      region: requireEnv("S3_REGION"),
+      bucket: requireEnv("S3_BUCKET"),
+      accessKey: requireEnv("S3_ACCESS_KEY"),
+      secretKey: requireEnv("S3_SECRET_KEY"),
+      forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
+    };
+  }
+  return cachedConfig;
+}
 
 // ── S3 Client (singleton) ────────────────────────────────────────
 
@@ -41,14 +65,15 @@ let s3Client: S3Client | null = null;
 
 export function getS3Client(): S3Client {
   if (!s3Client) {
+    const config = getStorageConfig();
     s3Client = new S3Client({
-      endpoint: STORAGE_CONFIG.endpoint,
-      region: STORAGE_CONFIG.region,
+      endpoint: config.endpoint,
+      region: config.region,
       credentials: {
-        accessKeyId: STORAGE_CONFIG.accessKey,
-        secretAccessKey: STORAGE_CONFIG.secretKey,
+        accessKeyId: config.accessKey,
+        secretAccessKey: config.secretKey,
       },
-      forcePathStyle: STORAGE_CONFIG.forcePathStyle,
+      forcePathStyle: config.forcePathStyle,
     });
   }
   return s3Client;
@@ -82,13 +107,9 @@ export const StoragePaths = {
 
 /**
  * Builds a public URL for an object in the bucket.
- * Since this is a local-network-only app, we construct direct
- * S3 endpoint URLs (no CDN / CloudFront).
- *
- * For private/proxied access, use API routes that call getObject
- * and stream the response (Range support for videos).
+ * Uses lazy config — safe to import at build time.
  */
 export function getStorageUrl(key: string): string {
-  const { endpoint, bucket } = STORAGE_CONFIG;
+  const { endpoint, bucket } = getStorageConfig();
   return `${endpoint}/${bucket}/${key}`;
 }

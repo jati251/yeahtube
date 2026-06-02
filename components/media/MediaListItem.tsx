@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Film, Image, Clock, Layers } from "lucide-react";
 import { clsx } from "clsx";
@@ -18,125 +18,183 @@ interface MediaListItemProps {
     duration?: number | null;
     category?: string | null;
   };
+  isAdmin?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
+  onDelete?: (id: number) => void;
 }
 
-export function MediaListItem({ post }: MediaListItemProps) {
+export function MediaListItem({ post, isAdmin, selected, onToggleSelect, onDelete }: MediaListItemProps) {
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
   const timeAgo = getTimeAgo(post.createdAt);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <Link
-      href={href}
-      className="group flex gap-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:p-4"
-    >
-      {/* Thumbnail */}
-      <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:h-24 sm:w-36">
-        {post.thumbnailUrl ? (
-          <img
-            src={post.thumbnailUrl}
-            alt={post.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            {post.mediaType === "video" ? (
-              <Film className="h-8 w-8 text-gray-400" />
-            ) : (
-              <Image className="h-8 w-8 text-gray-400" />
-            )}
-          </div>
-        )}
-
-        {/* Type badge */}
-        <span
-          className={clsx(
-            "absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white",
-            post.mediaType === "video"
-              ? "bg-purple-600"
-              : post.mediaType === "mixed"
-                ? "bg-blue-600"
-                : "bg-green-600",
-          )}
+    <div className="group relative flex gap-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+      {/* Selection checkbox */}
+      {(isAdmin || onToggleSelect) && (
+        <div
+          className="flex items-start pt-1"
+          onClick={(e) => e.stopPropagation()}
         >
-          {post.mediaType === "video"
-            ? "Video"
-            : post.mediaType === "mixed"
-              ? "Mixed"
-              : "Photo"}
-        </span>
+          <input
+            type="checkbox"
+            checked={selected || false}
+            onChange={() => onToggleSelect?.(post.id)}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+          />
+        </div>
+      )}
 
-        {post.duration && (
-          <span className="absolute bottom-1 right-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
-            {formatDuration(post.duration)}
+      <Link href={href} className="flex flex-1 gap-4">
+        {/* Thumbnail */}
+        <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:h-24 sm:w-36">
+          {post.thumbnailUrl ? (
+            <img
+              src={post.thumbnailUrl}
+              alt={post.title}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              {post.mediaType === "video" ? (
+                <Film className="h-8 w-8 text-gray-400" />
+              ) : (
+                <Image className="h-8 w-8 text-gray-400" />
+              )}
+            </div>
+          )}
+
+          {/* Type badge */}
+          <span
+            className={clsx(
+              "absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white",
+              post.mediaType === "video"
+                ? "bg-purple-600"
+                : post.mediaType === "mixed"
+                  ? "bg-blue-600"
+                  : "bg-green-600",
+            )}
+          >
+            {post.mediaType === "video"
+              ? "Video"
+              : post.mediaType === "mixed"
+                ? "Mixed"
+                : "Photo"}
           </span>
-        )}
-      </div>
 
-      {/* Info */}
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-1 text-sm font-semibold text-gray-900 dark:text-white">
-            {post.title}
-          </h3>
-          {post.mediaCount > 1 && (
-            <span className="hidden shrink-0 items-center gap-1 text-xs text-gray-400 sm:flex">
-              <Layers className="h-3 w-3" />
-              {post.mediaCount}
+          {post.duration && (
+            <span className="absolute bottom-1 right-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+              {formatDuration(post.duration)}
             </span>
           )}
         </div>
 
-        {post.description && (
-          <p className="line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
-            {post.description}
-          </p>
-        )}
-
-        {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
-          <span>{timeAgo}</span>
-          {post.category && (
-            <>
-              <span>·</span>
-              <span className="text-gray-500 dark:text-gray-400">
-                {post.category}
-              </span>
-            </>
-          )}
-          {post.mediaCount > 1 && (
-            <>
-              <span className="sm:hidden">·</span>
-              <span className="flex items-center gap-1 sm:hidden">
+        {/* Info */}
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="line-clamp-1 text-sm font-semibold text-gray-900 dark:text-white">
+              {post.title}
+            </h3>
+            {post.mediaCount > 1 && (
+              <span className="hidden shrink-0 items-center gap-1 text-xs text-gray-400 sm:flex">
                 <Layers className="h-3 w-3" />
-                {post.mediaCount} files
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* Tags */}
-        {post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {post.tags.slice(0, 4).map((tag) => (
-              <span
-                key={tag.id}
-                className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-              >
-                #{tag.name}
-              </span>
-            ))}
-            {post.tags.length > 4 && (
-              <span className="text-[10px] text-gray-400">
-                +{post.tags.length - 4}
+                {post.mediaCount}
               </span>
             )}
           </div>
-        )}
-      </div>
-    </Link>
+
+          {post.description && (
+            <p className="line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
+              {post.description}
+            </p>
+          )}
+
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
+            <span>{timeAgo}</span>
+            {post.category && (
+              <>
+                <span>·</span>
+                <span className="text-gray-500 dark:text-gray-400">
+                  {post.category}
+                </span>
+              </>
+            )}
+            {post.mediaCount > 1 && (
+              <>
+                <span className="sm:hidden">·</span>
+                <span className="flex items-center gap-1 sm:hidden">
+                  <Layers className="h-3 w-3" />
+                  {post.mediaCount} files
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Tags */}
+          {post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {post.tags.slice(0, 4).map((tag) => (
+                <span
+                  key={tag.id}
+                  className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                >
+                  #{tag.name}
+                </span>
+              ))}
+              {post.tags.length > 4 && (
+                <span className="text-[10px] text-gray-400">
+                  +{post.tags.length - 4}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </Link>
+
+      {/* Admin actions dropdown */}
+      {isAdmin && (
+        <div className="relative flex items-start">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setMenuOpen(!menuOpen);
+            }}
+            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="More actions"
+          >
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className="absolute right-0 z-20 mt-8 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onDelete?.(post.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700"
+                >
+                  Delete
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

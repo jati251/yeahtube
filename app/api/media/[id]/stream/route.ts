@@ -2,7 +2,7 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getS3Client, STORAGE_CONFIG } from "@/lib/storage";
+import { getS3Client, getStorageConfig } from "@/lib/storage";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { eq } from "drizzle-orm";
 
@@ -46,11 +46,12 @@ export async function GET(
     }
 
     const s3 = getS3Client();
+    const storageConfig = getStorageConfig();
 
     // Get file info first
     const headResult = await s3.send(
       new GetObjectCommand({
-        Bucket: STORAGE_CONFIG.bucket,
+        Bucket: storageConfig.bucket,
         Key: mediaFile.storageKey,
       }),
     );
@@ -67,7 +68,7 @@ export async function GET(
 
       const s3Response = await s3.send(
         new GetObjectCommand({
-          Bucket: STORAGE_CONFIG.bucket,
+          Bucket: storageConfig.bucket,
           Key: mediaFile.storageKey,
           Range: `bytes=${start}-${end}`,
         }),
@@ -90,7 +91,7 @@ export async function GET(
     // No range header: return entire file
     const s3Response = await s3.send(
       new GetObjectCommand({
-        Bucket: STORAGE_CONFIG.bucket,
+        Bucket: storageConfig.bucket,
         Key: mediaFile.storageKey,
       }),
     );

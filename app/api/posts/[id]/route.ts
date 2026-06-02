@@ -111,22 +111,23 @@ export async function DELETE(
       .where(eq(schema.media.postId, post.id))
       .all();
 
-    const { getS3Client, STORAGE_CONFIG } = await import("@/lib/storage");
+    const { getS3Client, getStorageConfig } = await import("@/lib/storage");
     const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
     const s3 = getS3Client();
+    const storageConfig = getStorageConfig();
 
     for (const m of media) {
       try {
         await s3.send(
           new DeleteObjectCommand({
-            Bucket: STORAGE_CONFIG.bucket,
+            Bucket: storageConfig.bucket,
             Key: m.storageKey,
           }),
         );
         if (m.thumbnailKey) {
           await s3.send(
             new DeleteObjectCommand({
-              Bucket: STORAGE_CONFIG.bucket,
+              Bucket: storageConfig.bucket,
               Key: m.thumbnailKey,
             }),
           );

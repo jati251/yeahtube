@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Film, Image, Clock } from "lucide-react";
 import { clsx } from "clsx";
@@ -17,19 +17,37 @@ interface MediaCardProps {
     mediaType: "image" | "video" | "mixed";
     duration?: number | null;
   };
+  isAdmin?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
+  onDelete?: (id: number) => void;
 }
 
-export function MediaCard({ post }: MediaCardProps) {
+export function MediaCard({ post, isAdmin, selected, onToggleSelect, onDelete }: MediaCardProps) {
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
   const timeAgo = getTimeAgo(post.createdAt);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <Link
-      href={href}
-      className="group block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
-    >
+    <div className="group relative block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+      {/* Selection checkbox (visible when admin or hover) */}
+      {(isAdmin || onToggleSelect) && (
+        <div
+          className={`absolute left-2 top-2 z-10 ${onToggleSelect ? "" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={selected || false}
+            onChange={() => onToggleSelect?.(post.id)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+          />
+        </div>
+      )}
+
+      <Link href={href}>
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
         {post.thumbnailUrl ? (
@@ -118,7 +136,47 @@ export function MediaCard({ post }: MediaCardProps) {
           {timeAgo}
         </p>
       </div>
-    </Link>
+      </Link>
+
+      {/* Admin actions dropdown */}
+      {isAdmin && (
+        <div className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setMenuOpen(!menuOpen);
+            }}
+            className="rounded-lg bg-black/50 p-1 text-white hover:bg-black/70"
+            aria-label="More actions"
+          >
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className="absolute right-0 z-20 mt-1 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onDelete?.(post.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700"
+                >
+                  Delete
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

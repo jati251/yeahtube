@@ -36,6 +36,7 @@ interface CategoryItem {
 }
 
 interface BrowseClientProps {
+  isAdmin: boolean;
   tags: TagItem[];
   categories: CategoryItem[];
 }
@@ -49,7 +50,7 @@ const SORT_OPTIONS = [
   { value: "recently-updated", label: "Recently Updated" },
 ];
 
-export function BrowseClient({ tags, categories }: BrowseClientProps) {
+export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -68,8 +69,76 @@ export function BrowseClient({ tags, categories }: BrowseClientProps) {
   const category = searchParams.get("category");
   const year = searchParams.get("year");
 
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleting, setDeleting] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Selection helpers
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === posts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(posts.map((p) => p.id)));
+    }
+  };
+
+  // Single delete
+  const handleDelete = async (postId: number) => {
+    if (!confirm("Delete this post permanently?")) return;
+    try {
+      const csrfToken = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
+      )?.[1];
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: "DELETE",
+        headers: {
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      setSelectedIds((prev) => { const n = new Set(prev); n.delete(postId); return n; });
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+  };
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} post${selectedIds.size > 1 ? "s" : ""} permanently?`)) return;
+    setDeleting(true);
+    try {
+      const csrfToken = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
+      )?.[1];
+      const res = await fetch("/api/posts/batch", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+      if (!res.ok) throw new Error("Bulk delete failed");
+      setPosts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error("Bulk delete error:", err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Fetch posts
   const fetchPosts = useCallback(
@@ -389,14 +458,54 @@ export function BrowseClient({ tags, categories }: BrowseClientProps) {
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               {posts.map((post) => (
-                <MediaCard key={post.id} post={post} />
+                <MediaCard
+                  key={post.id}
+                  post={post}
+                  isAdmin={isAdmin}
+                  selected={selectedIds.has(post.id)}
+                  onToggleSelect={toggleSelect}
+                  onDelete={handleDelete}
+                />
               ))}
             </div>
           ) : (
             <div className="space-y-3">
               {posts.map((post) => (
-                <MediaListItem key={post.id} post={post} />
+                <MediaListItem
+                  key={post.id}
+                  post={post}
+                  isAdmin={isAdmin}
+                  selected={selectedIds.has(post.id)}
+                  onToggleSelect={toggleSelect}
+                  onDelete={handleDelete}
+                />
               ))}
+            </div>
+          )}
+
+          {/* Bulk action bar */}
+          {isAdmin && selectedIds.size > 0 && (
+            <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/95 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {selectedIds.size} selected
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    className="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={deleting}
+                    className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {deleting ? "Deleting..." : `Delete (${selectedIds.size})`}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

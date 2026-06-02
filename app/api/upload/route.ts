@@ -2,7 +2,7 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getS3Client, StoragePaths, STORAGE_CONFIG } from "@/lib/storage";
+import { getS3Client, StoragePaths, getStorageConfig } from "@/lib/storage";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { validateMagicBytes, validateExtension } from "@/lib/magic-bytes";
 import { requireCsrf } from "@/lib/csrf";
@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
 
     const db = getDb();
     const s3 = getS3Client();
+    const storageConfig = getStorageConfig();
 
     // Resolve category
     let categoryId: number | null = null;
@@ -276,7 +277,7 @@ export async function POST(request: NextRequest) {
       // Upload original to S3
       await s3.send(
         new PutObjectCommand({
-          Bucket: STORAGE_CONFIG.bucket,
+          Bucket: storageConfig.bucket,
           Key: storageKey,
           Body: fileBuffer,
           ContentType: file.type,
@@ -294,7 +295,7 @@ export async function POST(request: NextRequest) {
           thumbnailKey = `thumbnails/${folderPath}/${thumbnailFilename}`;
           await s3.send(
             new PutObjectCommand({
-              Bucket: STORAGE_CONFIG.bucket,
+              Bucket: storageConfig.bucket,
               Key: thumbnailKey,
               Body: thumbnailBuffer,
               ContentType: "image/webp",
@@ -314,7 +315,7 @@ export async function POST(request: NextRequest) {
           thumbnailKey = `thumbnails/${folderPath}/${thumbnailFilename}`;
           await s3.send(
             new PutObjectCommand({
-              Bucket: STORAGE_CONFIG.bucket,
+              Bucket: storageConfig.bucket,
               Key: thumbnailKey,
               Body: thumbnailBuffer,
               ContentType: "image/webp",
