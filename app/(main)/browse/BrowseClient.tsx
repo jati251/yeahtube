@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
@@ -9,31 +9,9 @@ import { MobileFilters } from "@/components/filters/MobileFilters";
 import { ActiveFilters } from "@/components/filters/ActiveFilters";
 import { TagCloud } from "@/components/filters/TagCloud";
 import { Search, RefreshCw, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
-
-interface PostItem {
-  id: number;
-  title: string;
-  description: string | null;
-  createdAt: string;
-  tags: { id: number; name: string; slug: string }[];
-  mediaCount: number;
-  mediaType: "image" | "video" | "mixed";
-  thumbnailUrl: string | null;
-  duration: number | null;
-  category?: string | null;
-}
-
-interface TagItem {
-  id: number;
-  name: string;
-  slug: string;
-}
-
-interface CategoryItem {
-  id: number;
-  name: string;
-  slug: string;
-}
+import { TagItem, CategoryItem } from "@/types/post";
+import { useInfinitePosts } from "@/hooks/useInfinitePosts";
+import { usePostSelection } from "@/hooks/usePostSelection";
 
 interface BrowseClientProps {
   isAdmin: boolean;
@@ -54,13 +32,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [posts, setPosts] = useState<PostItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
   // Filters from URL
   const mediaType = searchParams.get("type");
   const selectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
@@ -69,137 +40,39 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
   const category = searchParams.get("category");
   const year = searchParams.get("year");
 
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [deleting, setDeleting] = useState(false);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  // Selection helpers
-  const toggleSelect = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === posts.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(posts.map((p) => p.id)));
-    }
-  };
-
-  // Single delete
-  const handleDelete = async (postId: number) => {
-    if (!confirm("Delete this post permanently?")) return;
-    try {
-      const csrfToken = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
-      )?.[1];
-      const res = await fetch(`/api/posts/${postId}`, {
-        method: "DELETE",
-        headers: {
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-      });
-      if (!res.ok) throw new Error("Delete failed");
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-      setSelectedIds((prev) => { const n = new Set(prev); n.delete(postId); return n; });
-      router.refresh();
-    } catch (err) {
-      console.error("Delete error:", err);
-    }
-  };
-
-  // Bulk delete
-  const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirm(`Delete ${selectedIds.size} post${selectedIds.size > 1 ? "s" : ""} permanently?`)) return;
-    setDeleting(true);
-    try {
-      const csrfToken = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
-      )?.[1];
-      const res = await fetch("/api/posts/batch", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-        body: JSON.stringify({ ids: Array.from(selectedIds) }),
-      });
-      if (!res.ok) throw new Error("Bulk delete failed");
-      setPosts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
-      setSelectedIds(new Set());
-      router.refresh();
-    } catch (err) {
-      console.error("Bulk delete error:", err);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  // Fetch posts
-  const fetchPosts = useCallback(
-    async (cursorVal?: string) => {
-      const isLoadMore = !!cursorVal;
-      if (isLoadMore) setLoadingMore(true);
-      else setLoading(true);
-
-      try {
-        const params = new URLSearchParams();
-        if (cursorVal) params.set("cursor", cursorVal);
-        params.set("limit", "20");
-        params.set("sort", sort);
-        if (mediaType) params.set("type", mediaType);
-        if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
-        if (searchQuery) params.set("q", searchQuery);
-        if (category) params.set("category", category);
-        if (year) params.set("year", year);
-
-        const res = await fetch(`/api/posts?${params}`);
-        const data = await res.json();
-
-        if (isLoadMore) {
-          setPosts((prev) => [...prev, ...(data.posts || [])]);
-        } else {
-          setPosts(data.posts || []);
-        }
-        setCursor(data.nextCursor);
-        setHasMore(data.hasMore);
-      } catch (err) {
-        console.error("Browse fetch error:", err);
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+  const {
+    posts,
+    setPosts,
+    loading,
+    loadingMore,
+    hasMore,
+    loadMoreRef,
+  } = useInfinitePosts({
+    fetchParams: {
+      type: mediaType,
+      tags: searchParams.get("tags"),
+      q: searchQuery,
+      sort,
+      category,
+      year,
     },
-    [mediaType, selectedTags.join(","), searchQuery, sort, category, year],
-  );
+    autoFetch: true,
+  });
 
-  // Initial load and filter changes
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+  const {
+    selectedIds,
+    setSelectedIds,
+    selectMode,
+    toggleSelectMode,
+    deleting,
+    toggleSelect,
+    handleDelete,
+    handleBulkDelete,
+  } = usePostSelection(posts, setPosts);
 
-  // Infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          fetchPosts(cursor ?? undefined);
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loadingMore, cursor, fetchPosts]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(searchQuery);
 
   // URL helpers
   const updateUrl = useCallback(
@@ -214,43 +87,28 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     [router, searchParams],
   );
 
-  const handleMediaTypeChange = (type: string | null) => {
-    updateUrl({ type });
-  };
-
+  const handleMediaTypeChange = (type: string | null) => updateUrl({ type });
+  
   const handleTagToggle = (slug: string) => {
     const current = new Set(selectedTags);
     if (current.has(slug)) current.delete(slug);
     else current.add(slug);
-    const tagsStr = Array.from(current).join(",");
-    updateUrl({ tags: tagsStr || null });
+    updateUrl({ tags: Array.from(current).join(",") || null });
   };
 
-  const handleCategoryChange = (slug: string | null) => {
-    updateUrl({ category: slug });
-  };
-
-  const handleYearChange = (yearVal: string | null) => {
-    updateUrl({ year: yearVal });
-  };
-
-  const handleSortChange = (newSort: string) => {
-    updateUrl({ sort: newSort });
-  };
-
+  const handleCategoryChange = (slug: string | null) => updateUrl({ category: slug });
+  const handleYearChange = (yearVal: string | null) => updateUrl({ year: yearVal });
+  const handleSortChange = (newSort: string) => updateUrl({ sort: newSort });
+  
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const q = (form.elements.namedItem("q") as HTMLInputElement)?.value || "";
-    updateUrl({ q: q || null });
+    updateUrl({ q: searchInput || null });
   };
 
   const clearAll = () => {
+    setSearchInput("");
     router.push("/browse");
   };
-
-  // Search input
-  const [searchInput, setSearchInput] = useState(searchQuery);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -359,10 +217,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               {/* Select toggle (admin only) */}
               {isAdmin && (
                 <button
-                  onClick={() => {
-                    setSelectMode(!selectMode);
-                    if (selectMode) setSelectedIds(new Set());
-                  }}
+                  onClick={toggleSelectMode}
                   className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
                     selectMode
                       ? "border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
@@ -378,10 +233,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
                 <TagCloud
                   tags={tags}
                   activeTag={selectedTags[0] || null}
-                  onTagSelect={(slug) => {
-                    if (slug) updateUrl({ tags: slug });
-                    else updateUrl({ tags: null });
-                  }}
+                  onTagSelect={(slug) => updateUrl({ tags: slug })}
                 />
               </div>
 
@@ -418,10 +270,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             <TagCloud
               tags={tags}
               activeTag={selectedTags[0] || null}
-              onTagSelect={(slug) => {
-                if (slug) updateUrl({ tags: slug });
-                else updateUrl({ tags: null });
-              }}
+              onTagSelect={(slug) => updateUrl({ tags: slug })}
             />
           </div>
 
@@ -431,7 +280,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
           </p>
 
           {/* Content */}
-          {loading ? (
+          {loading && posts.length === 0 ? (
             viewMode === "grid" ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -532,7 +381,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
           )}
 
           {/* Load more */}
-          <div ref={loadMoreRef} className="mt-8 flex justify-center">
+          <div ref={loadMoreRef} className="mt-8 flex justify-center h-10">
             {loadingMore && (
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <RefreshCw className="h-4 w-4 animate-spin" />
