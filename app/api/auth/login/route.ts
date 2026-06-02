@@ -1,74 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { login, setSessionCookie } from "@/lib/auth";
-import { requireCsrf } from "@/lib/csrf";
 import { z } from "zod";
-import { checkRateLimit } from "@/lib/rate-limit";
 
-const loginJSONSchema = z.object({
+const loginSchema = z.object({
   username: z.string().min(1).max(50),
   password: z.string().min(1).max(128),
 });
-
-const loginFormSchema = z.object({
-  username: z.string().min(1).max(50),
-  password: z.string().min(1).max(128),
-});
-
-function getClientIp(request: NextRequest): string {
-  // Respect X-Forwarded-For from reverse proxies
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-  return request.headers.get("x-real-ip") || "127.0.0.1";
-}
 
 export async function POST(request: NextRequest) {
   try {
-    // ── CSRF protection ──────────────────────────────────
-    // Skip CSRF check for native HTML form submissions (JS-free fallback).
-    // Native forms have browser-enforced origin protection via the Referer header
-    // and can't carry the x-csrf-token header that JS fetch can.
+    // Accept both JSON (JS) and form-encoded (no-JS fallback)
     const contentType = request.headers.get("content-type") || "";
-    if (!contentType.includes("application/x-www-form-urlencoded")) {
-      const csrfError = requireCsrf(request);
-      if (csrfError) return csrfError;
-    }
+    let username: string;
+    let password: string;
 
-    // ── Rate limiting (IP-based) ─────────────────────────
-    const ip = getClientIp(request);
-    if (!checkRateLimit(`login:${ip}`)) {
-      return NextResponse.json(
-        { error: "Too many login attempts. Try again later." },
-        { status: 429 },
-      );
-    }
-
-    // Support both JSON (from JS fetch) and form-encoded (JS-free fallback)
-    let parsed;
     if (contentType.includes("application/x-www-form-urlencoded")) {
-      const formData = await request.formData();
-      parsed = loginFormSchema.safeParse({
-        username: formData.get("username"),
-        password: formData.get("password"),
-      });
+      const form = await request.formData();
+      username = (form.get("username") as string) || "";
+      password = (form.get("password") as string) || "";
     } else {
       const body = await request.json();
-      parsed = loginJSONSchema.safeParse(body);
+      username = body.username;
+      password = body.password;
     }
 
+    const parsed = loginSchema.safeParse({ username, password });
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid input", details: parsed.error.flatten() },
+        { error: "Invalid username or password" },
         { status: 400 },
       );
     }
 
-    const { username, password } = parsed.data;
-    const result = await login(username, password);
+    const result = await login(parsed.data.username, parsed.data.password);
 
     if (!result.success) {
-      // Use a generic error message (don't reveal which field is wrong)
       return NextResponse.json(
         { error: "Invalid username or password" },
         { status: 401 },
@@ -77,6 +43,12 @@ export async function POST(request: NextRequest) {
 
     await setSessionCookie(result.token);
 
+    // For form-encoded (no-JS): redirect to home
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // For JSON (JS fetch): return success
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Login error:", error);
