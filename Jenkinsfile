@@ -51,7 +51,7 @@ pipeline {
               docker run -d \
                 --restart always \
                 --name $CONTAINER_NAME \
-                -p 5207:80 \
+                -p 5207:5207 \
                 $IMAGE_NAME:$TAG
             '
           """

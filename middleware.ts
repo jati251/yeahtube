@@ -30,7 +30,7 @@ function ensureCsrfCookie(
   return response;
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths
