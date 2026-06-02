@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // Standalone output for Docker deployment (see Dockerfile)
   output: "standalone",
 
+  // Allow uploads up to 500MB — matches MAX_VIDEO_SIZE in upload route
+  // middlewareClientMaxBodySize is Next.js 16 config (docs link in error)
+  ...({ middlewareClientMaxBodySize: "500MB" } as Record<string, unknown>),
+
   serverExternalPackages: ["better-sqlite3", "sharp"],
 
   images: {

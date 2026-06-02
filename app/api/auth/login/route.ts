@@ -4,7 +4,12 @@ import { requireCsrf } from "@/lib/csrf";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-const loginSchema = z.object({
+const loginJSONSchema = z.object({
+  username: z.string().min(1).max(50),
+  password: z.string().min(1).max(128),
+});
+
+const loginFormSchema = z.object({
   username: z.string().min(1).max(50),
   password: z.string().min(1).max(128),
 });
@@ -33,8 +38,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const parsed = loginSchema.safeParse(body);
+    // Support both JSON (from JS fetch) and form-encoded (JS-free fallback)
+    const contentType = request.headers.get("content-type") || "";
+    let parsed;
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      const formData = await request.formData();
+      parsed = loginFormSchema.safeParse({
+        username: formData.get("username"),
+        password: formData.get("password"),
+      });
+    } else {
+      const body = await request.json();
+      parsed = loginJSONSchema.safeParse(body);
+    }
 
     if (!parsed.success) {
       return NextResponse.json(

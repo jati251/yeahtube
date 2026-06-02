@@ -83,7 +83,10 @@ export default function LoginPage() {
         </div>
 
         {/* Login form */}
+        {/* method + action provide a JS-free fallback if the bundle fails to load */}
         <form
+          method="POST"
+          action="/api/auth/login"
           onSubmit={handleSubmit}
           className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
         >
