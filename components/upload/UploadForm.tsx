@@ -146,6 +146,11 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
         formData.append("files", sf.file);
       });
 
+      // Read CSRF token from cookie (set by proxy.ts)
+      const csrfToken = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
+      )?.[1];
+
       // Simulate progress (XHR doesn't natively support upload progress with FormData easily)
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => Math.min(prev + 10, 90));
@@ -153,6 +158,9 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
 
       const res = await fetch("/api/upload", {
         method: "POST",
+        headers: {
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
         body: formData,
       });
 

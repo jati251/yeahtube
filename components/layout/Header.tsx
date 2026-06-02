@@ -28,7 +28,16 @@ export function Header({ username, isAdmin }: HeaderProps) {
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    // Read CSRF token from cookie (set by proxy.ts)
+    const csrfToken = document.cookie.match(
+      new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
+    )?.[1];
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: {
+        ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+      },
+    });
     router.push("/login");
   };
 

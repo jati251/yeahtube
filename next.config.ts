@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const nextConfig: NextConfig = {
+  // Standalone output for Docker deployment (see Dockerfile)
+  output: "standalone",
+
   serverExternalPackages: ["better-sqlite3", "sharp"],
 
   images: {
@@ -15,6 +20,20 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
+    // In development, be permissive for HMR and dev tools
+    if (isDev) {
+      return [
+        {
+          source: "/(.*)",
+          headers: [
+            { key: "X-Content-Type-Options", value: "nosniff" },
+            { key: "X-Frame-Options", value: "DENY" },
+            { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          ],
+        },
+      ];
+    }
+
     return [
       {
         source: "/(.*)",
@@ -35,11 +54,11 @@ const nextConfig: NextConfig = {
             key: "X-Permitted-Cross-Domain-Policies",
             value: "none",
           },
-          // ── Content Security Policy ───────────────────────
-          // Restricts resources to self-hosted origins.
-          // 'unsafe-inline' on style-src is required for Tailwind /
-          // Next.js style injection. Media can be served from
-          // the local MinIO endpoint.
+          // ── Content Security Policy (production only) ─────
+          // Dev mode is intentionally permissive for HMR/WebSocket.
+          // In production, restrict resources to self-hosted origins.
+          // 'unsafe-inline' on style-src is required for Next.js
+          // style injection. Media can be served from local MinIO.
           {
             key: "Content-Security-Policy",
             value: [

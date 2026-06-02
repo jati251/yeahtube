@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'rubik-mantap-image'                   
-        CONTAINER_NAME = 'rubik-mantap-app'               
+        IMAGE_NAME = 'yeahtube-image'                   
+        CONTAINER_NAME = 'yeahtube-app'               
         TAG = 'latest'
         REMOTE_USER = 'jati'
         REMOTE_HOST = '192.168.1.200'
-        REMOTE_DIR = '/home/jati/rubik-mantap'
+        REMOTE_DIR = '/home/jati/yeahtube'
     }
 
     stages {
@@ -15,10 +15,10 @@ pipeline {
             steps {
                 checkout([$class: 'GitSCM',
             userRemoteConfigs: [[
-                url: 'https://github.com/jati251/rubik-mantap.git',
+                url: 'https://github.com/jati251/yeahtube.git',
                 credentialsId: 'github-credentials'
             ]],
-            branches: [[name: '*/master']]
+            branches: [[name: '*/main']]
         ])
             }
         }
@@ -35,9 +35,9 @@ pipeline {
               cd $REMOTE_DIR
 
               if [ ! -d .git ]; then
-                git clone https://github.com/jati251/rubik-mantap.git . || true
+                git clone https://github.com/jati251/yeahtube.git . || true
               else
-                git remote set-url origin https://github.com/jati251/rubik-mantap.git || true
+                git remote set-url origin https://github.com/jati251/yeahtube.git || true
                 git pull || true
               fi
 
@@ -51,7 +51,7 @@ pipeline {
               docker run -d \
                 --restart always \
                 --name $CONTAINER_NAME \
-                -p 5204:80 \
+                -p 5207:80 \
                 $IMAGE_NAME:$TAG
             '
           """

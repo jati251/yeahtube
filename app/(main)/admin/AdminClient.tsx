@@ -25,9 +25,16 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
 
   const toggleWhitelist = async (userId: number, current: boolean) => {
     try {
+      // Read CSRF token from cookie (set by proxy.ts)
+      const csrfToken = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
+      )?.[1];
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
         body: JSON.stringify({ isWhitelisted: !current }),
       });
 
@@ -46,9 +53,16 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
 
   const toggleAdmin = async (userId: number, current: boolean) => {
     try {
+      // Read CSRF token from cookie (set by proxy.ts)
+      const csrfToken = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
+      )?.[1];
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
         body: JSON.stringify({ isAdmin: !current }),
       });
 
