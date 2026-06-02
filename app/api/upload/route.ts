@@ -397,12 +397,11 @@ export async function POST(request: NextRequest) {
           ? `${filenameWithoutExt}`
           : filenameWithoutExt;
 
-        // Create post
+        // Create post (omit categoryId for quick post — no form fields used)
         const postResult = db
           .insert(schema.posts)
           .values({
             userId: user.id,
-            categoryId,
             title: fileTitle,
           })
           .run();
@@ -445,14 +444,17 @@ export async function POST(request: NextRequest) {
 
     // ── Normal Mode: one post, multiple media ────────────
 
-    // Create post
+    // Create post (conditionally include categoryId — column may not exist on pre-seed DBs)
+    const postValues: Record<string, unknown> = {
+      userId: user.id,
+      title: title.trim(),
+    };
+    if (categoryId !== null) {
+      postValues.categoryId = categoryId;
+    }
     const postResult = db
       .insert(schema.posts)
-      .values({
-        userId: user.id,
-        categoryId,
-        title: title.trim(),
-      })
+      .values(postValues as any)
       .run();
 
     const postId = Number(postResult.lastInsertRowid);
