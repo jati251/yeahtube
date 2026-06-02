@@ -126,7 +126,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     [addTag],
   );
 
-  // ── Quick Post: auto-upload each file as its own post ──
+  // ── Quick Post: auto-upload each file as its own post sequentially ──
   const handleQuickPost = async () => {
     if (selectedFiles.length === 0) return;
 
@@ -138,29 +138,28 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
       )?.[1];
 
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 10, 90));
-      }, 300);
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const sf = selectedFiles[i];
+        
+        // Progress based on completed files
+        setUploadProgress(Math.floor((i / selectedFiles.length) * 100));
 
-      const formData = new FormData();
-      selectedFiles.forEach((sf) => {
+        const formData = new FormData();
         formData.append("files", sf.file);
-      });
-      formData.append("quickPost", "true");
+        formData.append("quickPost", "true");
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-        body: formData,
-      });
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+          },
+          body: formData,
+        });
 
-      clearInterval(progressInterval);
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Upload failed");
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || `Upload failed for ${sf.file.name}`);
+        }
       }
 
       setUploadProgress(100);
@@ -182,7 +181,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     }
   };
 
-  // ── Manual Publish: with title, category, tags ─────────
+  // ── Manual Publish: with title, category, tags sequentially ─────────
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -204,33 +203,44 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
       )?.[1];
 
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 10, 90));
-      }, 500);
+      let currentPostId: string | null = null;
 
-      const formData = new FormData();
-      formData.append("title", title.trim());
-      if (category) formData.append("category", category);
-      formData.append("tags", JSON.stringify(tags));
-      formData.append("quickPost", "false");
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const sf = selectedFiles[i];
+        
+        setUploadProgress(Math.floor((i / selectedFiles.length) * 100));
 
-      selectedFiles.forEach((sf) => {
+        const formData = new FormData();
         formData.append("files", sf.file);
-      });
+        formData.append("quickPost", "false");
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-        body: formData,
-      });
+        if (i === 0) {
+          // First file: create the post
+          formData.append("title", title.trim());
+          if (category) formData.append("category", category);
+          formData.append("tags", JSON.stringify(tags));
+        } else {
+          // Subsequent files: append to existing post
+          formData.append("postId", currentPostId!);
+        }
 
-      clearInterval(progressInterval);
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+          },
+          body: formData,
+        });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Upload failed");
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || `Upload failed for ${sf.file.name}`);
+        }
+
+        if (i === 0) {
+          const data = await res.json();
+          currentPostId = data.post.id.toString();
+        }
       }
 
       setUploadProgress(100);

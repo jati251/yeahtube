@@ -15,6 +15,7 @@ export default async function AdminPage() {
 
   const db = getDb();
   const users = await db.select().from(schema.users).orderBy(schema.users.username);
+  const categories = await db.select().from(schema.categories).orderBy(schema.categories.name);
 
   return (
     <AdminClient
@@ -27,6 +28,7 @@ export default async function AdminPage() {
         isAdmin: !!u.isAdmin,
         createdAt: u.createdAt,
       }))}
+      categories={categories}
     />
   );
 }

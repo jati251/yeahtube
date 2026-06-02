@@ -1,0 +1,236 @@
+"use client";
+
+import React, { useState } from "react";
+import { useToast } from "@/components/ui/Toast";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { FolderPlus, Pencil, Trash2, X, Check } from "lucide-react";
+
+export interface CategoryItem {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt?: string;
+}
+
+interface CategoryManagerProps {
+  initialCategories: CategoryItem[];
+}
+
+export function CategoryManager({ initialCategories }: CategoryManagerProps) {
+  const { addToast } = useToast();
+  const [categories, setCategories] = useState(initialCategories);
+  const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Form states
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+
+    setLoading(true);
+    try {
+      const csrfToken = document.cookie.match(new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`))?.[1];
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
+        body: JSON.stringify({ name: newName, description: newDesc }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create category");
+
+      setCategories((prev) => [...prev, data.category]);
+      setNewName("");
+      setNewDesc("");
+      addToast("success", "Category created");
+    } catch (err) {
+      addToast("error", err instanceof Error ? err.message : "Failed to create category");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCategory = async (id: number) => {
+    if (!editName.trim()) return;
+
+    setLoading(true);
+    try {
+      const csrfToken = document.cookie.match(new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`))?.[1];
+      const res = await fetch(`/api/categories/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
+        body: JSON.stringify({ name: editName, description: editDesc }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update category");
+
+      setCategories((prev) => prev.map((c) => (c.id === id ? data.category : c)));
+      setEditingId(null);
+      addToast("success", "Category updated");
+    } catch (err) {
+      addToast("error", err instanceof Error ? err.message : "Failed to update category");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this category? Posts in this category will become uncategorized.")) return;
+
+    setLoading(true);
+    try {
+      const csrfToken = document.cookie.match(new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`))?.[1];
+      const res = await fetch(`/api/categories/${id}`, {
+        method: "DELETE",
+        headers: {
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete category");
+
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      addToast("success", "Category deleted");
+    } catch (err) {
+      addToast("error", err instanceof Error ? err.message : "Failed to delete category");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEdit = (cat: CategoryItem) => {
+    setEditingId(cat.id);
+    setEditName(cat.name);
+    setEditDesc(cat.description || "");
+  };
+
+  return (
+    <div className="space-y-8">
+      <form onSubmit={handleAddCategory} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+          Add New Category
+        </h2>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-0 flex-1">
+            <Input
+              label="Name"
+              name="cat-name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. Vacation 2024"
+              required
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <Input
+              label="Description (Optional)"
+              name="cat-desc"
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="A brief description..."
+            />
+          </div>
+          <Button type="submit" loading={loading} size="sm">
+            <FolderPlus className="mr-1 h-4 w-4" />
+            Add
+          </Button>
+        </div>
+      </form>
+
+      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+            <tr>
+              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 w-1/3">Name & Slug</th>
+              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 w-1/2">Description</th>
+              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            {categories.map((cat) => (
+              <tr key={cat.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                {editingId === cat.id ? (
+                  <>
+                    <td className="px-4 py-3 align-top">
+                      <Input
+                        name="edit-name"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="mb-1"
+                      />
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <Input
+                        name="edit-desc"
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right align-top">
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => setEditingId(null)} disabled={loading}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" onClick={() => handleUpdateCategory(cat.id)} loading={loading}>
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900 dark:text-white">{cat.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">/{cat.slug}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      {cat.description || <span className="text-gray-400 italic">No description</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => startEdit(cat)}
+                          className="rounded p-1.5 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(cat.id)}
+                          className="rounded p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-gray-700 dark:hover:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+            {categories.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                  No categories found. Create one above!
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

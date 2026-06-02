@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Shield, ShieldOff, Check, X, UserPlus } from "lucide-react";
 
+import { CategoryManager, CategoryItem } from "@/components/admin/CategoryManager";
+
 interface UserItem {
   id: number;
   username: string;
@@ -19,11 +21,15 @@ interface UserItem {
 interface AdminClientProps {
   currentUserId: number;
   users: UserItem[];
+  categories?: CategoryItem[];
 }
 
-export function AdminClient({ currentUserId, users }: AdminClientProps) {
+export function AdminClient({ currentUserId, users, categories = [] }: AdminClientProps) {
   const router = useRouter();
   const { addToast } = useToast();
+  
+  const [activeTab, setActiveTab] = useState<"users" | "categories">("users");
+  
   const [userList, setUserList] = useState(users);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -32,7 +38,6 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
 
   const toggleWhitelist = async (userId: number, current: boolean) => {
     try {
-      // Read CSRF token from cookie (set by proxy.ts)
       const csrfToken = document.cookie.match(
         new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
       )?.[1];
@@ -61,7 +66,6 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
 
   const toggleAdmin = async (userId: number, current: boolean) => {
     try {
-      // Read CSRF token from cookie (set by proxy.ts)
       const csrfToken = document.cookie.match(
         new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
       )?.[1];
@@ -128,145 +132,177 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Admin Panel
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Manage users and permissions
-        </p>
-      </div>
-
-      {/* Add User Form */}
-      <form onSubmit={handleAddUser} className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-          Add New User
-        </h2>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-0 flex-1">
-            <Input
-              label="Username"
-              name="new-username"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              placeholder="Username"
-              required
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <Input
-              label="Password"
-              name="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Password"
-              required
-            />
-          </div>
-          <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm text-gray-600 dark:text-gray-400">
-            <input
-              type="checkbox"
-              checked={newIsAdmin}
-              onChange={(e) => setNewIsAdmin(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
-            />
-            Admin
-          </label>
-          <Button type="submit" loading={adding} size="sm">
-            <UserPlus className="mr-1 h-4 w-4" />
-            Add User
-          </Button>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Admin Panel
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Manage users, permissions, and categories
+          </p>
         </div>
-      </form>
-
-      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
-            <tr>
-              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                Username
-              </th>
-              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                Whitelisted
-              </th>
-              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                Admin
-              </th>
-              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                Created
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {userList.map((u) => (
-              <tr
-                key={u.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {u.username}
-                    </span>
-                    {u.id === currentUserId && (
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                        You
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => toggleWhitelist(u.id, u.isWhitelisted)}
-                    disabled={u.id === currentUserId}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      u.isWhitelisted
-                        ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
-                    }`}
-                    title={u.id === currentUserId ? "Cannot modify your own whitelist status" : undefined}
-                  >
-                    {u.isWhitelisted ? (
-                      <>
-                        <Check className="h-3 w-3" /> Yes
-                      </>
-                    ) : (
-                      <>
-                        <X className="h-3 w-3" /> No
-                      </>
-                    )}
-                  </button>
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => toggleAdmin(u.id, u.isAdmin)}
-                    disabled={u.id === currentUserId}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                      u.isAdmin
-                        ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/50 dark:text-purple-300"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
-                    }`}
-                  >
-                    {u.isAdmin ? (
-                      <>
-                        <Shield className="h-3 w-3" /> Yes
-                      </>
-                    ) : (
-                      <>
-                        <ShieldOff className="h-3 w-3" /> No
-                      </>
-                    )}
-                  </button>
-                </td>
-                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                  {new Date(u.createdAt).toLocaleDateString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        
+        {/* Tabs */}
+        <div className="flex rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "users"
+                ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
+          >
+            Users
+          </button>
+          <button
+            onClick={() => setActiveTab("categories")}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "categories"
+                ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
+          >
+            Categories
+          </button>
+        </div>
       </div>
+
+      {activeTab === "users" ? (
+        <>
+          {/* Add User Form */}
+          <form onSubmit={handleAddUser} className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+              Add New User
+            </h2>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-0 flex-1">
+                <Input
+                  label="Username"
+                  name="new-username"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="Username"
+                  required
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Input
+                  label="Password"
+                  name="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                />
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm text-gray-600 dark:text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={newIsAdmin}
+                  onChange={(e) => setNewIsAdmin(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+                />
+                Admin
+              </label>
+              <Button type="submit" loading={adding} size="sm">
+                <UserPlus className="mr-1 h-4 w-4" />
+                Add User
+              </Button>
+            </div>
+          </form>
+
+          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                <tr>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
+                    Username
+                  </th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
+                    Whitelisted
+                  </th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
+                    Admin
+                  </th>
+                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
+                    Created
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {userList.map((u) => (
+                  <tr
+                    key={u.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {u.username}
+                        </span>
+                        {u.id === currentUserId && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                            You
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => toggleWhitelist(u.id, u.isWhitelisted)}
+                        disabled={u.id === currentUserId}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          u.isWhitelisted
+                            ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
+                        }`}
+                        title={u.id === currentUserId ? "Cannot modify your own whitelist status" : undefined}
+                      >
+                        {u.isWhitelisted ? (
+                          <>
+                            <Check className="h-3 w-3" /> Yes
+                          </>
+                        ) : (
+                          <>
+                            <X className="h-3 w-3" /> No
+                          </>
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => toggleAdmin(u.id, u.isAdmin)}
+                        disabled={u.id === currentUserId}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                          u.isAdmin
+                            ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/50 dark:text-purple-300"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
+                        }`}
+                      >
+                        {u.isAdmin ? (
+                          <>
+                            <Shield className="h-3 w-3" /> Yes
+                          </>
+                        ) : (
+                          <>
+                            <ShieldOff className="h-3 w-3" /> No
+                          </>
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                      {new Date(u.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <CategoryManager initialCategories={categories} />
+      )}
     </div>
   );
 }

@@ -440,31 +440,56 @@ export async function POST(request: NextRequest) {
 
     // ── Normal Mode: one post, multiple media ────────────
 
-    // Create post (conditionally include categoryId — column may not exist on pre-seed DBs)
-    const postValues = {
-      userId: user.id,
-      title: title.trim(),
-      ...(categoryId !== null ? { categoryId } : {}),
-    } as const;
-    const [newPost] = await db
-      .insert(schema.posts)
-      .values(postValues)
-      .returning();
-
-    const postId = newPost.id;
+    let postId: number;
+    const postIdStr = formData.get("postId") as string | null;
+    
+    if (postIdStr) {
+      postId = parseInt(postIdStr, 10);
+      const [existingPost] = await db
+        .select()
+        .from(schema.posts)
+        .where(eq(schema.posts.id, postId));
+        
+      if (!existingPost || existingPost.userId !== user.id) {
+        return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+      }
+    } else {
+      const postValues = {
+        userId: user.id,
+        title: title.trim(),
+        ...(categoryId !== null ? { categoryId } : {}),
+      } as const;
+      const [newPost] = await db
+        .insert(schema.posts)
+        .values(postValues)
+        .returning();
+      postId = newPost.id;
+    }
 
     // Process each file
     const mediaRecords = [];
 
+    // Get the current max orderIndex if appending
+    let startIndex = 0;
+    if (postIdStr) {
+      const existingMedia = await db
+        .select()
+        .from(schema.media)
+        .where(eq(schema.media.postId, postId));
+      startIndex = existingMedia.length;
+    }
+
     for (let i = 0; i < files.length; i++) {
       try {
         const mediaRecord = await processSingleFile(
-          files[i], i, db, s3, storageConfig, postId,
+          files[i], startIndex + i, db, s3, storageConfig, postId,
         );
         mediaRecords.push(mediaRecord);
       } catch (err) {
-        // Clean up the entire post if any file fails
-        await db.delete(schema.posts).where(eq(schema.posts.id, postId));
+        // If it's a new post, clean it up. If appending, leave the post intact.
+        if (!postIdStr) {
+          await db.delete(schema.posts).where(eq(schema.posts.id, postId));
+        }
         const message = err instanceof Error ? err.message : "File processing failed";
         return NextResponse.json(
           { error: `File "${files[i].name}": ${message}` },
@@ -473,8 +498,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Process tags
-    processTags(db, postId, tagNames);
+    // Process tags (will quietly ignore duplicates because processTags handles it or we can just run it)
+    if (!postIdStr) {
+      processTags(db, postId, tagNames);
+    }
 
     return NextResponse.json(
       {
