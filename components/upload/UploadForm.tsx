@@ -32,10 +32,19 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [acceptType, setAcceptType] = useState("image/*,video/*");
 
   // Used for auto-filling title based on single file
   const prevFilesCount = useRef(0);
   const lastAutoFilledTitleRef = useRef("");
+
+  useEffect(() => {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      // Use */* on Android to bypass picker multi-select bugs
+      setAcceptType("*/*");
+    }
+  }, []);
 
   const isVideoFile = useCallback((file: File) => {
     if (file.type && file.type.startsWith("video/")) return true;
@@ -46,27 +55,59 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const addFiles = useCallback(
     (filesArray: File[]) => {
       const newFiles: SelectedFile[] = [];
+      let imageCount = 0;
+      let videoCount = 0;
+      let skippedCount = 0;
+      let skippedDetails = "";
 
       filesArray.forEach((file) => {
-        const isImage = file.type.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "avif"].includes(file.name.split(".").pop()?.toLowerCase() || "");
+        const typeLower = (file.type || "").toLowerCase();
+        const ext = file.name.split(".").pop()?.toLowerCase() || "";
+        const isImage = typeLower.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "avif"].includes(ext);
         const isVideo = isVideoFile(file);
 
+        if (isImage) {
+          imageCount++;
+        } else if (isVideo) {
+          videoCount++;
+        } else {
+          skippedCount++;
+          skippedDetails += `${file.name} (${file.type || "no-type"}); `;
+        }
+
         if (isImage || isVideo) {
-          // Creating preview URL for valid files
-          // Note: for videos on mobile, creating too many heavy object URLs 
-          // might cause issues, but keeping it simple and rendering just an icon 
-          // for video (instead of a hidden <video> tag) usually mitigates memory crashes.
-          const preview = URL.createObjectURL(file);
-          const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
-          newFiles.push({ file, preview, id });
+          try {
+            const preview = URL.createObjectURL(file);
+            const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            newFiles.push({ file, preview, id });
+          } catch (err) {
+            console.error("Preview creation failed:", err);
+            // Fallback preview
+            const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            newFiles.push({ file, preview: "", id });
+          }
         }
       });
+
+      // Show informational toast
+      if (filesArray.length > 0) {
+        addToast(
+          "info",
+          `Selected ${filesArray.length} file(s). Images: ${imageCount}, Videos: ${videoCount}${
+            skippedCount > 0 ? `, Skipped: ${skippedCount}` : ""
+          }`
+        );
+      }
+
+      if (skippedCount > 0) {
+        addToast("warning", `Skipped non-media files: ${skippedDetails}`);
+      }
 
       if (newFiles.length > 0) {
         setSelectedFiles((prev) => [...prev, ...newFiles]);
       }
     },
-    [isVideoFile]
+    [isVideoFile, addToast]
   );
 
   const handleFileSelect = useCallback(
@@ -302,7 +343,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,video/*"
+        accept={acceptType}
         onChange={handleFileSelect}
         className="hidden"
       />
