@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { eq, count, sql } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -14,21 +14,23 @@ export async function GET() {
     }
 
     const db = getDb();
-    const allTags = db.select().from(schema.tags).orderBy(schema.tags.name).all();
+    const allTags = await db.select().from(schema.tags).orderBy(schema.tags.name);
 
-    // Get post count per tag
-    const tagsWithCount = allTags.map((tag) => {
-      const count = db
-        .select({ count: eq(schema.postTags.tagId, tag.id) })
-        .from(schema.postTags)
-        .where(eq(schema.postTags.tagId, tag.id))
-        .all().length;
+    // Get post count per tag using a single query
+    const counts = await db
+      .select({
+        tagId: schema.postTags.tagId,
+        count: count(schema.postTags.postId),
+      })
+      .from(schema.postTags)
+      .groupBy(schema.postTags.tagId);
 
-      return {
-        ...tag,
-        postCount: count,
-      };
-    });
+    const countMap = new Map(counts.map((c) => [c.tagId, c.count]));
+
+    const tagsWithCount = allTags.map((tag) => ({
+      ...tag,
+      postCount: countMap.get(tag.id) || 0,
+    }));
 
     return NextResponse.json({ tags: tagsWithCount });
   } catch (error) {

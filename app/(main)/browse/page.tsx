@@ -8,13 +8,13 @@ export const dynamic = "force-dynamic";
 
 async function getTags() {
   const db = getDb();
-  return db.select().from(schema.tags).orderBy(schema.tags.name).all();
+  return await db.select().from(schema.tags).orderBy(schema.tags.name);
 }
 
 async function getCategories() {
   try {
     const db = getDb();
-    return db.select().from(schema.categories).orderBy(schema.categories.name).all();
+    return await db.select().from(schema.categories).orderBy(schema.categories.name);
   } catch {
     // Table may not exist yet (pre-seed DB). Gracefully degrade.
     return [];

@@ -14,7 +14,7 @@ export default async function AdminPage() {
   }
 
   const db = getDb();
-  const users = db.select().from(schema.users).orderBy(schema.users.username).all();
+  const users = await db.select().from(schema.users).orderBy(schema.users.username);
 
   return (
     <AdminClient
@@ -23,8 +23,8 @@ export default async function AdminPage() {
         id: u.id,
         username: u.username,
         email: u.email,
-        isWhitelisted: u.isWhitelisted,
-        isAdmin: u.isAdmin,
+        isWhitelisted: !!u.isWhitelisted,
+        isAdmin: !!u.isAdmin,
         createdAt: u.createdAt,
       }))}
     />

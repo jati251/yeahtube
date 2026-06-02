@@ -39,11 +39,10 @@ export async function DELETE(request: NextRequest) {
     const db = getDb();
 
     // Get all media for the posts to delete from S3
-    const media = db
+    const media = await db
       .select()
       .from(schema.media)
-      .where(inArray(schema.media.postId, ids))
-      .all();
+      .where(inArray(schema.media.postId, ids));
 
     // Delete from S3
     const { getS3Client, getStorageConfig } = await import("@/lib/storage");
@@ -77,7 +76,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete posts from DB (cascades to media + post_tags)
     for (const id of ids) {
-      db.delete(schema.posts).where(eq(schema.posts.id, id)).run();
+      await await db.delete(schema.posts).where(eq(schema.posts.id, id));
       deletedCount++;
     }
 

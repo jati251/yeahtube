@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 async function getInitialPosts() {
   const db = getDb();
 
-  const posts = db
+  const posts = await db
     .select({
       id: schema.posts.id,
       title: schema.posts.title,
@@ -18,8 +18,7 @@ async function getInitialPosts() {
     })
     .from(schema.posts)
     .orderBy(desc(schema.posts.createdAt))
-    .limit(21)
-    .all();
+    .limit(21);
 
   if (posts.length === 0) {
     return { posts: [], nextCursor: null, hasMore: false };
@@ -27,13 +26,12 @@ async function getInitialPosts() {
 
   const postIds = posts.slice(0, 20).map((p) => p.id);
 
-  const allMedia = db
+  const allMedia = await db
     .select()
     .from(schema.media)
-    .where(inArray(schema.media.postId, postIds))
-    .all();
+    .where(inArray(schema.media.postId, postIds));
 
-  const allPostTags = db
+  const allPostTags = await db
     .select({
       postId: schema.postTags.postId,
       tagId: schema.tags.id,
@@ -42,8 +40,7 @@ async function getInitialPosts() {
     })
     .from(schema.postTags)
     .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
-    .where(inArray(schema.postTags.postId, postIds))
-    .all();
+    .where(inArray(schema.postTags.postId, postIds));
 
   const result = posts.slice(0, 20).map((post) => {
     const postMedia = allMedia.filter((m) => m.postId === post.id);
@@ -79,7 +76,7 @@ async function getInitialPosts() {
 
 async function getTags() {
   const db = getDb();
-  return db.select().from(schema.tags).orderBy(schema.tags.name).all();
+  return db.select().from(schema.tags).orderBy(schema.tags.name);
 }
 
 export default async function HomePage() {

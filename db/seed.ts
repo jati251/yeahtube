@@ -1,65 +1,50 @@
-import Database from "better-sqlite3";
-import path from "path";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
 import { hashPassword } from "../lib/password";
 import { eq } from "drizzle-orm";
 
+const connectionString =
+  process.env.DATABASE_URL ||
+  "postgresql://yeahtube:yeahtube@192.168.1.206:5432/yeahtube";
+
 async function seed() {
   console.log("🌱 Seeding database...");
 
-  const dbPath = process.env.DATABASE_PATH || "./data/yeahtube.db";
-  const sqliteDb = new Database(path.resolve(dbPath));
-  sqliteDb.pragma("journal_mode = WAL");
-  sqliteDb.pragma("foreign_keys = ON");
-
-  // ── Migration: Add new columns to existing tables ──────
-  // These ALTER TABLE statements will silently fail if the column
-  // already exists (SQLite ignores "duplicate column" errors from
-  // ALTER TABLE ADD COLUMN in older versions, but we catch it).
-  try {
-    sqliteDb.exec(`ALTER TABLE posts ADD COLUMN category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL`);
-  } catch {
-    // Column already exists — this is fine
-  }
-  try {
-    sqliteDb.exec(`ALTER TABLE posts ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`);
-  } catch {
-    // Column already exists
-  }
+  const pool = new Pool({ connectionString });
 
   // Create tables if they don't exist
-  sqliteDb.exec(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       username TEXT NOT NULL UNIQUE,
       email TEXT,
       password_hash TEXT NOT NULL,
       is_whitelisted INTEGER NOT NULL DEFAULT 0,
       is_admin INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
       slug TEXT NOT NULL UNIQUE,
       description TEXT DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS posts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS media (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
       storage_key TEXT NOT NULL,
       filename TEXT NOT NULL,
@@ -71,14 +56,14 @@ async function seed() {
       duration REAL,
       thumbnail_key TEXT,
       order_index INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS tags (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
       slug TEXT NOT NULL UNIQUE,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS post_tags (
@@ -98,11 +83,9 @@ async function seed() {
     CREATE INDEX IF NOT EXISTS idx_post_tags_post_id ON post_tags(post_id);
   `);
 
-  const db = drizzle(sqliteDb, { schema });
+  const db = drizzle(pool, { schema });
 
   // ── Create initial admin user ──────────────────────────
-  // NOTE: INITIAL_ADMIN_USERNAME and INITIAL_ADMIN_PASSWORD must be set in environment.
-  // Do NOT use defaults — a missing password would create a vulnerable admin account.
 
   const adminUsername = process.env.INITIAL_ADMIN_USERNAME || "admin";
   const adminPassword = process.env.INITIAL_ADMIN_PASSWORD;
@@ -127,16 +110,16 @@ async function seed() {
     .select()
     .from(schema.users)
     .where(eq(schema.users.username, adminUsername))
-    .get();
+    .then((rows) => rows[0]);
 
-  if (!existingAdmin) {
+  if (!(await existingAdmin)) {
     const passwordHash = await hashPassword(adminPassword);
-    db.insert(schema.users).values({
+    await db.insert(schema.users).values({
       username: adminUsername,
       passwordHash,
-      isWhitelisted: true,
-      isAdmin: true,
-    }).run();
+      isWhitelisted: 1,
+      isAdmin: 1,
+    });
     console.log(`✅ Created admin user: ${adminUsername}`);
   } else {
     console.log(`ℹ️ Admin user '${adminUsername}' already exists`);
@@ -153,14 +136,14 @@ async function seed() {
   ];
 
   for (const cat of sampleCategories) {
-    const existing = db
+    const existing = await db
       .select()
       .from(schema.categories)
       .where(eq(schema.categories.slug, cat.slug))
-      .get();
+      .then((rows) => rows[0]);
 
     if (!existing) {
-      db.insert(schema.categories).values(cat).run();
+      await db.insert(schema.categories).values(cat);
       console.log(`✅ Created category: ${cat.name}`);
     }
   }
@@ -181,19 +164,20 @@ async function seed() {
   ];
 
   for (const tag of sampleTags) {
-    const existing = db
+    const existing = await db
       .select()
       .from(schema.tags)
       .where(eq(schema.tags.slug, tag.slug))
-      .get();
+      .then((rows) => rows[0]);
 
     if (!existing) {
-      db.insert(schema.tags).values(tag).run();
+      await db.insert(schema.tags).values(tag);
       console.log(`✅ Created tag: ${tag.name}`);
     }
   }
 
   console.log("✅ Seed complete!");
+  await pool.end();
 }
 
 seed().catch((err) => {

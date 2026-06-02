@@ -19,11 +19,10 @@ export async function GET(
 
     // Verify the requesting user is whitelisted (IDOR protection)
     const db = getDb();
-    const requestingUser = db
+    const [requestingUser] = await db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.id, user.id))
-      .get();
+      .where(eq(schema.users.id, user.id));
 
     if (!requestingUser || !requestingUser.isWhitelisted) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -31,24 +30,22 @@ export async function GET(
 
     const { id } = await params;
 
-    const post = db
+    const [post] = await db
       .select()
       .from(schema.posts)
-      .where(eq(schema.posts.id, Number(id)))
-      .get();
+      .where(eq(schema.posts.id, Number(id)));
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const media = db
+    const media = await db
       .select()
       .from(schema.media)
       .where(eq(schema.media.postId, post.id))
-      .orderBy(schema.media.orderIndex)
-      .all();
+      .orderBy(schema.media.orderIndex);
 
-    const postTags = db
+    const postTags = await db
       .select({
         id: schema.tags.id,
         name: schema.tags.name,
@@ -56,8 +53,7 @@ export async function GET(
       })
       .from(schema.postTags)
       .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
-      .where(eq(schema.postTags.postId, post.id))
-      .all();
+      .where(eq(schema.postTags.postId, post.id));
 
     return NextResponse.json({
       ...post,
@@ -90,11 +86,10 @@ export async function DELETE(
     const { id } = await params;
     const db = getDb();
 
-    const post = db
+    const [post] = await db
       .select()
       .from(schema.posts)
-      .where(eq(schema.posts.id, Number(id)))
-      .get();
+      .where(eq(schema.posts.id, Number(id)));
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
@@ -105,11 +100,10 @@ export async function DELETE(
     }
 
     // Delete media files from S3
-    const media = db
+    const media = await db
       .select()
       .from(schema.media)
-      .where(eq(schema.media.postId, post.id))
-      .all();
+      .where(eq(schema.media.postId, post.id));
 
     const { getS3Client, getStorageConfig } = await import("@/lib/storage");
     const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
@@ -138,7 +132,7 @@ export async function DELETE(
     }
 
     // Delete post (cascades to media, post_tags)
-    db.delete(schema.posts).where(eq(schema.posts.id, Number(id))).run();
+    await db.delete(schema.posts).where(eq(schema.posts.id, Number(id)));
 
     return NextResponse.json({ success: true });
   } catch (error) {

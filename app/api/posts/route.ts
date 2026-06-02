@@ -52,11 +52,10 @@ export async function GET(request: NextRequest) {
     // Apply category filter
     if (category) {
       try {
-        const cat = db
+        const [cat] = await db
           .select()
           .from(schema.categories)
-          .where(eq(schema.categories.slug, category))
-          .get();
+          .where(eq(schema.categories.slug, category));
         if (cat) {
           query = query.where(eq(schema.posts.categoryId, cat.id)) as typeof query;
         }
@@ -70,7 +69,7 @@ export async function GET(request: NextRequest) {
       const yearNum = parseInt(year, 10);
       if (!isNaN(yearNum)) {
         query = query.where(
-          sql`strftime('%Y', ${schema.posts.createdAt}) = ${String(yearNum)}`,
+          sql`EXTRACT(YEAR FROM ${schema.posts.createdAt}::timestamp) = ${yearNum}`,
         ) as typeof query;
       }
     }
@@ -78,13 +77,9 @@ export async function GET(request: NextRequest) {
     // Apply cursor pagination
     if (cursor) {
       if (sort === "oldest") {
-        query = query.where(
-          sql`${schema.posts.createdAt} > ${cursor}`,
-        ) as typeof query;
+        query = query.where(sql`${schema.posts.createdAt} > ${cursor}`) as typeof query;
       } else {
-        query = query.where(
-          sql`${schema.posts.createdAt} < ${cursor}`,
-        ) as typeof query;
+        query = query.where(sql`${schema.posts.createdAt} < ${cursor}`) as typeof query;
       }
     }
 
@@ -103,9 +98,6 @@ export async function GET(request: NextRequest) {
         query = query.orderBy(desc(schema.posts.updatedAt));
         break;
       case "most-media":
-        // For most-media, we'll sort after fetching since it requires a subquery
-        query = query.orderBy(desc(schema.posts.createdAt));
-        break;
       case "newest":
       default:
         query = query.orderBy(desc(schema.posts.createdAt));
@@ -119,16 +111,15 @@ export async function GET(request: NextRequest) {
     // Get media info for each post
     const postIds = posts.slice(0, limit).map((p) => p.id);
     const allMedia = postIds.length > 0
-      ? db
+      ? await db
           .select()
           .from(schema.media)
           .where(inArray(schema.media.postId, postIds))
-          .all()
       : [];
 
     // Get tags for each post
     const allPostTags = postIds.length > 0
-      ? db
+      ? await db
           .select({
             postId: schema.postTags.postId,
             tagId: schema.tags.id,
@@ -138,35 +129,32 @@ export async function GET(request: NextRequest) {
           .from(schema.postTags)
           .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
           .where(inArray(schema.postTags.postId, postIds))
-          .all()
       : [];
 
-    // Get categories (may not exist yet if DB wasn't re-seeded)
+    // Get categories
     let categoryMap = new Map<number, string>();
     try {
-      const allCategories = db.select().from(schema.categories).all();
-      categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+      const allCats = await db.select().from(schema.categories);
+      categoryMap = new Map(allCats.map((c) => [c.id, c.name]));
     } catch {
-      // Categories table doesn't exist yet — that's okay
+      // Categories table doesn't exist yet
     }
 
     // Apply tag filter
     let filteredPostIds: Set<number> | null = null;
     if (tagSlugs) {
       const slugs = tagSlugs.split(",").map((s) => s.trim());
-      const matchingTags = db
+      const matchingTags = await db
         .select()
         .from(schema.tags)
-        .where(inArray(schema.tags.slug, slugs))
-        .all();
+        .where(inArray(schema.tags.slug, slugs));
 
       const tagIds = matchingTags.map((t) => t.id);
       if (tagIds.length > 0) {
-        const matchingPostTags = db
+        const matchingPostTags = await db
           .select()
           .from(schema.postTags)
-          .where(inArray(schema.postTags.tagId, tagIds))
-          .all();
+          .where(inArray(schema.postTags.tagId, tagIds));
         filteredPostIds = new Set(matchingPostTags.map((pt) => pt.postId));
       } else {
         filteredPostIds = new Set<number>();
@@ -184,20 +172,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Assemble result
-    interface PostResult {
-      id: number;
-      title: string;
-      description: string | null;
-      createdAt: string;
-      tags: { id: number; name: string; slug: string }[];
-      mediaCount: number;
-      mediaType: string;
-      thumbnailUrl: string | null;
-      duration: number | null;
-      category: string | null;
-    }
-
-    const result: PostResult[] = posts.slice(0, limit).map((post) => {
+    const result = posts.slice(0, limit).map((post) => {
       const postMedia = allMedia.filter((m) => m.postId === post.id);
       const postTags = allPostTags
         .filter((pt) => pt.postId === post.id)
@@ -209,7 +184,6 @@ export async function GET(request: NextRequest) {
 
       const hasVideo = postMedia.some((m) => m.mediaType === "video");
       const hasImage = postMedia.some((m) => m.mediaType === "image");
-
       const firstMedia = postMedia[0];
 
       return {
@@ -231,20 +205,17 @@ export async function GET(request: NextRequest) {
     // Apply filters
     const filtered = result.filter((post) => {
       if (filteredPostIds && !filteredPostIds.has(post.id)) return false;
-      if (typeFilteredPostIds && !typeFilteredPostIds.has(post.id))
-        return false;
+      if (typeFilteredPostIds && !typeFilteredPostIds.has(post.id)) return false;
       return true;
     });
 
-    // Sort by most-media (needs to be done after fetching since media counts are computed)
+    // Sort by most-media (needs to be done after fetching)
     if (sort === "most-media") {
       filtered.sort((a, b) => b.mediaCount - a.mediaCount);
     }
 
     const hasMore = posts.length > limit;
-    const nextCursor = hasMore
-      ? posts[limit - 1]?.createdAt
-      : null;
+    const nextCursor = hasMore ? posts[limit - 1]?.createdAt : null;
 
     return NextResponse.json({
       posts: filtered,

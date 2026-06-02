@@ -72,11 +72,10 @@ export async function login(
 ): Promise<{ success: true; token: string } | { success: false; error: string }> {
   const db = getDb();
 
-  const user = db
+  const [user] = await db
     .select()
     .from(schema.users)
-    .where(eq(schema.users.username, username))
-    .get();
+    .where(eq(schema.users.username, username));
 
   if (!user) {
     return { success: false, error: "Invalid username or password" };
@@ -94,7 +93,7 @@ export async function login(
   const token = await createToken({
     sub: user.id,
     username: user.username,
-    isAdmin: user.isAdmin,
+    isAdmin: !!user.isAdmin,
   });
 
   return { success: true, token };
@@ -107,11 +106,10 @@ export async function register(
 ): Promise<{ success: true; token: string } | { success: false; error: string }> {
   const db = getDb();
 
-  const existing = db
+  const [existing] = await db
     .select()
     .from(schema.users)
-    .where(eq(schema.users.username, username))
-    .get();
+    .where(eq(schema.users.username, username));
 
   if (existing) {
     return { success: false, error: "Username already taken" };
@@ -120,19 +118,19 @@ export async function register(
   const { hashPassword } = await import("./password");
   const passwordHash = await hashPassword(password);
 
-  const result = db
+  const [newUser] = await db
     .insert(schema.users)
     .values({
       username,
-      email,
+      email: email ?? null,
       passwordHash,
-      isWhitelisted: false,
-      isAdmin: false,
+      isWhitelisted: 0,
+      isAdmin: 0,
     })
-    .run();
+    .returning();
 
   const token = await createToken({
-    sub: Number(result.lastInsertRowid),
+    sub: newUser.id,
     username,
     isAdmin: false,
   });

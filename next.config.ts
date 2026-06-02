@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: "500MB",
   },
 
-  serverExternalPackages: ["better-sqlite3", "sharp"],
+  serverExternalPackages: ["pg", "sharp"],
 
   images: {
     dangerouslyAllowLocalIP: true,

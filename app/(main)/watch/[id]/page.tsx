@@ -14,27 +14,26 @@ export default async function WatchPage({ params }: PageProps) {
   const { id } = await params;
   const db = getDb();
 
-  const post = db
+  const posts = await db
     .select()
     .from(schema.posts)
-    .where(eq(schema.posts.id, Number(id)))
-    .get();
+    .where(eq(schema.posts.id, Number(id)));
 
+  const post = posts[0];
   if (!post) {
     notFound();
   }
 
-  const media = db
+  const media = await db
     .select()
     .from(schema.media)
     .where(eq(schema.media.postId, post.id))
-    .orderBy(schema.media.orderIndex)
-    .all();
+    .orderBy(schema.media.orderIndex);
 
   const videos = media.filter((m) => m.mediaType === "video");
   const images = media.filter((m) => m.mediaType === "image");
 
-  const postTags = db
+  const postTags = await db
     .select({
       id: schema.tags.id,
       name: schema.tags.name,
@@ -42,8 +41,7 @@ export default async function WatchPage({ params }: PageProps) {
     })
     .from(schema.postTags)
     .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
-    .where(eq(schema.postTags.postId, post.id))
-    .all();
+    .where(eq(schema.postTags.postId, post.id));
 
   if (videos.length === 0) {
     notFound();

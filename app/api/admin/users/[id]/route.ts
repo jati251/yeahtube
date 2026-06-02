@@ -29,7 +29,7 @@ export async function PATCH(
       .select()
       .from(schema.users)
       .where(eq(schema.users.id, Number(id)))
-      .get();
+      ;
 
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -59,10 +59,10 @@ export async function PATCH(
       updates.isAdmin = body.isAdmin;
     }
 
-    db.update(schema.users)
+    await db.update(schema.users)
       .set(updates)
       .where(eq(schema.users.id, Number(id)))
-      .run();
+      ;
 
     return NextResponse.json({ success: true });
   } catch (error) {

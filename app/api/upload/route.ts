@@ -245,7 +245,7 @@ async function processSingleFile(
   }
 
   // Insert media record
-  const mediaResult = db
+  const [mediaResult] = await db
     .insert(schema.media)
     .values({
       postId,
@@ -260,10 +260,10 @@ async function processSingleFile(
       thumbnailKey,
       orderIndex: index,
     })
-    .run();
+    .returning();
 
   return {
-    id: Number(mediaResult.lastInsertRowid),
+    id: mediaResult.id,
     storageKey,
     filename: file.name,
     mimeType: file.type,
@@ -279,7 +279,7 @@ async function processSingleFile(
 
 // ── Tag processing helper ──────────────────────────────
 
-function processTags(
+async function processTags(
   db: ReturnType<typeof getDb>,
   postId: number,
   tagNames: string[],
@@ -288,28 +288,25 @@ function processTags(
     const slug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     if (!slug) continue;
 
-    let tag = db
+    const [existingTag] = await db
       .select()
       .from(schema.tags)
-      .where(eq(schema.tags.slug, slug))
-      .get();
+      .where(eq(schema.tags.slug, slug));
 
-    if (!tag) {
-      const tagResult = db
+    let tag;
+    if (existingTag) {
+      tag = existingTag;
+    } else {
+      const [newTag] = await db
         .insert(schema.tags)
         .values({ name: tagName.trim(), slug })
-        .run();
-      tag = {
-        id: Number(tagResult.lastInsertRowid),
-        name: tagName.trim(),
-        slug,
-        createdAt: new Date().toISOString(),
-      };
+        .returning();
+      tag = newTag;
     }
 
-    db.insert(schema.postTags)
+    await db.insert(schema.postTags)
       .values({ postId, tagId: tag.id })
-      .run();
+      ;
   }
 }
 
@@ -377,11 +374,10 @@ export async function POST(request: NextRequest) {
     // Resolve category
     let categoryId: number | null = null;
     if (categorySlug) {
-      const cat = db
+      const [cat] = await db
         .select()
         .from(schema.categories)
-        .where(eq(schema.categories.slug, categorySlug))
-        .get();
+        .where(eq(schema.categories.slug, categorySlug));
       if (cat) categoryId = cat.id;
     }
 
@@ -398,15 +394,15 @@ export async function POST(request: NextRequest) {
           : filenameWithoutExt;
 
         // Create post (omit categoryId for quick post — no form fields used)
-        const postResult = db
+        const [newPost] = await db
           .insert(schema.posts)
           .values({
             userId: user.id,
             title: fileTitle,
           })
-          .run();
+          .returning();
 
-        const postId = Number(postResult.lastInsertRowid);
+        const postId = newPost.id;
 
         try {
           const mediaRecord = await processSingleFile(
@@ -422,7 +418,7 @@ export async function POST(request: NextRequest) {
           });
         } catch (err) {
           // Clean up the post if file processing failed
-          db.delete(schema.posts).where(eq(schema.posts.id, postId)).run();
+          await db.delete(schema.posts).where(eq(schema.posts.id, postId));
           const message = err instanceof Error ? err.message : "File processing failed";
           return NextResponse.json(
             { error: `File "${file.name}": ${message}` },
@@ -445,19 +441,17 @@ export async function POST(request: NextRequest) {
     // ── Normal Mode: one post, multiple media ────────────
 
     // Create post (conditionally include categoryId — column may not exist on pre-seed DBs)
-    const postValues: Record<string, unknown> = {
+    const postValues = {
       userId: user.id,
       title: title.trim(),
-    };
-    if (categoryId !== null) {
-      postValues.categoryId = categoryId;
-    }
-    const postResult = db
+      ...(categoryId !== null ? { categoryId } : {}),
+    } as const;
+    const [newPost] = await db
       .insert(schema.posts)
-      .values(postValues as any)
-      .run();
+      .values(postValues)
+      .returning();
 
-    const postId = Number(postResult.lastInsertRowid);
+    const postId = newPost.id;
 
     // Process each file
     const mediaRecords = [];
@@ -470,7 +464,7 @@ export async function POST(request: NextRequest) {
         mediaRecords.push(mediaRecord);
       } catch (err) {
         // Clean up the entire post if any file fails
-        db.delete(schema.posts).where(eq(schema.posts.id, postId)).run();
+        await db.delete(schema.posts).where(eq(schema.posts.id, postId));
         const message = err instanceof Error ? err.message : "File processing failed";
         return NextResponse.json(
           { error: `File "${files[i].name}": ${message}` },

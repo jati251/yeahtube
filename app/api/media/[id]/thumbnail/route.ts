@@ -20,11 +20,10 @@ export async function GET(
 
     // Verify the requesting user is whitelisted (IDOR protection)
     const db = getDb();
-    const requestingUser = db
+    const [requestingUser] = await db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.id, user.id))
-      .get();
+      .where(eq(schema.users.id, user.id));
 
     if (!requestingUser || !requestingUser.isWhitelisted) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -32,11 +31,11 @@ export async function GET(
 
     const { id } = await params;
 
-    const mediaFile = db
+    const [mediaFile] = await db
       .select()
       .from(schema.media)
       .where(eq(schema.media.id, Number(id)))
-      .get();
+      ;
 
     if (!mediaFile) {
       return NextResponse.json(
