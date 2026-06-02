@@ -108,11 +108,19 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         const videoExtensions = ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"];
         return imageExtensions.includes(ext) || videoExtensions.includes(ext);
       })
-      .map((file) => ({
-        file,
-        preview: URL.createObjectURL(file),
-        id: Math.random().toString(36).substring(2, 9),
-      }));
+      .map((file) => {
+        let preview = "";
+        try {
+          preview = URL.createObjectURL(file);
+        } catch (err) {
+          console.error("Failed to create object URL for preview:", err);
+        }
+        return {
+          file,
+          preview,
+          id: Math.random().toString(36).substring(2, 9),
+        };
+      });
 
     setSelectedFiles((prev) => [...prev, ...newFiles]);
   }, []);
@@ -151,7 +159,14 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       if (e.target.files && e.target.files.length > 0) {
         addFiles(e.target.files);
       }
-      e.target.value = "";
+      // Delay resetting input value. On Android Chrome/WebView, clearing value
+      // synchronously revokes read permissions for the chosen file handles.
+      const target = e.target;
+      setTimeout(() => {
+        try {
+          target.value = "";
+        } catch {}
+      }, 1000);
     },
     [addFiles],
   );
