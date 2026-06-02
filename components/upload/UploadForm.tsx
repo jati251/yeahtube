@@ -62,6 +62,15 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     prevFilesCount.current = selectedFiles.length;
   }, [selectedFiles, title]);
 
+  const isVideoFile = useCallback((file: File) => {
+    return (
+      file.type?.startsWith("video/") ||
+      ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"].includes(
+        file.name.split(".").pop()?.toLowerCase() || ""
+      )
+    );
+  }, []);
+
   const addFiles = useCallback((files: FileList | File[]) => {
     const extensionMimeMap: Record<string, string> = {
       jpg: "image/jpeg",
@@ -91,20 +100,13 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         return file;
       })
       .filter((file) => {
-        const validImage = [
-          "image/jpeg",
-          "image/png",
-          "image/gif",
-          "image/webp",
-          "image/avif",
-        ].includes(file.type);
-        const validVideo = [
-          "video/mp4",
-          "video/webm",
-          "video/quicktime",
-          "video/x-msvideo",
-        ].includes(file.type);
-        return validImage || validVideo;
+        if (file.type && (file.type.startsWith("image/") || file.type.startsWith("video/"))) {
+          return true;
+        }
+        const ext = file.name.split(".").pop()?.toLowerCase() || "";
+        const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "avif", "heic", "heif"];
+        const videoExtensions = ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"];
+        return imageExtensions.includes(ext) || videoExtensions.includes(ext);
       })
       .map((file) => ({
         file,
@@ -359,7 +361,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
               key={sf.id}
               className="group relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
             >
-              {sf.file.type.startsWith("video") ? (
+              {isVideoFile(sf.file) ? (
                 <div className="relative flex aspect-video items-center justify-center bg-gray-100 dark:bg-gray-800">
                   <FileVideo className="h-8 w-8 text-gray-400" />
                   <video className="hidden" src={sf.preview} />
