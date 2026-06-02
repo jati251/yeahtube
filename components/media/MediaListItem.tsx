@@ -32,8 +32,129 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
   const timeAgo = getTimeAgo(post.createdAt);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const ItemContent = (
+    <>
+      {/* Thumbnail */}
+      <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:h-24 sm:w-36">
+        {post.thumbnailUrl ? (
+          <img
+            src={post.thumbnailUrl}
+            alt={post.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            {post.mediaType === "video" ? (
+              <Film className="h-8 w-8 text-gray-400" />
+            ) : (
+              <Image className="h-8 w-8 text-gray-400" />
+            )}
+          </div>
+        )}
+
+        {/* Type badge */}
+        <span
+          className={clsx(
+            "absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white",
+            post.mediaType === "video"
+              ? "bg-purple-600"
+              : post.mediaType === "mixed"
+                ? "bg-blue-600"
+                : "bg-green-600",
+          )}
+        >
+          {post.mediaType === "video"
+            ? "Video"
+            : post.mediaType === "mixed"
+              ? "Mixed"
+              : "Photo"}
+        </span>
+
+        {post.duration && (
+          <span className="absolute bottom-1 right-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+            {formatDuration(post.duration)}
+          </span>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="truncate text-base font-bold text-slate-900 dark:text-white" title={post.title}>
+            {post.title}
+          </h3>
+          {post.mediaCount > 1 && (
+            <span className="hidden shrink-0 items-center gap-1 text-xs text-slate-400 sm:flex">
+              <Layers className="h-3 w-3" />
+              {post.mediaCount}
+            </span>
+          )}
+        </div>
+
+        {post.description && (
+          <p className="line-clamp-1 break-words text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            {post.description}
+          </p>
+        )}
+
+        {/* Meta row */}
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
+          <span>{timeAgo}</span>
+          {post.category && (
+            <>
+              <span>·</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                {post.category}
+              </span>
+            </>
+          )}
+          {post.mediaCount > 1 && (
+            <>
+              <span className="sm:hidden">·</span>
+              <span className="flex items-center gap-1 sm:hidden">
+                <Layers className="h-3 w-3" />
+                {post.mediaCount} files
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Tags */}
+        {post.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {post.tags.slice(0, 4).map((tag) => (
+              <span
+                key={tag.id}
+                className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+              >
+                #{tag.name}
+              </span>
+            ))}
+            {post.tags.length > 4 && (
+              <span className="text-[10px] text-gray-400">
+                +{post.tags.length - 4}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
-    <div className="group relative flex min-w-0 gap-4 rounded-xl glass-card premium-hover p-3 sm:p-4">
+    <div
+      onClick={() => {
+        if (selectMode) {
+          onToggleSelect?.(post.id);
+        }
+      }}
+      className={clsx(
+        "group relative flex min-w-0 gap-4 rounded-xl glass-card premium-hover p-3 sm:p-4 cursor-pointer transition-all duration-200",
+        selectMode && "select-none",
+        selectMode && selected && "ring-2 ring-blue-500 bg-blue-50/10 dark:bg-blue-900/20"
+      )}
+    >
       {/* Selection checkbox (visible only in select mode) */}
       {selectMode && (
         <div
@@ -49,116 +170,16 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         </div>
       )}
 
-      <Link href={href} className="flex flex-1 gap-4 min-w-0">
-        {/* Thumbnail */}
-        <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:h-24 sm:w-36">
-          {post.thumbnailUrl ? (
-            <img
-              src={post.thumbnailUrl}
-              alt={post.title}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              {post.mediaType === "video" ? (
-                <Film className="h-8 w-8 text-gray-400" />
-              ) : (
-                <Image className="h-8 w-8 text-gray-400" />
-              )}
-            </div>
-          )}
-
-          {/* Type badge */}
-          <span
-            className={clsx(
-              "absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white",
-              post.mediaType === "video"
-                ? "bg-purple-600"
-                : post.mediaType === "mixed"
-                  ? "bg-blue-600"
-                  : "bg-green-600",
-            )}
-          >
-            {post.mediaType === "video"
-              ? "Video"
-              : post.mediaType === "mixed"
-                ? "Mixed"
-                : "Photo"}
-          </span>
-
-          {post.duration && (
-            <span className="absolute bottom-1 right-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
-              {formatDuration(post.duration)}
-            </span>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-base font-bold text-slate-900 dark:text-white" title={post.title}>
-              {post.title}
-            </h3>
-            {post.mediaCount > 1 && (
-              <span className="hidden shrink-0 items-center gap-1 text-xs text-slate-400 sm:flex">
-                <Layers className="h-3 w-3" />
-                {post.mediaCount}
-              </span>
-            )}
-          </div>
-
-          {post.description && (
-            <p className="line-clamp-1 break-words text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              {post.description}
-            </p>
-          )}
-
-          {/* Meta row */}
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
-            <span>{timeAgo}</span>
-            {post.category && (
-              <>
-                <span>·</span>
-                <span className="text-gray-500 dark:text-gray-400">
-                  {post.category}
-                </span>
-              </>
-            )}
-            {post.mediaCount > 1 && (
-              <>
-                <span className="sm:hidden">·</span>
-                <span className="flex items-center gap-1 sm:hidden">
-                  <Layers className="h-3 w-3" />
-                  {post.mediaCount} files
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* Tags */}
-          {post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {post.tags.slice(0, 4).map((tag) => (
-                <span
-                  key={tag.id}
-                  className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                >
-                  #{tag.name}
-                </span>
-              ))}
-              {post.tags.length > 4 && (
-                <span className="text-[10px] text-gray-400">
-                  +{post.tags.length - 4}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </Link>
+      {selectMode ? (
+        <div className="flex flex-1 gap-4 min-w-0">{ItemContent}</div>
+      ) : (
+        <Link href={href} className="flex flex-1 gap-4 min-w-0">
+          {ItemContent}
+        </Link>
+      )}
 
       {/* Admin actions dropdown */}
-      {isAdmin && (
+      {isAdmin && !selectMode && (
         <div className="relative flex items-start">
           <button
             onClick={(e) => {

@@ -5,17 +5,18 @@ import { clsx } from "clsx";
 
 interface UploadProgressProps {
   progress: number;
+  statusText?: string;
   className?: string;
 }
 
-export function UploadProgress({ progress, className }: UploadProgressProps) {
+export function UploadProgress({ progress, statusText, className }: UploadProgressProps) {
   const clampedProgress = Math.min(100, Math.max(0, progress));
 
   return (
     <div className={clsx("w-full", className)}>
       <div className="mb-1 flex items-center justify-between">
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Uploading...
+          {statusText || "Uploading..."}
         </span>
         <span className="text-sm text-gray-500 dark:text-gray-400">
           {Math.round(clampedProgress)}%

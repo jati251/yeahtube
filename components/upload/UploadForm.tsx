@@ -34,6 +34,10 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [dragOver, setDragOver] = useState(false);
   const [acceptType, setAcceptType] = useState("image/*,video/*");
 
+  // Google Drive-like upload resume states
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [statusText, setStatusText] = useState("");
+
   // Used for auto-filling title based on single file
   const prevFilesCount = useRef(0);
   const lastAutoFilledTitleRef = useRef("");
@@ -113,7 +117,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files.length > 0) {
-        // Convert FileList to Array immediately to avoid mutations/GC issues
+        setActivePostId(null); // Reset resume state on new selection
         const filesArray = Array.from(e.target.files);
         addFiles(filesArray);
       }
@@ -132,6 +136,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       e.preventDefault();
       setDragOver(false);
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        setActivePostId(null); // Reset resume state on new selection
         const filesArray = Array.from(e.dataTransfer.files);
         addFiles(filesArray);
       }
@@ -152,6 +157,9 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const removeFile = useCallback((id: string) => {
     setSelectedFiles((prev) => {
       const filtered = prev.filter((sf) => sf.id !== id);
+      if (filtered.length === 0) {
+        setActivePostId(null); // Reset resume state if all files cleared
+      }
       // Revoke URL to avoid memory leaks
       const removed = prev.find((sf) => sf.id === id);
       if (removed) {
@@ -224,6 +232,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       setTags([]);
       setUploading(false);
       setUploadProgress(0);
+      setStatusText("");
       router.refresh();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("post-created"));
@@ -246,20 +255,24 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     setUploading(true);
     setUploadProgress(0);
 
-    try {
-      const csrfToken = getCsrfToken();
-      let currentPostId: string | null = null;
+    const csrfToken = getCsrfToken();
+    let currentPostId = activePostId;
+    const filesToUpload = [...selectedFiles];
+    const totalFiles = filesToUpload.length;
+    let completedCount = 0;
 
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const sf = selectedFiles[i];
-        setUploadProgress(Math.floor((i / selectedFiles.length) * 100));
+    try {
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const sf = filesToUpload[i];
+        setStatusText(`Uploaded ${completedCount} of ${totalFiles} file(s)`);
+        setUploadProgress(Math.floor((completedCount / totalFiles) * 100));
 
         const formData = new FormData();
         formData.append("files", sf.file);
         formData.append("quickPost", "false");
 
-        if (i === 0) {
-          // First file creates the post
+        if (i === 0 && !currentPostId) {
+          // First file creates the post (only if we don't have activePostId yet)
           formData.append("title", title.trim());
           if (category) formData.append("category", category);
           formData.append("tags", JSON.stringify(tags));
@@ -281,17 +294,34 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           throw new Error(data.error || `Upload failed for ${sf.file.name}`);
         }
 
-        if (i === 0) {
-          const data = await res.json();
+        const data = await res.json();
+        if (i === 0 && !currentPostId) {
           currentPostId = data.post.id.toString();
+          setActivePostId(currentPostId);
         }
+
+        // Remove successful file from state immediately (GDrive style)
+        setSelectedFiles((prev) => {
+          const filtered = prev.filter((item) => item.id !== sf.id);
+          URL.revokeObjectURL(sf.preview);
+          return filtered;
+        });
+
+        completedCount++;
       }
 
+      setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
+      setUploadProgress(100);
+      setActivePostId(null); // Reset resume state
       finalizeUpload("Published successfully!");
     } catch (error) {
-      addToast("error", error instanceof Error ? error.message : "Upload failed");
+      console.error("Upload error:", error);
+      addToast(
+        "error",
+        `${error instanceof Error ? error.message : "Upload failed"}. Successfully uploaded ${completedCount} of ${totalFiles} files.`
+      );
       setUploading(false);
-      setUploadProgress(0);
+      setStatusText(`Failed at file ${completedCount + 1}. ${completedCount} of ${totalFiles} completed.`);
     }
   };
 
@@ -304,12 +334,16 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     setUploading(true);
     setUploadProgress(0);
 
-    try {
-      const csrfToken = getCsrfToken();
+    const csrfToken = getCsrfToken();
+    const filesToUpload = [...selectedFiles];
+    const totalFiles = filesToUpload.length;
+    let completedCount = 0;
 
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const sf = selectedFiles[i];
-        setUploadProgress(Math.floor((i / selectedFiles.length) * 100));
+    try {
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const sf = filesToUpload[i];
+        setStatusText(`Uploaded ${completedCount} of ${totalFiles} file(s)`);
+        setUploadProgress(Math.floor((completedCount / totalFiles) * 100));
 
         const formData = new FormData();
         formData.append("files", sf.file);
@@ -327,13 +361,28 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           const data = await res.json();
           throw new Error(data.error || `Quick Post failed for ${sf.file.name}`);
         }
+
+        // Remove successful file from state immediately (GDrive style)
+        setSelectedFiles((prev) => {
+          const filtered = prev.filter((item) => item.id !== sf.id);
+          URL.revokeObjectURL(sf.preview);
+          return filtered;
+        });
+
+        completedCount++;
       }
 
+      setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
+      setUploadProgress(100);
       finalizeUpload("Quick post completed!");
     } catch (error) {
-      addToast("error", error instanceof Error ? error.message : "Quick post failed");
+      console.error("Quick post error:", error);
+      addToast(
+        "error",
+        `${error instanceof Error ? error.message : "Quick post failed"}. Successfully uploaded ${completedCount} of ${totalFiles} files.`
+      );
       setUploading(false);
-      setUploadProgress(0);
+      setStatusText(`Failed at file ${completedCount + 1}. ${completedCount} of ${totalFiles} completed.`);
     }
   };
 
@@ -380,7 +429,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
               className="group relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
             >
               {isVideoFile(sf.file) ? (
-                // Removed hidden <video> tag to prevent mobile browser freezing on multiple large videos
                 <div className="relative flex aspect-square items-center justify-center bg-gray-100 dark:bg-gray-800">
                   <FileVideo className="h-8 w-8 text-gray-400" />
                 </div>
@@ -503,7 +551,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       </div>
 
       {/* Progress */}
-      {uploading && <UploadProgress progress={uploadProgress} />}
+      {uploading && <UploadProgress progress={uploadProgress} statusText={statusText} />}
     </form>
   );
 }

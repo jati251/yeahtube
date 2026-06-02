@@ -31,24 +31,8 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const timeAgo = getTimeAgo(post.createdAt);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  return (
-    <div className="group relative block min-w-0 overflow-hidden rounded-xl glass-card premium-hover">
-      {/* Selection checkbox (visible only in select mode) */}
-      {selectMode && (
-        <div
-          className="absolute left-2 top-2 z-10"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <input
-            type="checkbox"
-            checked={selected || false}
-            onChange={() => onToggleSelect?.(post.id)}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
-          />
-        </div>
-      )}
-
-      <Link href={href} className="block">
+  const CardContent = (
+    <>
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
         {post.thumbnailUrl ? (
@@ -137,10 +121,47 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
           {timeAgo}
         </p>
       </div>
-      </Link>
+    </>
+  );
+
+  return (
+    <div
+      onClick={() => {
+        if (selectMode) {
+          onToggleSelect?.(post.id);
+        }
+      }}
+      className={clsx(
+        "group relative block min-w-0 overflow-hidden rounded-xl glass-card premium-hover cursor-pointer transition-all duration-200",
+        selectMode && "select-none",
+        selectMode && selected && "ring-2 ring-blue-500 bg-blue-50/10 dark:bg-blue-900/20"
+      )}
+    >
+      {/* Selection checkbox (visible only in select mode) */}
+      {selectMode && (
+        <div
+          className="absolute left-2 top-2 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={selected || false}
+            onChange={() => onToggleSelect?.(post.id)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+          />
+        </div>
+      )}
+
+      {selectMode ? (
+        <div className="block">{CardContent}</div>
+      ) : (
+        <Link href={href} className="block">
+          {CardContent}
+        </Link>
+      )}
 
       {/* Admin actions dropdown */}
-      {isAdmin && (
+      {isAdmin && !selectMode && (
         <div className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => {

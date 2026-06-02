@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getDb, schema } from "@/db";
 import { eq } from "drizzle-orm";
 import { WatchPageClient } from "./WatchPageClient";
+import { getRecommendations } from "@/lib/recommendations";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,9 @@ export default async function WatchPage({ params }: PageProps) {
     notFound();
   }
 
+  const tagIds = postTags.map((t) => t.id);
+  const recommendations = await getRecommendations(post.id, post.categoryId, tagIds);
+
   return (
     <WatchPageClient
       post={{
@@ -73,6 +77,7 @@ export default async function WatchPage({ params }: PageProps) {
         thumbnailKey: img.thumbnailKey,
       }))}
       tags={postTags}
+      recommendations={recommendations}
     />
   );
 }

@@ -4,6 +4,8 @@ import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
+import { MediaCard } from "@/components/media/MediaCard";
+import { RecommendedPost } from "@/lib/recommendations";
 
 interface ImageData {
   id: number;
@@ -36,6 +38,7 @@ interface ViewPageClientProps {
   images: ImageData[];
   videos: VideoData[];
   tags: { id: number; name: string; slug: string }[];
+  recommendations: RecommendedPost[];
 }
 
 export function ViewPageClient({
@@ -43,6 +46,7 @@ export function ViewPageClient({
   images,
   videos,
   tags,
+  recommendations = [],
 }: ViewPageClientProps) {
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -71,7 +75,7 @@ export function ViewPageClient({
 
         {/* Sidebar info */}
         <div className="mt-6 lg:mt-0 lg:w-72 lg:flex-shrink-0">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white break-words">
             {post.title}
           </h1>
 
@@ -117,7 +121,7 @@ export function ViewPageClient({
                 <Link
                   key={video.id}
                   href={`/watch/${post.id}`}
-                  className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                  className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 min-w-0"
                 >
                   <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
                     {video.thumbnailKey ? (
@@ -141,6 +145,20 @@ export function ViewPageClient({
           )}
         </div>
       </div>
+
+      {/* Recommendations Grid at the bottom */}
+      {recommendations.length > 0 && (
+        <div className="mt-12 border-t border-gray-200 pt-8 dark:border-gray-800">
+          <h2 className="mb-6 text-xl font-bold text-gray-900 dark:text-white">
+            Recommendations
+          </h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {recommendations.map((rec) => (
+              <MediaCard key={rec.id} post={rec} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
