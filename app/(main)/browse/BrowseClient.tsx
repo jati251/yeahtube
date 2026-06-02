@@ -282,7 +282,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
           {/* Content */}
           {loading && posts.length === 0 ? (
             viewMode === "grid" ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div
                     key={i}
@@ -325,7 +325,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               </p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
               {posts.map((post) => (
                 <MediaCard
                   key={post.id}
