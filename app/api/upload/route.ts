@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
     const files = formData.getAll("files") as File[];
     const title = formData.get("title") as string;
     const description = (formData.get("description") as string) || "";
+    const categorySlug = formData.get("category") as string | null;
     const tagsRaw = formData.get("tags") as string;
 
     // Validate title
@@ -175,11 +176,23 @@ export async function POST(request: NextRequest) {
     const db = getDb();
     const s3 = getS3Client();
 
+    // Resolve category
+    let categoryId: number | null = null;
+    if (categorySlug) {
+      const cat = db
+        .select()
+        .from(schema.categories)
+        .where(eq(schema.categories.slug, categorySlug))
+        .get();
+      if (cat) categoryId = cat.id;
+    }
+
     // Create post
     const postResult = db
       .insert(schema.posts)
       .values({
         userId: user.id,
+        categoryId,
         title: title.trim(),
         description: description.trim(),
       })

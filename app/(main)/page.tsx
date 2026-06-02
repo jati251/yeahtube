@@ -13,6 +13,7 @@ async function getInitialPosts() {
       id: schema.posts.id,
       title: schema.posts.title,
       description: schema.posts.description,
+      categoryId: schema.posts.categoryId,
       createdAt: schema.posts.createdAt,
     })
     .from(schema.posts)
@@ -44,6 +45,13 @@ async function getInitialPosts() {
     .where(inArray(schema.postTags.postId, postIds))
     .all();
 
+  // Get categories for posts
+  const allCategories = db
+    .select()
+    .from(schema.categories)
+    .all();
+  const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+
   const result = posts.slice(0, 20).map((post) => {
     const postMedia = allMedia.filter((m) => m.postId === post.id);
     const postTags = allPostTags
@@ -66,6 +74,7 @@ async function getInitialPosts() {
         ? `/api/media/${firstMedia.id}/thumbnail`
         : null,
       duration: firstMedia?.duration || null,
+      category: post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null,
     };
   });
 

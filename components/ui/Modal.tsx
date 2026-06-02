@@ -63,13 +63,15 @@ export function Modal({
       {/* Modal content */}
       <div
         className={clsx(
-          "relative z-10 w-full rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800",
+          "relative z-10 flex max-h-[90vh] w-full flex-col rounded-xl bg-white shadow-xl dark:bg-gray-800",
           sizeStyles[size],
         )}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
+        {/* Scrollable body container */}
+        <div className="overflow-y-auto rounded-xl p-6">
         {/* Header */}
         {title && (
           <div className="mb-4 flex items-center justify-between">
@@ -88,6 +90,7 @@ export function Modal({
 
         {/* Body */}
         {children}
+        </div>
       </div>
     </div>
   );

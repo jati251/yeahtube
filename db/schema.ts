@@ -17,6 +17,18 @@ export const users = sqliteTable("users", {
     .default(sql`(datetime('now'))`),
 });
 
+// ── Categories ─────────────────────────────────────────
+
+export const categories = sqliteTable("categories", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  description: text("description").default(""),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
 // ── Posts ──────────────────────────────────────────────
 
 export const posts = sqliteTable("posts", {
@@ -24,6 +36,8 @@ export const posts = sqliteTable("posts", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  categoryId: integer("category_id")
+    .references(() => categories.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   description: text("description").default(""),
   createdAt: text("created_at")
@@ -88,6 +102,8 @@ export const postTags = sqliteTable(
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Category = typeof categories.$inferSelect;
+export type NewCategory = typeof categories.$inferInsert;
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
 export type MediaFile = typeof media.$inferSelect;

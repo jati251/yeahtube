@@ -15,12 +15,19 @@ import { clsx } from "clsx";
 import { Button } from "@/components/ui/Button";
 import { HeaderUpload } from "@/components/upload/HeaderUpload";
 
+interface CategoryItem {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 interface HeaderProps {
   username?: string;
   isAdmin?: boolean;
+  categories?: CategoryItem[];
 }
 
-export function Header({ username, isAdmin }: HeaderProps) {
+export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -218,7 +225,11 @@ export function Header({ username, isAdmin }: HeaderProps) {
       )}
 
       {/* Upload modal */}
-      <HeaderUpload isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />
+      <HeaderUpload
+        isOpen={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        categories={categories}
+      />
     </>
   );
 }

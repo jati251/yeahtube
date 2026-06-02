@@ -11,12 +11,23 @@ interface TagItem {
   postCount?: number;
 }
 
+interface CategoryItem {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 interface FilterSidebarProps {
   mediaType: string | null;
   selectedTags: string[];
   tags: TagItem[];
+  category: string | null;
+  categories: CategoryItem[];
+  year: string | null;
   onMediaTypeChange: (type: string | null) => void;
   onTagToggle: (slug: string) => void;
+  onCategoryChange: (slug: string | null) => void;
+  onYearChange: (year: string | null) => void;
   onClearAll: () => void;
 }
 
@@ -24,11 +35,20 @@ export function FilterSidebar({
   mediaType,
   selectedTags,
   tags,
+  category,
+  categories,
+  year,
   onMediaTypeChange,
   onTagToggle,
+  onCategoryChange,
+  onYearChange,
   onClearAll,
 }: FilterSidebarProps) {
-  const activeFilters = (mediaType ? 1 : 0) + selectedTags.length;
+  const activeFilters = (mediaType ? 1 : 0) + selectedTags.length + (category ? 1 : 0) + (year ? 1 : 0);
+
+  // Generate last 10 years
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => String(currentYear - i));
 
   return (
     <div className="space-y-6">
@@ -69,6 +89,74 @@ export function FilterSidebar({
               )}
             >
               {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Category */}
+      <div>
+        <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          Category
+        </h4>
+        <div className="space-y-1">
+          <button
+            onClick={() => onCategoryChange(null)}
+            className={clsx(
+              "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
+              !category
+                ? "bg-blue-100 font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+            )}
+          >
+            All Categories
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => onCategoryChange(category === cat.slug ? null : cat.slug)}
+              className={clsx(
+                "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                category === cat.slug
+                  ? "bg-blue-100 font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                  : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+              )}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Year */}
+      <div>
+        <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          Year
+        </h4>
+        <div className="max-h-48 space-y-1 overflow-y-auto">
+          <button
+            onClick={() => onYearChange(null)}
+            className={clsx(
+              "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
+              !year
+                ? "bg-blue-100 font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+            )}
+          >
+            All Years
+          </button>
+          {years.map((y) => (
+            <button
+              key={y}
+              onClick={() => onYearChange(year === y ? null : y)}
+              className={clsx(
+                "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                year === y
+                  ? "bg-blue-100 font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                  : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+              )}
+            >
+              {y}
             </button>
           ))}
         </div>

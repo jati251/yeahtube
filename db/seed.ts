@@ -25,9 +25,18 @@ async function seed() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      slug TEXT NOT NULL UNIQUE,
+      description TEXT DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -66,6 +75,7 @@ async function seed() {
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_category_id ON posts(category_id);
     CREATE INDEX IF NOT EXISTS idx_media_post_id ON media(post_id);
     CREATE INDEX IF NOT EXISTS idx_media_type ON media(media_type);
     CREATE INDEX IF NOT EXISTS idx_tags_slug ON tags(slug);
@@ -115,6 +125,29 @@ async function seed() {
     console.log(`✅ Created admin user: ${adminUsername}`);
   } else {
     console.log(`ℹ️ Admin user '${adminUsername}' already exists`);
+  }
+
+  // ── Create sample categories ──────────────────────────
+
+  const sampleCategories = [
+    { name: "Videos", slug: "videos", description: "Video content" },
+    { name: "Photos", slug: "photos", description: "Photo albums and single photos" },
+    { name: "Mixed Media", slug: "mixed-media", description: "Posts with both photos and videos" },
+    { name: "Projects", slug: "projects", description: "Project-related media" },
+    { name: "Archives", slug: "archives", description: "Archived or older content" },
+  ];
+
+  for (const cat of sampleCategories) {
+    const existing = db
+      .select()
+      .from(schema.categories)
+      .where(eq(schema.categories.slug, cat.slug))
+      .get();
+
+    if (!existing) {
+      db.insert(schema.categories).values(cat).run();
+      console.log(`✅ Created category: ${cat.name}`);
+    }
   }
 
   // ── Create sample tags ─────────────────────────────────

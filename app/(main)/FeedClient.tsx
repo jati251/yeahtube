@@ -3,8 +3,9 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
+import { MediaListItem } from "@/components/media/MediaListItem";
 import { TagCloud } from "@/components/filters/TagCloud";
-import { RefreshCw, SortAsc, SortDesc } from "lucide-react";
+import { RefreshCw, LayoutGrid, List } from "lucide-react";
 
 interface PostItem {
   id: number;
@@ -16,6 +17,7 @@ interface PostItem {
   mediaType: "image" | "video" | "mixed";
   thumbnailUrl: string | null;
   duration: number | null;
+  category?: string | null;
 }
 
 interface TagItem {
@@ -30,6 +32,13 @@ interface FeedClientProps {
   initialHasMore: boolean;
   tags: TagItem[];
 }
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "title-asc", label: "Title A-Z" },
+  { value: "title-desc", label: "Title Z-A" },
+];
 
 export function FeedClient({
   initialPosts,
@@ -47,6 +56,7 @@ export function FeedClient({
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -118,20 +128,44 @@ export function FeedClient({
           onTagSelect={handleTagFilter}
         />
 
-        <button
-          onClick={toggleSort}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
-        >
-          {sort === "newest" ? (
-            <SortDesc className="h-4 w-4" />
-          ) : (
-            <SortAsc className="h-4 w-4" />
-          )}
-          {sort === "newest" ? "Newest" : "Oldest"}
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Sort toggle */}
+          <button
+            onClick={toggleSort}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+          >
+            {sort === "newest" ? "Newest" : "Oldest"}
+          </button>
+
+          {/* View toggle */}
+          <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`rounded-l-lg p-2 ${
+                viewMode === "grid"
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              }`}
+              title="Grid view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`rounded-r-lg p-2 ${
+                viewMode === "list"
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              }`}
+              title="List view"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Posts grid */}
+      {/* Posts */}
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="mb-4 text-6xl">📂</div>
@@ -142,10 +176,16 @@ export function FeedClient({
             Upload your first photo or video to get started.
           </p>
         </div>
-      ) : (
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {posts.map((post) => (
             <MediaCard key={post.id} post={post} />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {posts.map((post) => (
+            <MediaListItem key={post.id} post={post} />
           ))}
         </div>
       )}

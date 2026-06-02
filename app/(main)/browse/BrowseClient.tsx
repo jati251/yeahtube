@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
+import { MediaListItem } from "@/components/media/MediaListItem";
 import { FilterSidebar } from "@/components/filters/FilterSidebar";
 import { MobileFilters } from "@/components/filters/MobileFilters";
 import { ActiveFilters } from "@/components/filters/ActiveFilters";
 import { TagCloud } from "@/components/filters/TagCloud";
-import { Search, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { Search, RefreshCw, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 
 interface PostItem {
   id: number;
@@ -19,6 +20,7 @@ interface PostItem {
   mediaType: "image" | "video" | "mixed";
   thumbnailUrl: string | null;
   duration: number | null;
+  category?: string | null;
 }
 
 interface TagItem {
@@ -27,11 +29,27 @@ interface TagItem {
   slug: string;
 }
 
-interface BrowseClientProps {
-  tags: TagItem[];
+interface CategoryItem {
+  id: number;
+  name: string;
+  slug: string;
 }
 
-export function BrowseClient({ tags }: BrowseClientProps) {
+interface BrowseClientProps {
+  tags: TagItem[];
+  categories: CategoryItem[];
+}
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "title-asc", label: "Title A-Z" },
+  { value: "title-desc", label: "Title Z-A" },
+  { value: "most-media", label: "Most Media" },
+  { value: "recently-updated", label: "Recently Updated" },
+];
+
+export function BrowseClient({ tags, categories }: BrowseClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -40,12 +58,15 @@ export function BrowseClient({ tags }: BrowseClientProps) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Filters from URL
   const mediaType = searchParams.get("type");
   const selectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
   const searchQuery = searchParams.get("q") || "";
   const sort = searchParams.get("sort") || "newest";
+  const category = searchParams.get("category");
+  const year = searchParams.get("year");
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -65,6 +86,8 @@ export function BrowseClient({ tags }: BrowseClientProps) {
         if (mediaType) params.set("type", mediaType);
         if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
         if (searchQuery) params.set("q", searchQuery);
+        if (category) params.set("category", category);
+        if (year) params.set("year", year);
 
         const res = await fetch(`/api/posts?${params}`);
         const data = await res.json();
@@ -83,7 +106,7 @@ export function BrowseClient({ tags }: BrowseClientProps) {
         setLoadingMore(false);
       }
     },
-    [mediaType, selectedTags.join(","), searchQuery, sort],
+    [mediaType, selectedTags.join(","), searchQuery, sort, category, year],
   );
 
   // Initial load and filter changes
@@ -131,6 +154,18 @@ export function BrowseClient({ tags }: BrowseClientProps) {
     updateUrl({ tags: tagsStr || null });
   };
 
+  const handleCategoryChange = (slug: string | null) => {
+    updateUrl({ category: slug });
+  };
+
+  const handleYearChange = (yearVal: string | null) => {
+    updateUrl({ year: yearVal });
+  };
+
+  const handleSortChange = (newSort: string) => {
+    updateUrl({ sort: newSort });
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -167,6 +202,9 @@ export function BrowseClient({ tags }: BrowseClientProps) {
         mediaType={mediaType}
         selectedTags={selectedTags}
         searchQuery={searchQuery}
+        category={category}
+        year={year}
+        sort={sort}
         onRemoveMediaType={() => updateUrl({ type: null })}
         onRemoveTag={(slug) => {
           const current = new Set(selectedTags);
@@ -177,6 +215,8 @@ export function BrowseClient({ tags }: BrowseClientProps) {
           setSearchInput("");
           updateUrl({ q: null });
         }}
+        onRemoveCategory={() => updateUrl({ category: null })}
+        onRemoveYear={() => updateUrl({ year: null })}
         onClearAll={clearAll}
       />
 
@@ -187,8 +227,13 @@ export function BrowseClient({ tags }: BrowseClientProps) {
             mediaType={mediaType}
             selectedTags={selectedTags}
             tags={tags}
+            category={category}
+            categories={categories}
+            year={year}
             onMediaTypeChange={handleMediaTypeChange}
             onTagToggle={handleTagToggle}
+            onCategoryChange={handleCategoryChange}
+            onYearChange={handleYearChange}
             onClearAll={clearAll}
           />
         </aside>
@@ -200,31 +245,93 @@ export function BrowseClient({ tags }: BrowseClientProps) {
           mediaType={mediaType}
           selectedTags={selectedTags}
           tags={tags}
+          category={category}
+          categories={categories}
+          year={year}
           onMediaTypeChange={handleMediaTypeChange}
           onTagToggle={handleTagToggle}
+          onCategoryChange={handleCategoryChange}
+          onYearChange={handleYearChange}
           onClearAll={clearAll}
         />
 
         {/* Results */}
         <div className="flex-1">
-          {/* Mobile filter button and tag cloud */}
-          <div className="mb-4 flex items-center gap-3 lg:hidden">
-            <button
-              onClick={() => setMobileFiltersOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-            </button>
+          {/* Controls bar */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {/* Mobile filter button */}
+              <button
+                onClick={() => setMobileFiltersOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters
+              </button>
+
+              {/* Sort dropdown */}
+              <select
+                value={sort}
+                onChange={(e) => handleSortChange(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Tag cloud (desktop) */}
+              <div className="hidden lg:block">
+                <TagCloud
+                  tags={tags}
+                  activeTag={selectedTags[0] || null}
+                  onTagSelect={(slug) => {
+                    if (slug) updateUrl({ tags: slug });
+                    else updateUrl({ tags: null });
+                  }}
+                />
+              </div>
+
+              {/* View toggle */}
+              <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`rounded-l-lg p-2 ${
+                    viewMode === "grid"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                  }`}
+                  title="Grid view"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`rounded-r-lg p-2 ${
+                    viewMode === "list"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                  }`}
+                  title="List view"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tag cloud (mobile) */}
+          <div className="mb-4 lg:hidden">
             <TagCloud
               tags={tags}
               activeTag={selectedTags[0] || null}
               onTagSelect={(slug) => {
-                if (slug) {
-                  updateUrl({ tags: slug });
-                } else {
-                  updateUrl({ tags: null });
-                }
+                if (slug) updateUrl({ tags: slug });
+                else updateUrl({ tags: null });
               }}
             />
           </div>
@@ -234,22 +341,41 @@ export function BrowseClient({ tags }: BrowseClientProps) {
             {loading ? "Loading..." : `${posts.length} result${posts.length !== 1 ? "s" : ""}`}
           </p>
 
-          {/* Grid */}
+          {/* Content */}
           {loading ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700"
-                >
-                  <div className="aspect-video rounded-t-xl bg-gray-200 dark:bg-gray-700" />
-                  <div className="space-y-2 p-3">
-                    <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-                    <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+            viewMode === "grid" ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="aspect-video rounded-t-xl bg-gray-200 dark:bg-gray-700" />
+                    <div className="space-y-2 p-3">
+                      <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="flex gap-4 p-4">
+                      <div className="h-20 w-28 rounded-lg bg-gray-200 dark:bg-gray-700 sm:h-24 sm:w-36" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           ) : posts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="mb-4 text-6xl">🔍</div>
@@ -260,10 +386,16 @@ export function BrowseClient({ tags }: BrowseClientProps) {
                 Try adjusting your filters or search query.
               </p>
             </div>
-          ) : (
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               {posts.map((post) => (
                 <MediaCard key={post.id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {posts.map((post) => (
+                <MediaListItem key={post.id} post={post} />
               ))}
             </div>
           )}

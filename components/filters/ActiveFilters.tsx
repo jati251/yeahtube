@@ -7,9 +7,14 @@ interface ActiveFiltersProps {
   mediaType: string | null;
   selectedTags: string[];
   searchQuery: string | null;
+  category: string | null;
+  year: string | null;
+  sort: string;
   onRemoveMediaType: () => void;
   onRemoveTag: (slug: string) => void;
   onRemoveSearch: () => void;
+  onRemoveCategory: () => void;
+  onRemoveYear: () => void;
   onClearAll: () => void;
 }
 
@@ -17,12 +22,17 @@ export function ActiveFilters({
   mediaType,
   selectedTags,
   searchQuery,
+  category,
+  year,
+  sort,
   onRemoveMediaType,
   onRemoveTag,
   onRemoveSearch,
+  onRemoveCategory,
+  onRemoveYear,
   onClearAll,
 }: ActiveFiltersProps) {
-  const hasFilters = mediaType || selectedTags.length > 0 || searchQuery;
+  const hasFilters = mediaType || selectedTags.length > 0 || searchQuery || category || year;
 
   if (!hasFilters) return null;
 
@@ -34,7 +44,7 @@ export function ActiveFilters({
 
       {searchQuery && (
         <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
-          Search: "{searchQuery}"
+          Search: &ldquo;{searchQuery}&rdquo;
           <button onClick={onRemoveSearch} className="hover:text-purple-900">
             <X className="h-3 w-3" />
           </button>
@@ -45,6 +55,24 @@ export function ActiveFilters({
         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/50 dark:text-green-300">
           {mediaType === "image" ? "Images" : "Videos"}
           <button onClick={onRemoveMediaType} className="hover:text-green-900">
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      )}
+
+      {category && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
+          {category}
+          <button onClick={onRemoveCategory} className="hover:text-orange-900">
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      )}
+
+      {year && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-3 py-1 text-xs font-medium text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300">
+          {year}
+          <button onClick={onRemoveYear} className="hover:text-cyan-900">
             <X className="h-3 w-3" />
           </button>
         </span>
@@ -64,6 +92,12 @@ export function ActiveFilters({
           </button>
         </span>
       ))}
+
+      {sort !== "newest" && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+          Sorted: {sort.replace("-", " ")}
+        </span>
+      )}
 
       <button
         onClick={onClearAll}

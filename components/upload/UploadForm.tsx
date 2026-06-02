@@ -14,11 +14,18 @@ interface SelectedFile {
   id: string;
 }
 
-interface UploadFormProps {
-  onSuccess?: () => void;
+interface CategoryItem {
+  id: number;
+  name: string;
+  slug: string;
 }
 
-export function UploadForm({ onSuccess }: UploadFormProps) {
+interface UploadFormProps {
+  onSuccess?: () => void;
+  categories?: CategoryItem[];
+}
+
+export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const router = useRouter();
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,6 +33,7 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -140,6 +148,7 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
       const formData = new FormData();
       formData.append("title", title.trim());
       formData.append("description", description.trim());
+      if (category) formData.append("category", category);
       formData.append("tags", JSON.stringify(tags));
 
       selectedFiles.forEach((sf) => {
@@ -290,6 +299,25 @@ export function UploadForm({ onSuccess }: UploadFormProps) {
           maxLength={5000}
           className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
         />
+      </div>
+
+      {/* Category */}
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Category
+        </label>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+        >
+          <option value="">No category</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.slug}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Tags */}

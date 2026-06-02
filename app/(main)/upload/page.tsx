@@ -1,11 +1,20 @@
-"use client";
-
+import "server-only";
 import React from "react";
+import { getDb, schema } from "@/db";
 import { UploadForm } from "@/components/upload/UploadForm";
 import { ArrowLeft, Upload } from "lucide-react";
 import Link from "next/link";
 
-export default function UploadPage() {
+export const dynamic = "force-dynamic";
+
+async function getCategories() {
+  const db = getDb();
+  return db.select().from(schema.categories).orderBy(schema.categories.name).all();
+}
+
+export default async function UploadPage() {
+  const categories = await getCategories();
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Back button */}
@@ -32,7 +41,9 @@ export default function UploadPage() {
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <UploadForm />
+        <UploadForm
+          categories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
+        />
       </div>
     </div>
   );

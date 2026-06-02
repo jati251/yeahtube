@@ -10,12 +10,18 @@ async function getTags() {
   return db.select().from(schema.tags).orderBy(schema.tags.name).all();
 }
 
+async function getCategories() {
+  const db = getDb();
+  return db.select().from(schema.categories).orderBy(schema.categories.name).all();
+}
+
 export default async function BrowsePage() {
-  const tags = await getTags();
+  const [tags, categories] = await Promise.all([getTags(), getCategories()]);
 
   return (
     <BrowseClient
       tags={tags.map((t) => ({ id: t.id, name: t.name, slug: t.slug }))}
+      categories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
     />
   );
 }
