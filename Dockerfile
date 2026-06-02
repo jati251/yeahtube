@@ -1,93 +1,47 @@
-# ── YeahTube Dockerfile ──────────────────────────────────
-# Multi-stage build: install deps → build Next.js → lean production image
+# ── YeahTube Dockerfile (with nginx) ─────────────────
+# nginx:80 → Next.js:3000 — proper Host headers, no redirect bugs
 #
 # Usage:
 #   docker build -t yeahtube:latest .
-#   docker run -d \
-#     --restart always \
-#     --name yeahtube \
-#     -p 5207:80 \
-#     --env-file .env \
-#     yeahtube:latest
-#
-# Required env vars (pass via --env-file or -e):
-#   JWT_SECRET, DATABASE_URL, STORAGE_TYPE, S3_ENDPOINT,
-#   S3_REGION, S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY,
-#   S3_FORCE_PATH_STYLE
+#   docker run -d --restart always --name yeahtube -p 5207:80 yeahtube:latest
 
-# ── Stage 1: Install dependencies ────────────────────────
-FROM node:20-alpine AS deps
-
-RUN apk add --no-cache \
-  libc6-compat \
-  python3 \
-  make \
-  g++ \
-  ffmpeg
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN npm ci --only=production --ignore-scripts && \
-  npm rebuild sharp && \
-  npm cache clean --force
-
-# ── Stage 2: Build application ───────────────────────────
+# ── Stage 1: Build Next.js ─────────────────────────────
 FROM node:20-alpine AS builder
 
-RUN apk add --no-cache \
-  libc6-compat \
-  python3 \
-  make \
-  g++ \
-  ffmpeg
-
+RUN apk add --no-cache python3 make g++ ffmpeg
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts && \
-  npm rebuild sharp && \
-  npm cache clean --force
+RUN npm ci --ignore-scripts && npm rebuild sharp && npm cache clean --force
 
 COPY . .
-
-# Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
-
 RUN npm run build
 
-# ── Stage 3: Production runner ───────────────────────────
-FROM node:20-alpine AS runner
+# ── Stage 2: Production image with nginx ────────────────
+FROM node:20-alpine
 
-RUN apk add --no-cache \
-  ffmpeg \
-  curl \
-  tzdata
-
-# Create a non-root user for security
-RUN addgroup --system --gid 1001 nodejs && \
-  adduser --system --uid 1001 nextjs
+RUN apk add --no-cache nginx ffmpeg curl && \
+    mkdir -p /run/nginx /app
 
 WORKDIR /app
 
-# Disable telemetry in production
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=80
-
-# Copy lib/storage.ts and db files for runtime use
+# Copy Next.js standalone output
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-
-# Copy the standalone Next.js output (includes server code)
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/package.json ./
 
-USER nextjs
+# Copy nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
 
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:80/api/auth/session || exit 1
+# Start script: nginx + Next.js
+RUN printf '#!/bin/sh\nnginx\nnode server.js' > /app/start.sh && chmod +x /app/start.sh
 
-CMD ["node", "server.js"]
+CMD ["/app/start.sh"]
