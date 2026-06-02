@@ -101,33 +101,45 @@ export function useInfinitePosts({
     [cursor, hasMore, limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal]
   );
 
+  // Stable ref for fetchPosts to prevent constant event listener re-registration
+  const fetchPostsRef = useRef(fetchPosts);
+  useEffect(() => {
+    fetchPostsRef.current = fetchPosts;
+  }, [fetchPosts]);
+
+  // Synchronize initial data if it changes on parent (e.g., soft navigation)
+  const prevInitialPosts = useRef(initialPosts);
+  useEffect(() => {
+    if (initialPosts !== prevInitialPosts.current) {
+      setPosts(initialPosts);
+      setCursor(initialCursor);
+      setHasMore(initialHasMore);
+      prevInitialPosts.current = initialPosts;
+      initialFetchDone.current = false;
+    }
+  }, [initialPosts, initialCursor, initialHasMore]);
+
   // Auto fetch handler (e.g. for BrowseClient)
   useEffect(() => {
     let active = true;
     const runFetch = async () => {
       if (!active) return;
       if (autoFetch) {
-        await fetchPosts(false);
+        await fetchPostsRef.current(false);
       } else if (!autoFetch && !initialFetchDone.current) {
         // If autoFetch is false (FeedClient), we rely on initial data but if fetchParams changes later, we should fetch.
         // However, we don't fetch on mount.
         initialFetchDone.current = true;
       } else if (initialFetchDone.current) {
          // If parameters change after mount and it's not autoFetch, we fetch (e.g., sort changed in FeedClient).
-         await fetchPosts(false);
+         await fetchPostsRef.current(false);
       }
     };
     runFetch();
     return () => {
       active = false;
     };
-  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, autoFetch, fetchPosts]);
-
-  // Stable ref for fetchPosts to prevent constant event listener re-registration
-  const fetchPostsRef = useRef(fetchPosts);
-  useEffect(() => {
-    fetchPostsRef.current = fetchPosts;
-  }, [fetchPosts]);
+  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, autoFetch]);
 
   // Listen to custom 'post-created' event to auto-refresh the feed
   useEffect(() => {

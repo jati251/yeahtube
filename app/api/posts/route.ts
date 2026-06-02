@@ -29,6 +29,15 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get("sort") || "newest";
 
     // Build query
+    const mediaCountSubquery = db
+      .select({
+        postId: schema.media.postId,
+        count: sql<number>`count(*)::int`.as("media_count"),
+      })
+      .from(schema.media)
+      .groupBy(schema.media.postId)
+      .as("mc");
+
     let query = db
       .select({
         id: schema.posts.id,
@@ -38,8 +47,10 @@ export async function GET(request: NextRequest) {
         categoryId: schema.posts.categoryId,
         createdAt: schema.posts.createdAt,
         updatedAt: schema.posts.updatedAt,
+        mediaCount: sql<number>`coalesce(${mediaCountSubquery.count}, 0)`.as("media_count"),
       })
       .from(schema.posts)
+      .leftJoin(mediaCountSubquery, eq(schema.posts.id, mediaCountSubquery.postId))
       .$dynamic();
 
     // Apply search filter
@@ -74,33 +85,119 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Apply cursor pagination
+    // Apply tag filter in SQL
+    if (tagSlugs) {
+      const slugs = tagSlugs.split(",").map((s) => s.trim());
+      if (slugs.length > 0) {
+        const matchingTags = await db
+          .select({ id: schema.tags.id })
+          .from(schema.tags)
+          .where(inArray(schema.tags.slug, slugs));
+        const tagIds = matchingTags.map((t) => t.id);
+
+        if (tagIds.length > 0) {
+          const postIdsWithTags = db
+            .select({ postId: schema.postTags.postId })
+            .from(schema.postTags)
+            .where(inArray(schema.postTags.tagId, tagIds));
+          query = query.where(inArray(schema.posts.id, postIdsWithTags)) as typeof query;
+        } else {
+          // No matching tags, force query to return no results
+          query = query.where(sql`1 = 0`) as typeof query;
+        }
+      }
+    }
+
+    // Apply media type filter in SQL
+    if (mediaType) {
+      const postIdsWithMediaType = db
+        .select({ postId: schema.media.postId })
+        .from(schema.media)
+        .where(eq(schema.media.mediaType, mediaType as "image" | "video"));
+      query = query.where(inArray(schema.posts.id, postIdsWithMediaType)) as typeof query;
+    }
+
+    // Parse cursor (Base64 JSON or fallback to raw string)
+    let cursorData: { createdAt?: string; title?: string; updatedAt?: string; mediaCount?: number; id?: number } | null = null;
     if (cursor) {
+      try {
+        const decoded = Buffer.from(cursor, "base64").toString("utf-8");
+        cursorData = JSON.parse(decoded);
+      } catch {
+        cursorData = { createdAt: cursor };
+      }
+    }
+
+    // Apply cursor pagination
+    if (cursorData) {
       if (sort === "oldest") {
-        query = query.where(sql`${schema.posts.createdAt} > ${cursor}`) as typeof query;
+        if (cursorData.createdAt && cursorData.id) {
+          query = query.where(
+            sql`(${schema.posts.createdAt}, ${schema.posts.id}) > (${cursorData.createdAt}, ${cursorData.id})`
+          ) as typeof query;
+        } else if (cursorData.createdAt) {
+          query = query.where(sql`${schema.posts.createdAt} > ${cursorData.createdAt}`) as typeof query;
+        }
+      } else if (sort === "title-asc") {
+        if (cursorData.title && cursorData.id) {
+          query = query.where(
+            sql`(${schema.posts.title}, ${schema.posts.id}) > (${cursorData.title}, ${cursorData.id})`
+          ) as typeof query;
+        }
+      } else if (sort === "title-desc") {
+        if (cursorData.title && cursorData.id) {
+          query = query.where(
+            sql`(${schema.posts.title}, ${schema.posts.id}) < (${cursorData.title}, ${cursorData.id})`
+          ) as typeof query;
+        }
+      } else if (sort === "recently-updated") {
+        if (cursorData.updatedAt && cursorData.id) {
+          query = query.where(
+            sql`(${schema.posts.updatedAt}, ${schema.posts.id}) < (${cursorData.updatedAt}, ${cursorData.id})`
+          ) as typeof query;
+        }
+      } else if (sort === "most-media") {
+        if (cursorData.mediaCount !== undefined && cursorData.createdAt && cursorData.id) {
+          query = query.where(
+            sql`(coalesce(${mediaCountSubquery.count}, 0), ${schema.posts.createdAt}, ${schema.posts.id}) < (${cursorData.mediaCount}, ${cursorData.createdAt}, ${cursorData.id})`
+          ) as typeof query;
+        }
       } else {
-        query = query.where(sql`${schema.posts.createdAt} < ${cursor}`) as typeof query;
+        // newest (default)
+        if (cursorData.createdAt && cursorData.id) {
+          query = query.where(
+            sql`(${schema.posts.createdAt}, ${schema.posts.id}) < (${cursorData.createdAt}, ${cursorData.id})`
+          ) as typeof query;
+        } else if (cursorData.createdAt) {
+          query = query.where(sql`${schema.posts.createdAt} < ${cursorData.createdAt}`) as typeof query;
+        }
       }
     }
 
     // Apply sorting
     switch (sort) {
       case "oldest":
-        query = query.orderBy(schema.posts.createdAt);
+        query = query.orderBy(schema.posts.createdAt, schema.posts.id);
         break;
       case "title-asc":
-        query = query.orderBy(schema.posts.title);
+        query = query.orderBy(schema.posts.title, schema.posts.id);
         break;
       case "title-desc":
-        query = query.orderBy(desc(schema.posts.title));
+        query = query.orderBy(desc(schema.posts.title), desc(schema.posts.id));
         break;
       case "recently-updated":
-        query = query.orderBy(desc(schema.posts.updatedAt));
+        query = query.orderBy(desc(schema.posts.updatedAt), desc(schema.posts.id));
         break;
       case "most-media":
+        query = query.orderBy(
+          desc(sql`coalesce(${mediaCountSubquery.count}, 0)`),
+          desc(schema.posts.createdAt),
+          desc(schema.posts.id)
+        );
+        break;
       case "newest":
       default:
-        query = query.orderBy(desc(schema.posts.createdAt));
+        query = query.orderBy(desc(schema.posts.createdAt), desc(schema.posts.id));
         break;
     }
 
@@ -140,37 +237,6 @@ export async function GET(request: NextRequest) {
       // Categories table doesn't exist yet
     }
 
-    // Apply tag filter
-    let filteredPostIds: Set<number> | null = null;
-    if (tagSlugs) {
-      const slugs = tagSlugs.split(",").map((s) => s.trim());
-      const matchingTags = await db
-        .select()
-        .from(schema.tags)
-        .where(inArray(schema.tags.slug, slugs));
-
-      const tagIds = matchingTags.map((t) => t.id);
-      if (tagIds.length > 0) {
-        const matchingPostTags = await db
-          .select()
-          .from(schema.postTags)
-          .where(inArray(schema.postTags.tagId, tagIds));
-        filteredPostIds = new Set(matchingPostTags.map((pt) => pt.postId));
-      } else {
-        filteredPostIds = new Set<number>();
-      }
-    }
-
-    // Apply media type filter
-    let typeFilteredPostIds: Set<number> | null = null;
-    if (mediaType) {
-      typeFilteredPostIds = new Set(
-        allMedia
-          .filter((m) => m.mediaType === mediaType)
-          .map((m) => m.postId),
-      );
-    }
-
     // Assemble result
     const result = posts.slice(0, limit).map((post) => {
       const postMedia = allMedia.filter((m) => m.postId === post.id);
@@ -192,7 +258,7 @@ export async function GET(request: NextRequest) {
         description: post.description,
         createdAt: post.createdAt,
         tags: postTags,
-        mediaCount: postMedia.length,
+        mediaCount: post.mediaCount,
         mediaType: hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image",
         thumbnailUrl: firstMedia?.thumbnailKey
           ? `/api/media/${firstMedia.id}/thumbnail`
@@ -202,23 +268,29 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Apply filters
-    const filtered = result.filter((post) => {
-      if (filteredPostIds && !filteredPostIds.has(post.id)) return false;
-      if (typeFilteredPostIds && !typeFilteredPostIds.has(post.id)) return false;
-      return true;
-    });
+    const hasMore = posts.length > limit;
+    let nextCursor: string | null = null;
 
-    // Sort by most-media (needs to be done after fetching)
-    if (sort === "most-media") {
-      filtered.sort((a, b) => b.mediaCount - a.mediaCount);
+    if (hasMore) {
+      const lastPost = posts[limit - 1];
+      const cursorObj: Record<string, any> = { id: lastPost.id };
+      
+      if (sort === "newest" || sort === "oldest") {
+        cursorObj.createdAt = lastPost.createdAt;
+      } else if (sort === "title-asc" || sort === "title-desc") {
+        cursorObj.title = lastPost.title;
+      } else if (sort === "recently-updated") {
+        cursorObj.updatedAt = lastPost.updatedAt;
+      } else if (sort === "most-media") {
+        cursorObj.mediaCount = lastPost.mediaCount;
+        cursorObj.createdAt = lastPost.createdAt;
+      }
+      
+      nextCursor = Buffer.from(JSON.stringify(cursorObj)).toString("base64");
     }
 
-    const hasMore = posts.length > limit;
-    const nextCursor = hasMore ? posts[limit - 1]?.createdAt : null;
-
     return NextResponse.json({
-      posts: filtered,
+      posts: result,
       nextCursor,
       hasMore,
     });
