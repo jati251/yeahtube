@@ -33,7 +33,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="group relative flex min-w-0 gap-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+    <div className="group relative flex min-w-0 gap-4 rounded-xl glass-card premium-hover p-3 sm:p-4">
       {/* Selection checkbox (visible only in select mode) */}
       {selectMode && (
         <div
@@ -95,13 +95,13 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         </div>
 
         {/* Info */}
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-white" title={post.title}>
+            <h3 className="truncate text-base font-bold text-slate-900 dark:text-white" title={post.title}>
               {post.title}
             </h3>
             {post.mediaCount > 1 && (
-              <span className="hidden shrink-0 items-center gap-1 text-xs text-gray-400 sm:flex">
+              <span className="hidden shrink-0 items-center gap-1 text-xs text-slate-400 sm:flex">
                 <Layers className="h-3 w-3" />
                 {post.mediaCount}
               </span>
@@ -109,7 +109,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
           </div>
 
           {post.description && (
-            <p className="line-clamp-1 break-words text-xs text-gray-500 dark:text-gray-400">
+            <p className="line-clamp-1 break-words text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
               {post.description}
             </p>
           )}

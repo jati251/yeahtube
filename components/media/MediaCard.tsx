@@ -32,7 +32,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="group relative block min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+    <div className="group relative block min-w-0 overflow-hidden rounded-xl glass-card premium-hover">
       {/* Selection checkbox (visible only in select mode) */}
       {selectMode && (
         <div
@@ -103,12 +103,12 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
       </div>
 
       {/* Info */}
-      <div className="min-w-0 p-3">
-        <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-white" title={post.title}>
+      <div className="min-w-0 p-4">
+        <h3 className="truncate text-base font-bold text-slate-900 dark:text-white" title={post.title}>
           {post.title}
         </h3>
         {post.description && (
-          <p className="mt-1 line-clamp-2 break-words text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1.5 line-clamp-2 break-words text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
             {post.description}
           </p>
         )}
