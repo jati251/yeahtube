@@ -1,7 +1,5 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import crypto from "crypto";
 
 // ── Constants ───────────────────────────────────────────
 
@@ -14,7 +12,11 @@ const CSRF_HEADER_NAME = "x-csrf-token";
  * Generate a cryptographically-random CSRF token.
  */
 export function generateCsrfToken(): string {
-  return crypto.randomBytes(32).toString("hex");
+  const array = new Uint8Array(32);
+  globalThis.crypto.getRandomValues(array);
+  return Array.from(array)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 // ── Cookie Management (Server-Side) ─────────────────────
@@ -63,7 +65,12 @@ export function validateCsrf(request: NextRequest): boolean {
     return false;
   }
 
-  return crypto.timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken));
+  let mismatch = 0;
+  for (let i = 0; i < cookieToken.length; i++) {
+    mismatch |= cookieToken.charCodeAt(i) ^ headerToken.charCodeAt(i);
+  }
+
+  return mismatch === 0;
 }
 
 // ── Next.js App Router Integration ──────────────────────
