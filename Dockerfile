@@ -31,8 +31,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/package.json ./
-# Copy .env file so the standalone server can load env vars like DATABASE_URL and JWT_SECRET
-COPY --from=builder /app/.env ./
 
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
