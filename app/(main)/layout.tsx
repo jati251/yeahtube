@@ -4,8 +4,13 @@ import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
 
 async function getCategories() {
-  const db = getDb();
-  return db.select().from(schema.categories).orderBy(schema.categories.name).all();
+  try {
+    const db = getDb();
+    return db.select().from(schema.categories).orderBy(schema.categories.name).all();
+  } catch {
+    // Table may not exist yet (pre-seed DB). Gracefully degrade.
+    return [];
+  }
 }
 
 export default async function MainLayout({

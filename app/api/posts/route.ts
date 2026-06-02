@@ -51,13 +51,17 @@ export async function GET(request: NextRequest) {
 
     // Apply category filter
     if (category) {
-      const cat = db
-        .select()
-        .from(schema.categories)
-        .where(eq(schema.categories.slug, category))
-        .get();
-      if (cat) {
-        query = query.where(eq(schema.posts.categoryId, cat.id)) as typeof query;
+      try {
+        const cat = db
+          .select()
+          .from(schema.categories)
+          .where(eq(schema.categories.slug, category))
+          .get();
+        if (cat) {
+          query = query.where(eq(schema.posts.categoryId, cat.id)) as typeof query;
+        }
+      } catch {
+        // Categories table doesn't exist yet
       }
     }
 
@@ -137,9 +141,14 @@ export async function GET(request: NextRequest) {
           .all()
       : [];
 
-    // Get categories
-    const allCategories = db.select().from(schema.categories).all();
-    const categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+    // Get categories (may not exist yet if DB wasn't re-seeded)
+    let categoryMap = new Map<number, string>();
+    try {
+      const allCategories = db.select().from(schema.categories).all();
+      categoryMap = new Map(allCategories.map((c) => [c.id, c.name]));
+    } catch {
+      // Categories table doesn't exist yet — that's okay
+    }
 
     // Apply tag filter
     let filteredPostIds: Set<number> | null = null;
