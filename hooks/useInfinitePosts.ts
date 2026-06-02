@@ -19,8 +19,10 @@ interface UseInfinitePostsOptions {
   autoFetch?: boolean; 
 }
 
+const DEFAULT_POSTS: PostItem[] = [];
+
 export function useInfinitePosts({
-  initialPosts = [],
+  initialPosts = DEFAULT_POSTS,
   initialCursor = null,
   initialHasMore = true,
   fetchParams = {},
@@ -109,12 +111,18 @@ export function useInfinitePosts({
 
   // Synchronize initial data if it changes on parent (e.g., soft navigation)
   const prevInitialPosts = useRef(initialPosts);
+  const prevInitialCursor = useRef(initialCursor);
   useEffect(() => {
-    if (initialPosts !== prevInitialPosts.current) {
+    const postsChanged = initialPosts !== prevInitialPosts.current && 
+      (initialPosts.length > 0 || prevInitialPosts.current.length > 0);
+    const cursorChanged = initialCursor !== prevInitialCursor.current;
+
+    if (postsChanged || cursorChanged) {
       setPosts(initialPosts);
       setCursor(initialCursor);
       setHasMore(initialHasMore);
       prevInitialPosts.current = initialPosts;
+      prevInitialCursor.current = initialCursor;
       initialFetchDone.current = false;
     }
   }, [initialPosts, initialCursor, initialHasMore]);
