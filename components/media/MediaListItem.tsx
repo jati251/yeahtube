@@ -33,7 +33,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="group relative flex gap-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+    <div className="group relative flex min-w-0 gap-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:p-4">
       {/* Selection checkbox (visible only in select mode) */}
       {selectMode && (
         <div
@@ -49,7 +49,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         </div>
       )}
 
-      <Link href={href} className="flex flex-1 gap-4">
+      <Link href={href} className="flex flex-1 gap-4 min-w-0">
         {/* Thumbnail */}
         <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:h-24 sm:w-36">
           {post.thumbnailUrl ? (
@@ -109,7 +109,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
           </div>
 
           {post.description && (
-            <p className="line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="line-clamp-1 break-words text-xs text-gray-500 dark:text-gray-400">
               {post.description}
             </p>
           )}

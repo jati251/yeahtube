@@ -32,7 +32,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="group relative block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+    <div className="group relative block min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
       {/* Selection checkbox (visible only in select mode) */}
       {selectMode && (
         <div
@@ -48,7 +48,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         </div>
       )}
 
-      <Link href={href}>
+      <Link href={href} className="block">
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
         {post.thumbnailUrl ? (
@@ -103,12 +103,12 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
       </div>
 
       {/* Info */}
-      <div className="p-3">
+      <div className="min-w-0 p-3">
         <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-white" title={post.title}>
           {post.title}
         </h3>
         {post.description && (
-          <p className="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 line-clamp-2 break-words text-xs text-gray-500 dark:text-gray-400">
             {post.description}
           </p>
         )}
@@ -133,7 +133,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         )}
 
         {/* Date */}
-        <p className="mt-2 text-[10px] text-gray-400 dark:text-gray-500">
+        <p className="mt-2 truncate text-[10px] text-gray-400 dark:text-gray-500">
           {timeAgo}
         </p>
       </div>

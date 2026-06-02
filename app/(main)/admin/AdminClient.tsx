@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
-import { Shield, ShieldOff, Check, X, UserCheck, UserX } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import { Shield, ShieldOff, Check, X, UserPlus } from "lucide-react";
 
 interface UserItem {
   id: number;
@@ -22,6 +23,10 @@ interface AdminClientProps {
 export function AdminClient({ currentUserId, users }: AdminClientProps) {
   const { addToast } = useToast();
   const [userList, setUserList] = useState(users);
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newIsAdmin, setNewIsAdmin] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const toggleWhitelist = async (userId: number, current: boolean) => {
     try {
@@ -79,6 +84,43 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
     }
   };
 
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUsername.trim() || !newPassword.trim()) {
+      addToast("error", "Username and password required");
+      return;
+    }
+    setAdding(true);
+    try {
+      const csrfToken = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
+      )?.[1];
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
+        body: JSON.stringify({
+          username: newUsername.trim(),
+          password: newPassword.trim(),
+          isAdmin: newIsAdmin,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create user");
+      addToast("success", `User "${newUsername.trim()}" created`);
+      setUserList((prev) => [...prev, data.user]);
+      setNewUsername("");
+      setNewPassword("");
+      setNewIsAdmin(false);
+    } catch (err) {
+      addToast("error", err instanceof Error ? err.message : "Failed to create user");
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-6">
@@ -86,9 +128,52 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
           Admin Panel
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Manage user whitelist and permissions
+          Manage users and permissions
         </p>
       </div>
+
+      {/* Add User Form */}
+      <form onSubmit={handleAddUser} className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+          Add New User
+        </h2>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-0 flex-1">
+            <Input
+              label="Username"
+              name="new-username"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="Username"
+              required
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <Input
+              label="Password"
+              name="new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Password"
+              required
+            />
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm text-gray-600 dark:text-gray-400">
+            <input
+              type="checkbox"
+              checked={newIsAdmin}
+              onChange={(e) => setNewIsAdmin(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+            />
+            Admin
+          </label>
+          <Button type="submit" loading={adding} size="sm">
+            <UserPlus className="mr-1 h-4 w-4" />
+            Add User
+          </Button>
+        </div>
+      </form>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
         <table className="w-full text-left text-sm">
