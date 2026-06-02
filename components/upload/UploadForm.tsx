@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X, FileVideo, FileImage, Plus } from "lucide-react";
+import { Upload, X, FileVideo, FileImage, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { UploadProgress } from "./UploadProgress";
@@ -32,13 +32,22 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [quickPost, setQuickPost] = useState(false);
+
+  // Auto-fill title from filename when a single file is selected
+  useEffect(() => {
+    if (selectedFiles.length === 1 && !title) {
+      const filename = selectedFiles[0].file.name;
+      const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+      setTitle(nameWithoutExt);
+    }
+  }, [selectedFiles, title]);
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const newFiles: SelectedFile[] = Array.from(files)
@@ -100,7 +109,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       if (e.target.files && e.target.files.length > 0) {
         addFiles(e.target.files);
       }
-      // Reset input so same files can be selected again
       e.target.value = "";
     },
     [addFiles],
@@ -145,25 +153,24 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     setUploadProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append("title", title.trim());
-      formData.append("description", description.trim());
-      if (category) formData.append("category", category);
-      formData.append("tags", JSON.stringify(tags));
-
-      selectedFiles.forEach((sf) => {
-        formData.append("files", sf.file);
-      });
-
       // Read CSRF token from cookie (set by proxy.ts)
       const csrfToken = document.cookie.match(
         new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
       )?.[1];
 
-      // Simulate progress (XHR doesn't natively support upload progress with FormData easily)
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 500);
+
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      if (category) formData.append("category", category);
+      formData.append("tags", JSON.stringify(tags));
+      formData.append("quickPost", quickPost ? "true" : "false");
+
+      selectedFiles.forEach((sf) => {
+        formData.append("files", sf.file);
+      });
 
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -182,12 +189,16 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
       setUploadProgress(100);
 
-      addToast("success", "Upload successful!");
+      const successMsg = quickPost && selectedFiles.length > 1
+        ? `${selectedFiles.length} posts created!`
+        : "Upload successful!";
+      addToast("success", successMsg);
+
       setTimeout(() => {
         setSelectedFiles([]);
         setTitle("");
-        setDescription("");
         setTags([]);
+        setQuickPost(false);
         setUploading(false);
         setUploadProgress(0);
         router.refresh();
@@ -280,26 +291,10 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         name="title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Enter a title for your media"
+        placeholder="Single file: auto-filled from filename"
         required
         maxLength={200}
       />
-
-      {/* Description */}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Description
-        </label>
-        <textarea
-          name="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Add a description..."
-          rows={3}
-          maxLength={5000}
-          className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-        />
-      </div>
 
       {/* Category */}
       <div>
@@ -358,11 +353,24 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         </div>
       </div>
 
-      {/* Submit */}
-      <div className="flex gap-3">
+      {/* Quick Post toggle + Submit */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Button type="submit" loading={uploading} size="lg" className="flex-1">
-          {uploading ? "Uploading..." : "Publish"}
+          {uploading ? "Uploading..." : quickPost ? "Quick Post All" : "Publish"}
         </Button>
+
+        {selectedFiles.length > 1 && (
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800">
+            <input
+              type="checkbox"
+              checked={quickPost}
+              onChange={(e) => setQuickPost(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+            />
+            <Zap className="h-4 w-4 text-yellow-500" />
+            <span>Quick Post — create individual posts per file</span>
+          </label>
+        )}
       </div>
 
       {/* Progress */}
