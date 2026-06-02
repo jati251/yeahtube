@@ -320,6 +320,14 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
   return (
     <form onSubmit={handlePublish} className="space-y-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,video/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
       {/* Drop zone */}
       <div
         onDragOver={handleDragOver}
@@ -332,14 +340,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
             : "border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
         }`}
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,video/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
         <Upload className="mx-auto mb-3 h-10 w-10 text-gray-400" />
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Drop files here or click to browse
