@@ -1,6 +1,7 @@
 import "server-only";
 import { getDb, schema } from "@/db";
 import { eq, desc, inArray, sql } from "drizzle-orm";
+import { getCurrentUser } from "@/lib/auth";
 import { FeedClient } from "./FeedClient";
 
 export const dynamic = "force-dynamic";
@@ -82,13 +83,15 @@ async function getTags() {
 }
 
 export default async function HomePage() {
-  const [{ posts, nextCursor, hasMore }, tags] = await Promise.all([
+  const [user, { posts, nextCursor, hasMore }, tags] = await Promise.all([
+    getCurrentUser(),
     getInitialPosts(),
     getTags(),
   ]);
 
   return (
     <FeedClient
+      isAdmin={user?.isAdmin ?? false}
       initialPosts={posts}
       initialCursor={nextCursor}
       initialHasMore={hasMore}
