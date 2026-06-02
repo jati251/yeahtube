@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X, FileVideo, FileImage, Plus, Zap } from "lucide-react";
+import { Upload, X, FileVideo, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { UploadProgress } from "./UploadProgress";
@@ -39,8 +39,57 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
 
+  const lastAutoFilledTitleRef = useRef("");
+  const prevFilesCount = useRef(0);
+
+  useEffect(() => {
+    if (selectedFiles.length === 1 && prevFilesCount.current !== 1) {
+      const fileName = selectedFiles[0].file.name;
+      const lastDotIndex = fileName.lastIndexOf(".");
+      const titleWithoutExtension =
+        lastDotIndex !== -1 ? fileName.substring(0, lastDotIndex) : fileName;
+
+      if (!title || title === lastAutoFilledTitleRef.current) {
+        setTitle(titleWithoutExtension);
+        lastAutoFilledTitleRef.current = titleWithoutExtension;
+      }
+    } else if (selectedFiles.length === 0 && prevFilesCount.current > 0) {
+      if (title === lastAutoFilledTitleRef.current) {
+        setTitle("");
+      }
+      lastAutoFilledTitleRef.current = "";
+    }
+    prevFilesCount.current = selectedFiles.length;
+  }, [selectedFiles, title]);
+
   const addFiles = useCallback((files: FileList | File[]) => {
+    const extensionMimeMap: Record<string, string> = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      webp: "image/webp",
+      avif: "image/avif",
+      mp4: "video/mp4",
+      webm: "video/webm",
+      mov: "video/quicktime",
+      avi: "video/x-msvideo",
+    };
+
     const newFiles: SelectedFile[] = Array.from(files)
+      .map((originalFile) => {
+        let file = originalFile;
+        const ext = file.name.split(".").pop()?.toLowerCase() || "";
+        const expectedMime = extensionMimeMap[ext];
+
+        if (expectedMime && (!file.type || file.type === "application/octet-stream")) {
+          file = new File([originalFile], originalFile.name, {
+            type: expectedMime,
+            lastModified: originalFile.lastModified,
+          });
+        }
+        return file;
+      })
       .filter((file) => {
         const validImage = [
           "image/jpeg",
@@ -53,6 +102,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           "video/mp4",
           "video/webm",
           "video/quicktime",
+          "video/x-msvideo",
         ].includes(file.type);
         return validImage || validVideo;
       })
@@ -172,6 +222,9 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         setUploading(false);
         setUploadProgress(0);
         router.refresh();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("post-created"));
+        }
         onSuccess?.();
       }, 500);
     } catch (error) {
@@ -253,6 +306,9 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         setUploading(false);
         setUploadProgress(0);
         router.refresh();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("post-created"));
+        }
         onSuccess?.();
       }, 500);
     } catch (error) {
@@ -280,7 +336,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/jpeg,image/png,image/gif,image/webp,image/avif,video/mp4,video/webm,video/quicktime"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/avif,video/mp4,video/webm,video/quicktime,video/x-msvideo,.jpg,.jpeg,.png,.gif,.webp,.avif,.mp4,.mov,.webm,.avi"
           onChange={handleFileSelect}
           className="hidden"
         />

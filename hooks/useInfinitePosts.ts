@@ -40,20 +40,13 @@ export function useInfinitePosts({
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const buildUrl = (cursorVal?: string) => {
-    const params = new URLSearchParams();
-    if (cursorVal) params.set("cursor", cursorVal);
-    params.set("limit", (fetchParams.limit || 20).toString());
-    params.set("sort", fetchParams.sort || "newest");
-    
-    if (fetchParams.type) params.set("type", fetchParams.type);
-    if (fetchParams.tags) params.set("tags", fetchParams.tags);
-    if (fetchParams.q) params.set("q", fetchParams.q);
-    if (fetchParams.category) params.set("category", fetchParams.category);
-    if (fetchParams.year) params.set("year", fetchParams.year);
-    
-    return `/api/posts?${params.toString()}`;
-  };
+  const limitVal = fetchParams.limit;
+  const sortVal = fetchParams.sort;
+  const typeVal = fetchParams.type;
+  const tagsVal = fetchParams.tags;
+  const qVal = fetchParams.q;
+  const categoryVal = fetchParams.category;
+  const yearVal = fetchParams.year;
 
   const fetchPosts = useCallback(
     async (isLoadMore = false) => {
@@ -64,6 +57,21 @@ export function useInfinitePosts({
       // Use state updater to avoid stale state issues in fast calls
       if (isLoadMore) setLoadingMore(true);
       else setLoading(true);
+
+      const buildUrl = (cursorVal?: string) => {
+        const params = new URLSearchParams();
+        if (cursorVal) params.set("cursor", cursorVal);
+        params.set("limit", (limitVal || 20).toString());
+        params.set("sort", sortVal || "newest");
+        
+        if (typeVal) params.set("type", typeVal);
+        if (tagsVal) params.set("tags", tagsVal);
+        if (qVal) params.set("q", qVal);
+        if (categoryVal) params.set("category", categoryVal);
+        if (yearVal) params.set("year", yearVal);
+        
+        return `/api/posts?${params.toString()}`;
+      };
 
       try {
         const url = buildUrl(currentCursor ?? undefined);
@@ -90,23 +98,48 @@ export function useInfinitePosts({
         else setLoading(false);
       }
     },
-    // Deeply stringify fetchParams to ensure stability
-    [cursor, hasMore, JSON.stringify(fetchParams)]
+    [cursor, hasMore, limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal]
   );
 
   // Auto fetch handler (e.g. for BrowseClient)
   useEffect(() => {
-    if (autoFetch) {
-      fetchPosts(false);
-    } else if (!autoFetch && !initialFetchDone.current) {
-      // If autoFetch is false (FeedClient), we rely on initial data but if fetchParams changes later, we should fetch.
-      // However, we don't fetch on mount.
-      initialFetchDone.current = true;
-    } else if (initialFetchDone.current) {
-       // If parameters change after mount and it's not autoFetch, we fetch (e.g., sort changed in FeedClient).
-       fetchPosts(false);
-    }
-  }, [JSON.stringify(fetchParams), autoFetch]);
+    let active = true;
+    const runFetch = async () => {
+      if (!active) return;
+      if (autoFetch) {
+        await fetchPosts(false);
+      } else if (!autoFetch && !initialFetchDone.current) {
+        // If autoFetch is false (FeedClient), we rely on initial data but if fetchParams changes later, we should fetch.
+        // However, we don't fetch on mount.
+        initialFetchDone.current = true;
+      } else if (initialFetchDone.current) {
+         // If parameters change after mount and it's not autoFetch, we fetch (e.g., sort changed in FeedClient).
+         await fetchPosts(false);
+      }
+    };
+    runFetch();
+    return () => {
+      active = false;
+    };
+  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, autoFetch, fetchPosts]);
+
+  // Stable ref for fetchPosts to prevent constant event listener re-registration
+  const fetchPostsRef = useRef(fetchPosts);
+  useEffect(() => {
+    fetchPostsRef.current = fetchPosts;
+  }, [fetchPosts]);
+
+  // Listen to custom 'post-created' event to auto-refresh the feed
+  useEffect(() => {
+    const handlePostCreated = () => {
+      fetchPostsRef.current(false);
+    };
+
+    window.addEventListener("post-created", handlePostCreated);
+    return () => {
+      window.removeEventListener("post-created", handlePostCreated);
+    };
+  }, []);
 
   // Robust Intersection Observer setup
   useEffect(() => {
