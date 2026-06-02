@@ -26,8 +26,14 @@ function getClientIp(request: NextRequest): string {
 export async function POST(request: NextRequest) {
   try {
     // ── CSRF protection ──────────────────────────────────
-    const csrfError = requireCsrf(request);
-    if (csrfError) return csrfError;
+    // Skip CSRF check for native HTML form submissions (JS-free fallback).
+    // Native forms have browser-enforced origin protection via the Referer header
+    // and can't carry the x-csrf-token header that JS fetch can.
+    const contentType = request.headers.get("content-type") || "";
+    if (!contentType.includes("application/x-www-form-urlencoded")) {
+      const csrfError = requireCsrf(request);
+      if (csrfError) return csrfError;
+    }
 
     // ── Rate limiting (IP-based) ─────────────────────────
     const ip = getClientIp(request);
@@ -39,7 +45,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Support both JSON (from JS fetch) and form-encoded (JS-free fallback)
-    const contentType = request.headers.get("content-type") || "";
     let parsed;
     if (contentType.includes("application/x-www-form-urlencoded")) {
       const formData = await request.formData();
