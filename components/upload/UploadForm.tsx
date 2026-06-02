@@ -336,7 +336,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/jpeg,image/png,image/gif,image/webp,image/avif,video/mp4,video/webm,video/quicktime,video/x-msvideo,.jpg,.jpeg,.png,.gif,.webp,.avif,.mp4,.mov,.webm,.avi"
+          accept="image/*,video/*"
           onChange={handleFileSelect}
           className="hidden"
         />
