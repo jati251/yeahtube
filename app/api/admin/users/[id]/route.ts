@@ -35,15 +35,23 @@ export async function PATCH(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Don't allow removing admin from yourself
-    if (Number(id) === user.id && body.isAdmin === false) {
-      return NextResponse.json(
-        { error: "Cannot remove your own admin status" },
-        { status: 400 },
-      );
+    // Don't allow modifying your own admin account
+    if (Number(id) === user.id) {
+      if (body.isAdmin === false) {
+        return NextResponse.json(
+          { error: "Cannot remove your own admin status" },
+          { status: 400 },
+        );
+      }
+      if (body.isWhitelisted === false) {
+        return NextResponse.json(
+          { error: "Cannot remove yourself from the whitelist" },
+          { status: 400 },
+        );
+      }
     }
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, boolean | number | string> = {};
     if (typeof body.isWhitelisted === "boolean") {
       updates.isWhitelisted = body.isWhitelisted;
     }

@@ -129,11 +129,13 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
                 <td className="px-4 py-3">
                   <button
                     onClick={() => toggleWhitelist(u.id, u.isWhitelisted)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    disabled={u.id === currentUserId}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       u.isWhitelisted
                         ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300"
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
                     }`}
+                    title={u.id === currentUserId ? "Cannot modify your own whitelist status" : undefined}
                   >
                     {u.isWhitelisted ? (
                       <>
