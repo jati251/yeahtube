@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X, FileVideo, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -8,21 +6,15 @@ import { Input } from "@/components/ui/Input";
 import { UploadProgress } from "./UploadProgress";
 import { useToast } from "@/components/ui/Toast";
 
-interface SelectedFile {
-  file: File;
-  preview: string;
-  id: string;
-}
-
-interface CategoryItem {
-  id: number;
-  name: string;
-  slug: string;
-}
-
 interface UploadFormProps {
   onSuccess?: () => void;
-  categories?: CategoryItem[];
+  categories?: { id: number; name: string; slug: string }[];
+}
+
+interface SelectedFile {
+  id: string;
+  file: File;
+  preview: string;
 }
 
 export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
@@ -33,27 +25,113 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
 
-  const lastAutoFilledTitleRef = useRef("");
+  // Used for auto-filling title based on single file
   const prevFilesCount = useRef(0);
+  const lastAutoFilledTitleRef = useRef("");
 
+  const isVideoFile = useCallback((file: File) => {
+    if (file.type && file.type.startsWith("video/")) return true;
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    return ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"].includes(ext);
+  }, []);
+
+  const addFiles = useCallback(
+    (filesArray: File[]) => {
+      const newFiles: SelectedFile[] = [];
+
+      filesArray.forEach((file) => {
+        const isImage = file.type.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "avif"].includes(file.name.split(".").pop()?.toLowerCase() || "");
+        const isVideo = isVideoFile(file);
+
+        if (isImage || isVideo) {
+          // Creating preview URL for valid files
+          // Note: for videos on mobile, creating too many heavy object URLs 
+          // might cause issues, but keeping it simple and rendering just an icon 
+          // for video (instead of a hidden <video> tag) usually mitigates memory crashes.
+          const preview = URL.createObjectURL(file);
+          const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
+          newFiles.push({ file, preview, id });
+        }
+      });
+
+      if (newFiles.length > 0) {
+        setSelectedFiles((prev) => [...prev, ...newFiles]);
+      }
+    },
+    [isVideoFile]
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        // Convert FileList to Array immediately to avoid mutations/GC issues
+        const filesArray = Array.from(e.target.files);
+        addFiles(filesArray);
+      }
+      
+      // Clear input safely after selection so same file can be re-selected if needed
+      const target = e.target;
+      setTimeout(() => {
+        try { target.value = ""; } catch (err) {}
+      }, 500);
+    },
+    [addFiles]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setDragOver(false);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const filesArray = Array.from(e.dataTransfer.files);
+        addFiles(filesArray);
+      }
+    },
+    [addFiles]
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
+
+  const removeFile = useCallback((id: string) => {
+    setSelectedFiles((prev) => {
+      const filtered = prev.filter((sf) => sf.id !== id);
+      // Revoke URL to avoid memory leaks
+      const removed = prev.find((sf) => sf.id === id);
+      if (removed) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return filtered;
+    });
+  }, []);
+
+  // Title auto-fill logic
   useEffect(() => {
     if (selectedFiles.length === 1 && prevFilesCount.current !== 1) {
+      // Transitioned to 1 file: auto-fill title if empty or unchanged from last auto-fill
       const fileName = selectedFiles[0].file.name;
       const lastDotIndex = fileName.lastIndexOf(".");
-      const titleWithoutExtension =
-        lastDotIndex !== -1 ? fileName.substring(0, lastDotIndex) : fileName;
+      const titleWithoutExt = lastDotIndex !== -1 ? fileName.substring(0, lastDotIndex) : fileName;
 
       if (!title || title === lastAutoFilledTitleRef.current) {
-        setTitle(titleWithoutExtension);
-        lastAutoFilledTitleRef.current = titleWithoutExtension;
+        setTitle(titleWithoutExt);
+        lastAutoFilledTitleRef.current = titleWithoutExt;
       }
     } else if (selectedFiles.length === 0 && prevFilesCount.current > 0) {
+      // Transitioned to 0 files: clear title if it's the auto-filled one
       if (title === lastAutoFilledTitleRef.current) {
         setTitle("");
       }
@@ -62,222 +140,75 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     prevFilesCount.current = selectedFiles.length;
   }, [selectedFiles, title]);
 
-  const isVideoFile = useCallback((file: File) => {
-    return (
-      file.type?.startsWith("video/") ||
-      ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"].includes(
-        file.name.split(".").pop()?.toLowerCase() || ""
-      )
-    );
-  }, []);
-
-  const addFiles = useCallback((files: FileList | File[]) => {
-    const extensionMimeMap: Record<string, string> = {
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      png: "image/png",
-      gif: "image/gif",
-      webp: "image/webp",
-      avif: "image/avif",
-      mp4: "video/mp4",
-      webm: "video/webm",
-      mov: "video/quicktime",
-      avi: "video/x-msvideo",
+  // Clean up ObjectURLs on unmount
+  useEffect(() => {
+    return () => {
+      selectedFiles.forEach((sf) => URL.revokeObjectURL(sf.preview));
     };
-
-    const newFiles: SelectedFile[] = Array.from(files)
-      .map((originalFile) => {
-        let file = originalFile;
-        const ext = file.name.split(".").pop()?.toLowerCase() || "";
-        const expectedMime = extensionMimeMap[ext];
-
-        if (expectedMime && (!file.type || file.type === "application/octet-stream")) {
-          file = new File([originalFile], originalFile.name, {
-            type: expectedMime,
-            lastModified: originalFile.lastModified,
-          });
-        }
-        return file;
-      })
-      .filter((file) => {
-        if (file.type && (file.type.startsWith("image/") || file.type.startsWith("video/"))) {
-          return true;
-        }
-        const ext = file.name.split(".").pop()?.toLowerCase() || "";
-        const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "avif", "heic", "heif"];
-        const videoExtensions = ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"];
-        return imageExtensions.includes(ext) || videoExtensions.includes(ext);
-      })
-      .map((file) => {
-        let preview = "";
-        try {
-          preview = URL.createObjectURL(file);
-        } catch (err) {
-          console.error("Failed to create object URL for preview:", err);
-        }
-        return {
-          file,
-          preview,
-          id: Math.random().toString(36).substring(2, 9),
-        };
-      });
-
-    setSelectedFiles((prev) => [...prev, ...newFiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const removeFile = useCallback((id: string) => {
-    setSelectedFiles((prev) => {
-      const file = prev.find((f) => f.id === id);
-      if (file) URL.revokeObjectURL(file.preview);
-      return prev.filter((f) => f.id !== id);
-    });
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragOver(false);
-      if (e.dataTransfer.files.length > 0) {
-        addFiles(e.dataTransfer.files);
-      }
-    },
-    [addFiles],
-  );
-
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files.length > 0) {
-        addFiles(e.target.files);
-      }
-      // Delay resetting input value. On Android Chrome/WebView, clearing value
-      // synchronously revokes read permissions for the chosen file handles.
-      const target = e.target;
-      setTimeout(() => {
-        try {
-          target.value = "";
-        } catch {}
-      }, 1000);
-    },
-    [addFiles],
-  );
-
-  const addTag = useCallback(() => {
-    const tag = tagInput.trim().toLowerCase();
-    if (tag && !tags.includes(tag) && tag.length <= 50) {
-      setTags((prev) => [...prev, tag]);
-      setTagInput("");
+  const addTag = () => {
+    const newTag = tagInput.trim().toLowerCase();
+    if (newTag && !tags.includes(newTag)) {
+      setTags([...tags, newTag]);
     }
-  }, [tagInput, tags]);
+    setTagInput("");
+  };
 
-  const removeTag = useCallback((tag: string) => {
-    setTags((prev) => prev.filter((t) => t !== tag));
-  }, []);
-
-  const handleTagKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        addTag();
-      }
-    },
-    [addTag],
-  );
-
-  // ── Quick Post: auto-upload each file as its own post sequentially ──
-  const handleQuickPost = async () => {
-    if (selectedFiles.length === 0) return;
-
-    setUploading(true);
-    setUploadProgress(0);
-
-    try {
-      const csrfToken = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
-      )?.[1];
-
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const sf = selectedFiles[i];
-        
-        // Progress based on completed files
-        setUploadProgress(Math.floor((i / selectedFiles.length) * 100));
-
-        const formData = new FormData();
-        formData.append("files", sf.file);
-        formData.append("quickPost", "true");
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: {
-            ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-          },
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || `Upload failed for ${sf.file.name}`);
-        }
-      }
-
-      setUploadProgress(100);
-      addToast("success", `${selectedFiles.length} post${selectedFiles.length > 1 ? "s" : ""} created!`);
-
-      setTimeout(() => {
-        setSelectedFiles([]);
-        setTitle("");
-        setTags([]);
-        setUploading(false);
-        setUploadProgress(0);
-        router.refresh();
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("post-created"));
-        }
-        onSuccess?.();
-      }, 500);
-    } catch (error) {
-      addToast("error", error instanceof Error ? error.message : "Upload failed");
-      setUploading(false);
-      setUploadProgress(0);
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag();
     }
   };
 
-  // ── Manual Publish: with title, category, tags sequentially ─────────
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
+  };
+
+  const getCsrfToken = () => {
+    return document.cookie.match(/(?:^|;\s*)yeahtube_csrf=([^;]*)/)?.[1];
+  };
+
+  const finalizeUpload = (message: string) => {
+    setUploadProgress(100);
+    addToast("success", message);
+    setTimeout(() => {
+      setSelectedFiles([]);
+      setTitle("");
+      setCategory("");
+      setTags([]);
+      setUploading(false);
+      setUploadProgress(0);
+      router.refresh();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("post-created"));
+      }
+      onSuccess?.();
+    }, 500);
+  };
+
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!title.trim()) {
-      addToast("error", "Title is required");
-      return;
-    }
-
     if (selectedFiles.length === 0) {
       addToast("error", "Please select at least one file");
       return;
     }
+    if (!title.trim()) {
+      addToast("error", "Title is required for standard publish");
+      return;
+    }
 
     setUploading(true);
     setUploadProgress(0);
 
     try {
-      const csrfToken = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
-      )?.[1];
-
+      const csrfToken = getCsrfToken();
       let currentPostId: string | null = null;
 
       for (let i = 0; i < selectedFiles.length; i++) {
         const sf = selectedFiles[i];
-        
         setUploadProgress(Math.floor((i / selectedFiles.length) * 100));
 
         const formData = new FormData();
@@ -285,12 +216,12 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         formData.append("quickPost", "false");
 
         if (i === 0) {
-          // First file: create the post
+          // First file creates the post
           formData.append("title", title.trim());
           if (category) formData.append("category", category);
           formData.append("tags", JSON.stringify(tags));
         } else {
-          // Subsequent files: append to existing post
+          // Subsequent files attach to the created post
           formData.append("postId", currentPostId!);
         }
 
@@ -313,23 +244,51 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         }
       }
 
-      setUploadProgress(100);
-      addToast("success", "Upload successful!");
-
-      setTimeout(() => {
-        setSelectedFiles([]);
-        setTitle("");
-        setTags([]);
-        setUploading(false);
-        setUploadProgress(0);
-        router.refresh();
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("post-created"));
-        }
-        onSuccess?.();
-      }, 500);
+      finalizeUpload("Published successfully!");
     } catch (error) {
       addToast("error", error instanceof Error ? error.message : "Upload failed");
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleQuickPost = async () => {
+    if (selectedFiles.length === 0) {
+      addToast("error", "Please select at least one file");
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const csrfToken = getCsrfToken();
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const sf = selectedFiles[i];
+        setUploadProgress(Math.floor((i / selectedFiles.length) * 100));
+
+        const formData = new FormData();
+        formData.append("files", sf.file);
+        formData.append("quickPost", "true");
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+          },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || `Quick Post failed for ${sf.file.name}`);
+        }
+      }
+
+      finalizeUpload("Quick post completed!");
+    } catch (error) {
+      addToast("error", error instanceof Error ? error.message : "Quick post failed");
       setUploading(false);
       setUploadProgress(0);
     }
@@ -345,6 +304,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         onChange={handleFileSelect}
         className="hidden"
       />
+      
       {/* Drop zone */}
       <div
         onDragOver={handleDragOver}
@@ -362,9 +322,9 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           Drop files here or click to browse
         </p>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Images (JPG, PNG, GIF, WebP, AVIF) up to 20MB each,
+          Images up to 20MB, Videos up to 500MB
           <br />
-          Videos (MP4, WebM, MOV) up to 500MB each
+          Select multiple files for batch upload
         </p>
       </div>
 
@@ -377,15 +337,15 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
               className="group relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
             >
               {isVideoFile(sf.file) ? (
-                <div className="relative flex aspect-video items-center justify-center bg-gray-100 dark:bg-gray-800">
+                // Removed hidden <video> tag to prevent mobile browser freezing on multiple large videos
+                <div className="relative flex aspect-square items-center justify-center bg-gray-100 dark:bg-gray-800">
                   <FileVideo className="h-8 w-8 text-gray-400" />
-                  <video className="hidden" src={sf.preview} />
                 </div>
               ) : (
                 <img
                   src={sf.preview}
                   alt={sf.file.name}
-                  className="aspect-square object-cover"
+                  className="aspect-square w-full object-cover"
                 />
               )}
               <button
@@ -394,11 +354,11 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
                   e.stopPropagation();
                   removeFile(sf.id);
                 }}
-                className="absolute right-1 top-1 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-1 top-1 rounded-full bg-black/60 p-1.5 text-white opacity-100 transition-opacity hover:bg-black/80 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <X className="h-3 w-3" />
               </button>
-              <div className="truncate px-2 py-1 text-xs text-gray-600 dark:text-gray-400">
+              <div className="truncate bg-black/5 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-white/5 dark:text-gray-300">
                 {sf.file.name}
               </div>
             </div>
@@ -407,15 +367,19 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       )}
 
       {/* Title */}
-      <Input
-        label="Title *"
-        name="title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Single file: auto-filled from filename"
-        required
-        maxLength={200}
-      />
+      <div>
+        <Input
+          label="Title"
+          name="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Single file: auto-filled from filename"
+          maxLength={200}
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Required for Publish. Ignored for Quick Post.
+        </p>
+      </div>
 
       {/* Category */}
       <div>
@@ -441,7 +405,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
           Tags
         </label>
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="mb-2 flex flex-wrap gap-2">
           {tags.map((tag) => (
             <span
               key={tag}
@@ -476,7 +440,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
       {/* Submit buttons */}
       <div className="flex flex-col gap-3 sm:flex-row">
-        {/* Quick Post — instant, no form needed */}
         {selectedFiles.length > 0 && (
           <Button
             type="button"
@@ -491,9 +454,8 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           </Button>
         )}
 
-        {/* Publish — with title, category, tags */}
         <Button type="submit" loading={uploading} size="lg" className="flex-1">
-          {uploading ? "Uploading..." : "Publish"}
+          {uploading ? "Uploading..." : "Publish (Normal)"}
         </Button>
       </div>
 
