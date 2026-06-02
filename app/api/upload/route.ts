@@ -336,19 +336,20 @@ export async function POST(request: NextRequest) {
     const tagsRaw = formData.get("tags") as string;
     const quickPost = formData.get("quickPost") === "true";
 
-    // Validate title
-    if (!title || title.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Title is required" },
-        { status: 400 },
-      );
-    }
-
-    if (title.length > 200) {
-      return NextResponse.json(
-        { error: "Title must be 200 characters or less" },
-        { status: 400 },
-      );
+    // Validate title (not required for quick post — uses filename)
+    if (!quickPost) {
+      if (!title || title.trim().length === 0) {
+        return NextResponse.json(
+          { error: "Title is required" },
+          { status: 400 },
+        );
+      }
+      if (title.length > 200) {
+        return NextResponse.json(
+          { error: "Title must be 200 characters or less" },
+          { status: 400 },
+        );
+      }
     }
 
     if (!files || files.length === 0) {
@@ -385,14 +386,16 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Quick Post Mode: individual post per file ─────────
+    // Uses filename (without extension) as title, no tags/category sent
     if (quickPost) {
       const createdPosts = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        const filenameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
         const fileTitle = files.length > 1
-          ? `${title.trim()} - ${i + 1}`
-          : title.trim();
+          ? `${filenameWithoutExt}`
+          : filenameWithoutExt;
 
         // Create post
         const postResult = db

@@ -38,16 +38,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
-  const [quickPost, setQuickPost] = useState(false);
-
-  // Auto-fill title from filename when a single file is selected
-  useEffect(() => {
-    if (selectedFiles.length === 1 && !title) {
-      const filename = selectedFiles[0].file.name;
-      const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
-      setTitle(nameWithoutExt);
-    }
-  }, [selectedFiles, title]);
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const newFiles: SelectedFile[] = Array.from(files)
@@ -136,7 +126,64 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     [addTag],
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ── Quick Post: auto-upload each file as its own post ──
+  const handleQuickPost = async () => {
+    if (selectedFiles.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const csrfToken = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
+      )?.[1];
+
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => Math.min(prev + 10, 90));
+      }, 300);
+
+      const formData = new FormData();
+      selectedFiles.forEach((sf) => {
+        formData.append("files", sf.file);
+      });
+      formData.append("quickPost", "true");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
+        body: formData,
+      });
+
+      clearInterval(progressInterval);
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Upload failed");
+      }
+
+      setUploadProgress(100);
+      addToast("success", `${selectedFiles.length} post${selectedFiles.length > 1 ? "s" : ""} created!`);
+
+      setTimeout(() => {
+        setSelectedFiles([]);
+        setTitle("");
+        setTags([]);
+        setUploading(false);
+        setUploadProgress(0);
+        router.refresh();
+        onSuccess?.();
+      }, 500);
+    } catch (error) {
+      addToast("error", error instanceof Error ? error.message : "Upload failed");
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // ── Manual Publish: with title, category, tags ─────────
+  const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim()) {
@@ -153,7 +200,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     setUploadProgress(0);
 
     try {
-      // Read CSRF token from cookie (set by proxy.ts)
       const csrfToken = document.cookie.match(
         new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
       )?.[1];
@@ -166,7 +212,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       formData.append("title", title.trim());
       if (category) formData.append("category", category);
       formData.append("tags", JSON.stringify(tags));
-      formData.append("quickPost", quickPost ? "true" : "false");
+      formData.append("quickPost", "false");
 
       selectedFiles.forEach((sf) => {
         formData.append("files", sf.file);
@@ -188,34 +234,26 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       }
 
       setUploadProgress(100);
-
-      const successMsg = quickPost && selectedFiles.length > 1
-        ? `${selectedFiles.length} posts created!`
-        : "Upload successful!";
-      addToast("success", successMsg);
+      addToast("success", "Upload successful!");
 
       setTimeout(() => {
         setSelectedFiles([]);
         setTitle("");
         setTags([]);
-        setQuickPost(false);
         setUploading(false);
         setUploadProgress(0);
         router.refresh();
         onSuccess?.();
       }, 500);
     } catch (error) {
-      addToast(
-        "error",
-        error instanceof Error ? error.message : "Upload failed",
-      );
+      addToast("error", error instanceof Error ? error.message : "Upload failed");
       setUploading(false);
       setUploadProgress(0);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handlePublish} className="space-y-6">
       {/* Drop zone */}
       <div
         onDragOver={handleDragOver}
@@ -353,24 +391,27 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         </div>
       </div>
 
-      {/* Quick Post toggle + Submit */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button type="submit" loading={uploading} size="lg" className="flex-1">
-          {uploading ? "Uploading..." : quickPost ? "Quick Post All" : "Publish"}
-        </Button>
-
-        {selectedFiles.length > 1 && (
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800">
-            <input
-              type="checkbox"
-              checked={quickPost}
-              onChange={(e) => setQuickPost(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
-            />
-            <Zap className="h-4 w-4 text-yellow-500" />
-            <span>Quick Post — create individual posts per file</span>
-          </label>
+      {/* Submit buttons */}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {/* Quick Post — instant, no form needed */}
+        {selectedFiles.length > 0 && (
+          <Button
+            type="button"
+            onClick={handleQuickPost}
+            loading={uploading}
+            variant="secondary"
+            size="lg"
+            className="flex-1"
+          >
+            <Zap className="mr-1.5 h-4 w-4 text-yellow-500" />
+            {uploading ? "Uploading..." : "Quick Post"}
+          </Button>
         )}
+
+        {/* Publish — with title, category, tags */}
+        <Button type="submit" loading={uploading} size="lg" className="flex-1">
+          {uploading ? "Uploading..." : "Publish"}
+        </Button>
       </div>
 
       {/* Progress */}
