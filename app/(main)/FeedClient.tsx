@@ -34,13 +34,6 @@ interface FeedClientProps {
   tags: TagItem[];
 }
 
-const SORT_OPTIONS = [
-  { value: "newest", label: "Newest" },
-  { value: "oldest", label: "Oldest" },
-  { value: "title-asc", label: "Title A-Z" },
-  { value: "title-desc", label: "Title Z-A" },
-];
-
 export function FeedClient({
   isAdmin,
   initialPosts,
@@ -49,7 +42,6 @@ export function FeedClient({
   tags,
 }: FeedClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
@@ -59,6 +51,7 @@ export function FeedClient({
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState(false);
 
@@ -191,6 +184,23 @@ export function FeedClient({
         />
 
         <div className="flex items-center gap-3">
+          {/* Select toggle (admin only) */}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setSelectMode(!selectMode);
+                if (selectMode) setSelectedIds(new Set());
+              }}
+              className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                selectMode
+                  ? "border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+              }`}
+            >
+              {selectMode ? "Done" : "Select"}
+            </button>
+          )}
+
           <button
             onClick={toggleSort}
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
@@ -243,6 +253,7 @@ export function FeedClient({
               key={post.id}
               post={post}
               isAdmin={isAdmin}
+              selectMode={selectMode}
               selected={selectedIds.has(post.id)}
               onToggleSelect={toggleSelect}
               onDelete={handleDelete}
@@ -256,6 +267,7 @@ export function FeedClient({
               key={post.id}
               post={post}
               isAdmin={isAdmin}
+              selectMode={selectMode}
               selected={selectedIds.has(post.id)}
               onToggleSelect={toggleSelect}
               onDelete={handleDelete}
@@ -265,7 +277,7 @@ export function FeedClient({
       )}
 
       {/* Bulk action bar */}
-      {isAdmin && selectedIds.size > 0 && (
+      {isAdmin && selectMode && selectedIds.size > 0 && (
         <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/95 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">

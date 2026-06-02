@@ -19,12 +19,13 @@ interface MediaListItemProps {
     category?: string | null;
   };
   isAdmin?: boolean;
+  selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
   onDelete?: (id: number) => void;
 }
 
-export function MediaListItem({ post, isAdmin, selected, onToggleSelect, onDelete }: MediaListItemProps) {
+export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete }: MediaListItemProps) {
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
@@ -33,8 +34,8 @@ export function MediaListItem({ post, isAdmin, selected, onToggleSelect, onDelet
 
   return (
     <div className="group relative flex gap-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800 sm:p-4">
-      {/* Selection checkbox */}
-      {(isAdmin || onToggleSelect) && (
+      {/* Selection checkbox (visible only in select mode) */}
+      {selectMode && (
         <div
           className="flex items-start pt-1"
           onClick={(e) => e.stopPropagation()}
@@ -96,7 +97,7 @@ export function MediaListItem({ post, isAdmin, selected, onToggleSelect, onDelet
         {/* Info */}
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="line-clamp-1 text-sm font-semibold text-gray-900 dark:text-white">
+            <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-white" title={post.title}>
               {post.title}
             </h3>
             {post.mediaCount > 1 && (

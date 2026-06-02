@@ -18,12 +18,13 @@ interface MediaCardProps {
     duration?: number | null;
   };
   isAdmin?: boolean;
+  selectMode?: boolean;
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
   onDelete?: (id: number) => void;
 }
 
-export function MediaCard({ post, isAdmin, selected, onToggleSelect, onDelete }: MediaCardProps) {
+export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete }: MediaCardProps) {
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
@@ -32,10 +33,10 @@ export function MediaCard({ post, isAdmin, selected, onToggleSelect, onDelete }:
 
   return (
     <div className="group relative block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
-      {/* Selection checkbox (visible when admin or hover) */}
-      {(isAdmin || onToggleSelect) && (
+      {/* Selection checkbox (visible only in select mode) */}
+      {selectMode && (
         <div
-          className={`absolute left-2 top-2 z-10 ${onToggleSelect ? "" : "opacity-0 group-hover:opacity-100"} transition-opacity`}
+          className="absolute left-2 top-2 z-10"
           onClick={(e) => e.stopPropagation()}
         >
           <input
@@ -103,7 +104,7 @@ export function MediaCard({ post, isAdmin, selected, onToggleSelect, onDelete }:
 
       {/* Info */}
       <div className="p-3">
-        <h3 className="line-clamp-1 text-sm font-semibold text-gray-900 dark:text-white">
+        <h3 className="truncate text-sm font-semibold text-gray-900 dark:text-white" title={post.title}>
           {post.title}
         </h3>
         {post.description && (

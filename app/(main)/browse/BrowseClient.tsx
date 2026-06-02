@@ -69,6 +69,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
   const category = searchParams.get("category");
   const year = searchParams.get("year");
 
+  const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -353,6 +354,23 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Select toggle (admin only) */}
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setSelectMode(!selectMode);
+                    if (selectMode) setSelectedIds(new Set());
+                  }}
+                  className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                    selectMode
+                      ? "border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                      : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {selectMode ? "Done" : "Select"}
+                </button>
+              )}
+
               {/* Tag cloud (desktop) */}
               <div className="hidden lg:block">
                 <TagCloud
@@ -462,6 +480,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
                   key={post.id}
                   post={post}
                   isAdmin={isAdmin}
+                  selectMode={selectMode}
                   selected={selectedIds.has(post.id)}
                   onToggleSelect={toggleSelect}
                   onDelete={handleDelete}
@@ -475,6 +494,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
                   key={post.id}
                   post={post}
                   isAdmin={isAdmin}
+                  selectMode={selectMode}
                   selected={selectedIds.has(post.id)}
                   onToggleSelect={toggleSelect}
                   onDelete={handleDelete}
