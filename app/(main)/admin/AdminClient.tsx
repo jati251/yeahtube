@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -21,6 +22,7 @@ interface AdminClientProps {
 }
 
 export function AdminClient({ currentUserId, users }: AdminClientProps) {
+  const router = useRouter();
   const { addToast } = useToast();
   const [userList, setUserList] = useState(users);
   const [newUsername, setNewUsername] = useState("");
@@ -51,6 +53,7 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
         ),
       );
       addToast("success", `User ${current ? "removed from" : "added to"} whitelist`);
+      router.refresh();
     } catch {
       addToast("error", "Failed to update user");
     }
@@ -79,6 +82,7 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
         ),
       );
       addToast("success", `Admin status ${current ? "removed" : "granted"}`);
+      router.refresh();
     } catch {
       addToast("error", "Failed to update user");
     }
@@ -114,6 +118,7 @@ export function AdminClient({ currentUserId, users }: AdminClientProps) {
       setNewUsername("");
       setNewPassword("");
       setNewIsAdmin(false);
+      router.refresh();
     } catch (err) {
       addToast("error", err instanceof Error ? err.message : "Failed to create user");
     } finally {

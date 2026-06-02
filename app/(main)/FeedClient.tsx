@@ -84,6 +84,7 @@ export function FeedClient({
       if (!res.ok) throw new Error("Delete failed");
       setPosts((prev) => prev.filter((p) => p.id !== postId));
       setSelectedIds((prev) => { const n = new Set(prev); n.delete(postId); return n; });
+      router.refresh();
     } catch (err) {
       console.error("Delete error:", err);
     }
@@ -109,6 +110,7 @@ export function FeedClient({
       if (!res.ok) throw new Error("Bulk delete failed");
       setPosts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
       setSelectedIds(new Set());
+      router.refresh();
     } catch (err) {
       console.error("Bulk delete error:", err);
     } finally {
