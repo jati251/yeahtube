@@ -2,18 +2,16 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
 
-// Extend NextConfig type with Next.js 16 properties not yet in types
-interface ExtendedNextConfig extends NextConfig {
-  middlewareClientMaxBodySize?: string;
-}
-
-const nextConfig: ExtendedNextConfig = {
+const nextConfig: NextConfig = {
   // Standalone output for Docker deployment (see Dockerfile)
   output: "standalone",
 
   // Allow uploads up to 500MB — matches MAX_VIDEO_SIZE in upload route
-  // See: https://nextjs.org/docs/app/api-reference/config/next-config-js/middlewareClientMaxBodySize
-  middlewareClientMaxBodySize: "500MB",
+  // The proxy clones the request body and buffers it in memory; this limit
+  // prevents excessive memory usage for large file uploads.
+  experimental: {
+    proxyClientMaxBodySize: "500MB",
+  },
 
   serverExternalPackages: ["better-sqlite3", "sharp"],
 
