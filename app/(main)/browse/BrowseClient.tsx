@@ -8,9 +8,12 @@ import { FilterSidebar } from "@/components/filters/FilterSidebar";
 import { MobileFilters } from "@/components/filters/MobileFilters";
 import { ActiveFilters } from "@/components/filters/ActiveFilters";
 import { TagCloud } from "@/components/filters/TagCloud";
+import { PaginationControls } from "@/components/ui/PaginationControls";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useToast } from "@/components/ui/Toast";
 import { Search, RefreshCw, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 import { TagItem, CategoryItem } from "@/types/post";
-import { useInfinitePosts } from "@/hooks/useInfinitePosts";
+import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
 
 interface BrowseClientProps {
@@ -31,6 +34,7 @@ const SORT_OPTIONS = [
 export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { addToast } = useToast();
 
   // Filters from URL
   const mediaType = searchParams.get("type");
@@ -44,10 +48,13 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     posts,
     setPosts,
     loading,
-    loadingMore,
-    hasMore,
-    loadMoreRef,
-  } = useInfinitePosts({
+    page,
+    total,
+    totalPages,
+    goToPage,
+    nextPage,
+    prevPage,
+  } = usePaginatedPosts({
     fetchParams: {
       type: mediaType,
       tags: searchParams.get("tags"),
@@ -65,10 +72,13 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     selectMode,
     toggleSelectMode,
     deleting,
+    deletingId,
     toggleSelect,
     handleDelete,
     handleBulkDelete,
-  } = usePostSelection(posts, setPosts);
+    confirmState,
+    closeConfirm,
+  } = usePostSelection(posts, setPosts, addToast);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -276,7 +286,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
 
           {/* Results count */}
           <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-            {loading ? "Loading..." : `${posts.length} result${posts.length !== 1 ? "s" : ""}`}
+            {loading ? "Loading..." : `${total} result${total !== 1 ? "s" : ""}`}
           </p>
 
           {/* Content */}
@@ -335,6 +345,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
                   selected={selectedIds.has(post.id)}
                   onToggleSelect={toggleSelect}
                   onDelete={handleDelete}
+                  deleting={deletingId === post.id}
                 />
               ))}
             </div>
@@ -349,13 +360,35 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
                   selected={selectedIds.has(post.id)}
                   onToggleSelect={toggleSelect}
                   onDelete={handleDelete}
+                  deleting={deletingId === post.id}
                 />
               ))}
             </div>
           )}
 
+          {/* Pagination controls */}
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            loading={loading}
+            onNext={nextPage}
+            onPrev={prevPage}
+            onPage={goToPage}
+          />
+
+          {/* Loading indicator for page transitions */}
+          {loading && posts.length > 0 && (
+            <div className="mt-4 flex justify-center">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Loading...
+              </div>
+            </div>
+          )}
+
           {/* Bulk action bar */}
-          {isAdmin && selectedIds.size > 0 && (
+          {isAdmin && selectMode && selectedIds.size > 0 && (
             <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/95 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -380,18 +413,19 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             </div>
           )}
 
-          {/* Load more */}
-          <div ref={loadMoreRef} className="mt-8 flex justify-center h-10">
-            {loadingMore && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Loading more...
-              </div>
-            )}
-            {!hasMore && posts.length > 0 && !loading && (
-              <p className="text-sm text-gray-400">All results loaded</p>
-            )}
-          </div>
+          {/* Confirmation modal */}
+          {confirmState && (
+            <ConfirmModal
+              isOpen={confirmState.open}
+              onClose={closeConfirm}
+              onConfirm={confirmState.onConfirm}
+              title={confirmState.title}
+              message={confirmState.message}
+              variant={confirmState.variant}
+              confirmLabel={confirmState.confirmLabel}
+              loading={deleting}
+            />
+          )}
         </div>
       </div>
     </div>

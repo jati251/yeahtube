@@ -2,9 +2,90 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { eq, desc, sql, and, like, inArray } from "drizzle-orm";
+import { eq, desc, sql, like, inArray } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Builds filter conditions for both the main query and count query.
+ * Returns an array of where-clause builder functions.
+ */
+async function buildFilterConditions(
+  db: ReturnType<typeof getDb>,
+  searchParams: URLSearchParams,
+) {
+  const conditions: Array<(q: any) => any> = [];
+
+  const searchQuery = searchParams.get("q");
+  const category = searchParams.get("category");
+  const year = searchParams.get("year");
+  const tagSlugs = searchParams.get("tags");
+  const mediaType = searchParams.get("type");
+
+  // Search filter
+  if (searchQuery) {
+    conditions.push((q: any) => q.where(like(schema.posts.title, `%${searchQuery}%`)));
+  }
+
+  // Category filter
+  if (category) {
+    try {
+      const [cat] = await db
+        .select()
+        .from(schema.categories)
+        .where(eq(schema.categories.slug, category));
+      if (cat) {
+        conditions.push((q: any) => q.where(eq(schema.posts.categoryId, cat.id)));
+      }
+    } catch {
+      // Categories table doesn't exist yet
+    }
+  }
+
+  // Year filter
+  if (year) {
+    const yearNum = parseInt(year, 10);
+    if (!isNaN(yearNum)) {
+      conditions.push((q: any) =>
+        q.where(sql`EXTRACT(YEAR FROM ${schema.posts.createdAt}::timestamp) = ${yearNum}`),
+      );
+    }
+  }
+
+  // Tag filter
+  if (tagSlugs) {
+    const slugs = tagSlugs.split(",").map((s) => s.trim());
+    if (slugs.length > 0) {
+      const matchingTags = await db
+        .select({ id: schema.tags.id })
+        .from(schema.tags)
+        .where(inArray(schema.tags.slug, slugs));
+      const tagIds = matchingTags.map((t) => t.id);
+
+      if (tagIds.length > 0) {
+        const postIdsWithTags = db
+          .select({ postId: schema.postTags.postId })
+          .from(schema.postTags)
+          .where(inArray(schema.postTags.tagId, tagIds));
+        conditions.push((q: any) => q.where(inArray(schema.posts.id, postIdsWithTags)));
+      } else {
+        // No matching tags → force empty result
+        conditions.push((q: any) => q.where(sql`1 = 0`));
+      }
+    }
+  }
+
+  // Media type filter
+  if (mediaType) {
+    const postIdsWithMediaType = db
+      .select({ postId: schema.media.postId })
+      .from(schema.media)
+      .where(eq(schema.media.mediaType, mediaType as "image" | "video"));
+    conditions.push((q: any) => q.where(inArray(schema.posts.id, postIdsWithMediaType)));
+  }
+
+  return conditions;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,19 +97,15 @@ export async function GET(request: NextRequest) {
     const db = getDb();
     const { searchParams } = new URL(request.url);
 
-    // Pagination
+    // Pagination — supports offset-based (page numbers) and cursor-based
     const cursor = searchParams.get("cursor");
+    const offset = Math.max(0, Number(searchParams.get("offset")) || 0);
     const limit = Math.min(Number(searchParams.get("limit")) || 20, 50);
 
     // Filters
-    const mediaType = searchParams.get("type");
-    const tagSlugs = searchParams.get("tags");
-    const searchQuery = searchParams.get("q");
-    const category = searchParams.get("category");
-    const year = searchParams.get("year");
     const sort = searchParams.get("sort") || "newest";
 
-    // Build query
+    // Media count subquery
     const mediaCountSubquery = db
       .select({
         postId: schema.media.postId,
@@ -38,83 +115,43 @@ export async function GET(request: NextRequest) {
       .groupBy(schema.media.postId)
       .as("mc");
 
+    const baseSelect = {
+      id: schema.posts.id,
+      title: schema.posts.title,
+      description: schema.posts.description,
+      userId: schema.posts.userId,
+      categoryId: schema.posts.categoryId,
+      createdAt: schema.posts.createdAt,
+      updatedAt: schema.posts.updatedAt,
+      mediaCount: sql<number>`coalesce(${mediaCountSubquery.count}, 0)`.as("media_count"),
+    };
+
+    // Build filter conditions
+    const filterConditions = await buildFilterConditions(db, searchParams);
+
+    // --- Count query (total matching rows, no pagination) ---
+    let countQuery = db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(schema.posts)
+      .$dynamic();
+
+    for (const applyCondition of filterConditions) {
+      countQuery = applyCondition(countQuery) as typeof countQuery;
+    }
+
+    const [countResult] = await countQuery;
+    const total = countResult?.count ?? 0;
+
+    // --- Main data query ---
     let query = db
-      .select({
-        id: schema.posts.id,
-        title: schema.posts.title,
-        description: schema.posts.description,
-        userId: schema.posts.userId,
-        categoryId: schema.posts.categoryId,
-        createdAt: schema.posts.createdAt,
-        updatedAt: schema.posts.updatedAt,
-        mediaCount: sql<number>`coalesce(${mediaCountSubquery.count}, 0)`.as("media_count"),
-      })
+      .select(baseSelect)
       .from(schema.posts)
       .leftJoin(mediaCountSubquery, eq(schema.posts.id, mediaCountSubquery.postId))
       .$dynamic();
 
-    // Apply search filter
-    if (searchQuery) {
-      query = query.where(
-        like(schema.posts.title, `%${searchQuery}%`),
-      ) as typeof query;
-    }
-
-    // Apply category filter
-    if (category) {
-      try {
-        const [cat] = await db
-          .select()
-          .from(schema.categories)
-          .where(eq(schema.categories.slug, category));
-        if (cat) {
-          query = query.where(eq(schema.posts.categoryId, cat.id)) as typeof query;
-        }
-      } catch {
-        // Categories table doesn't exist yet
-      }
-    }
-
-    // Apply year filter
-    if (year) {
-      const yearNum = parseInt(year, 10);
-      if (!isNaN(yearNum)) {
-        query = query.where(
-          sql`EXTRACT(YEAR FROM ${schema.posts.createdAt}::timestamp) = ${yearNum}`,
-        ) as typeof query;
-      }
-    }
-
-    // Apply tag filter in SQL
-    if (tagSlugs) {
-      const slugs = tagSlugs.split(",").map((s) => s.trim());
-      if (slugs.length > 0) {
-        const matchingTags = await db
-          .select({ id: schema.tags.id })
-          .from(schema.tags)
-          .where(inArray(schema.tags.slug, slugs));
-        const tagIds = matchingTags.map((t) => t.id);
-
-        if (tagIds.length > 0) {
-          const postIdsWithTags = db
-            .select({ postId: schema.postTags.postId })
-            .from(schema.postTags)
-            .where(inArray(schema.postTags.tagId, tagIds));
-          query = query.where(inArray(schema.posts.id, postIdsWithTags)) as typeof query;
-        } else {
-          // No matching tags, force query to return no results
-          query = query.where(sql`1 = 0`) as typeof query;
-        }
-      }
-    }
-
-    // Apply media type filter in SQL
-    if (mediaType) {
-      const postIdsWithMediaType = db
-        .select({ postId: schema.media.postId })
-        .from(schema.media)
-        .where(eq(schema.media.mediaType, mediaType as "image" | "video"));
-      query = query.where(inArray(schema.posts.id, postIdsWithMediaType)) as typeof query;
+    // Apply same filters
+    for (const applyCondition of filterConditions) {
+      query = applyCondition(query) as typeof query;
     }
 
     // Parse cursor (Base64 JSON or fallback to raw string)
@@ -128,8 +165,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Apply cursor pagination
-    if (cursorData) {
+    // Apply cursor pagination (only if no offset is specified)
+    if (cursorData && offset === 0) {
       if (sort === "oldest") {
         if (cursorData.createdAt && cursorData.id) {
           query = query.where(
@@ -201,7 +238,8 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    query = query.limit(limit + 1);
+    // Apply offset/limit
+    query = query.offset(offset).limit(limit + 1);
 
     const posts = await query;
 
@@ -291,6 +329,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       posts: result,
+      total,
+      limit,
+      offset,
       nextCursor,
       hasMore,
     });

@@ -10,6 +10,8 @@ import {
   Minimize,
   SkipBack,
   SkipForward,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface VideoPlayerProps {
@@ -32,6 +34,18 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
   const [showControls, setShowControls] = useState(true);
   const [buffered, setBuffered] = useState(0);
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Tap-to-skip overlay state
+  const [skipOverlay, setSkipOverlay] = useState<"back" | "forward" | null>(null);
+  const skipOverlayTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const showSkipOverlay = useCallback((direction: "back" | "forward") => {
+    setSkipOverlay(direction);
+    if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
+    skipOverlayTimeout.current = setTimeout(() => {
+      setSkipOverlay(null);
+    }, 600);
+  }, []);
 
   // Reset state when src changes
   useEffect(() => {
@@ -93,14 +107,39 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     const newTime = Math.min(videoRef.current.currentTime + 10, duration);
     videoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
-  }, [duration]);
+    showSkipOverlay("forward");
+  }, [duration, showSkipOverlay]);
 
   const skipBackward = useCallback(() => {
     if (!videoRef.current) return;
     const newTime = Math.max(videoRef.current.currentTime - 10, 0);
     videoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
-  }, []);
+    showSkipOverlay("back");
+  }, [showSkipOverlay]);
+
+  // Mobile tap zones: left = skip back, center = play/pause, right = skip forward
+  const handleTapZone = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const widthRatio = x / rect.width;
+
+      // Only trigger if not clicking on controls area (bottom 15%)
+      const yRatio = (e.clientY - rect.top) / rect.height;
+      if (yRatio > 0.85) return;
+
+      if (widthRatio < 0.3) {
+        skipBackward();
+      } else if (widthRatio > 0.7) {
+        skipForward();
+      } else {
+        togglePlay();
+      }
+    },
+    [skipBackward, skipForward, togglePlay],
+  );
 
   // Auto-hide controls
   const showControlsTemporarily = useCallback(() => {
@@ -152,6 +191,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
   useEffect(() => {
     return () => {
       if (controlsTimeout) clearTimeout(controlsTimeout);
+      if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
     };
   }, [controlsTimeout]);
 
@@ -201,10 +241,41 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
         preload="metadata"
       />
 
+      {/* Tap zones overlay — left: skip back, center: play/pause, right: skip forward */}
+      <div
+        className="absolute inset-0 z-[5] cursor-pointer"
+        onClick={handleTapZone}
+      />
+
+      {/* Skip overlay feedback */}
+      {skipOverlay && (
+        <div
+          className={`
+            absolute top-0 bottom-0 z-20 flex items-center px-6 pointer-events-none
+            animate-in fade-in duration-150
+            ${skipOverlay === "back" ? "left-0 bg-gradient-to-r from-black/40 to-transparent justify-start" : "right-0 bg-gradient-to-l from-black/40 to-transparent justify-end"}
+          `}
+        >
+          <div className="flex flex-col items-center gap-1 text-white/90">
+            {skipOverlay === "back" ? (
+              <>
+                <ChevronLeft className="h-10 w-10" />
+                <span className="text-xs font-medium">-10s</span>
+              </>
+            ) : (
+              <>
+                <ChevronRight className="h-10 w-10" />
+                <span className="text-xs font-medium">+10s</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Center play button overlay */}
       {!playing && (
         <div
-          className="absolute inset-0 flex cursor-pointer items-center justify-center"
+          className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center"
           onClick={togglePlay}
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-transform hover:scale-110">
@@ -215,7 +286,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
 
       {/* Controls overlay */}
       <div
-        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-12 transition-opacity ${
+        className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent p-4 pt-12 transition-opacity ${
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >

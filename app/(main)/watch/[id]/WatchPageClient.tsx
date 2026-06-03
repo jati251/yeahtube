@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
@@ -49,8 +50,14 @@ export function WatchPageClient({
   tags,
   recommendations = [],
 }: WatchPageClientProps) {
+  const router = useRouter();
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const currentVideo = videos[currentVideoIndex];
+
+  // Scroll to top on mount so user sees the video player immediately
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -62,14 +69,20 @@ export function WatchPageClient({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Back button */}
-      <Link
-        href="/"
+      {/* Back button — uses router.back() to preserve scroll position */}
+      <button
+        onClick={() => {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push("/");
+          }
+        }}
         className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to feed
-      </Link>
+      </button>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Left column (Player & Details) */}

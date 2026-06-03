@@ -5,27 +5,29 @@ import { useRouter } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
 import { TagCloud } from "@/components/filters/TagCloud";
+import { PaginationControls } from "@/components/ui/PaginationControls";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useToast } from "@/components/ui/Toast";
 import { RefreshCw, LayoutGrid, List } from "lucide-react";
 import { PostItem, TagItem } from "@/types/post";
-import { useInfinitePosts } from "@/hooks/useInfinitePosts";
+import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
 
 interface FeedClientProps {
   isAdmin: boolean;
   initialPosts: PostItem[];
-  initialCursor: string | null;
-  initialHasMore: boolean;
+  initialTotal: number;
   tags: TagItem[];
 }
 
 export function FeedClient({
   isAdmin,
   initialPosts,
-  initialCursor,
-  initialHasMore,
+  initialTotal,
   tags,
 }: FeedClientProps) {
   const router = useRouter();
+  const { addToast } = useToast();
 
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -35,13 +37,16 @@ export function FeedClient({
     posts,
     setPosts,
     loading,
-    loadingMore,
-    hasMore,
-    loadMoreRef,
-  } = useInfinitePosts({
+    page,
+    total,
+    totalPages,
+    goToPage,
+    nextPage,
+    prevPage,
+  } = usePaginatedPosts({
     initialPosts,
-    initialCursor,
-    initialHasMore,
+    initialTotal,
+    initialPage: 1,
     fetchParams: { sort, tags: activeTag },
     autoFetch: false,
   });
@@ -52,10 +57,13 @@ export function FeedClient({
     selectMode,
     toggleSelectMode,
     deleting,
+    deletingId,
     toggleSelect,
     handleDelete,
     handleBulkDelete,
-  } = usePostSelection(posts, setPosts);
+    confirmState,
+    closeConfirm,
+  } = usePostSelection(posts, setPosts, addToast);
 
   const handleTagFilter = (slug: string | null) => {
     setActiveTag(slug);
@@ -159,6 +167,7 @@ export function FeedClient({
               selected={selectedIds.has(post.id)}
               onToggleSelect={toggleSelect}
               onDelete={handleDelete}
+              deleting={deletingId === post.id}
             />
           ))}
         </div>
@@ -173,8 +182,30 @@ export function FeedClient({
               selected={selectedIds.has(post.id)}
               onToggleSelect={toggleSelect}
               onDelete={handleDelete}
+              deleting={deletingId === post.id}
             />
           ))}
+        </div>
+      )}
+
+      {/* Pagination controls */}
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        loading={loading}
+        onNext={nextPage}
+        onPrev={prevPage}
+        onPage={goToPage}
+      />
+
+      {/* Loading indicator for page transitions */}
+      {loading && posts.length > 0 && (
+        <div className="mt-4 flex justify-center">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Loading...
+          </div>
         </div>
       )}
 
@@ -204,18 +235,19 @@ export function FeedClient({
         </div>
       )}
 
-      {/* Load more trigger */}
-      <div ref={loadMoreRef} className="mt-8 flex justify-center h-10">
-        {loadingMore && (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            Loading more...
-          </div>
-        )}
-        {!hasMore && posts.length > 0 && (
-          <p className="text-sm text-gray-400">You've reached the end</p>
-        )}
-      </div>
+      {/* Confirmation modal */}
+      {confirmState && (
+        <ConfirmModal
+          isOpen={confirmState.open}
+          onClose={closeConfirm}
+          onConfirm={confirmState.onConfirm}
+          title={confirmState.title}
+          message={confirmState.message}
+          variant={confirmState.variant}
+          confirmLabel={confirmState.confirmLabel}
+          loading={deleting}
+        />
+      )}
     </div>
   );
 }

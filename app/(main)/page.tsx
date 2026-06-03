@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic";
 async function getInitialPosts() {
   const db = getDb();
 
+  // Get total count first
+  const [totalResult] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(schema.posts);
+
   const posts = await db
     .select({
       id: schema.posts.id,
@@ -18,13 +23,13 @@ async function getInitialPosts() {
     })
     .from(schema.posts)
     .orderBy(desc(schema.posts.createdAt))
-    .limit(21);
+    .limit(20);
 
   if (posts.length === 0) {
-    return { posts: [], nextCursor: null, hasMore: false };
+    return { posts: [], total: 0 };
   }
 
-  const postIds = posts.slice(0, 20).map((p) => p.id);
+  const postIds = posts.map((p) => p.id);
 
   const allMedia = await db
     .select()
@@ -42,7 +47,7 @@ async function getInitialPosts() {
     .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
     .where(inArray(schema.postTags.postId, postIds));
 
-  const result = posts.slice(0, 20).map((post) => {
+  const result = posts.map((post) => {
     const postMedia = allMedia.filter((m) => m.postId === post.id);
     const postTags = allPostTags
       .filter((pt) => pt.postId === post.id)
@@ -68,10 +73,7 @@ async function getInitialPosts() {
     };
   });
 
-  const hasMore = posts.length > 20;
-  const nextCursor = hasMore ? posts[19]?.createdAt : null;
-
-  return { posts: result, nextCursor, hasMore };
+  return { posts: result, total: totalResult?.count ?? 0 };
 }
 
 async function getTags() {
@@ -80,7 +82,7 @@ async function getTags() {
 }
 
 export default async function HomePage() {
-  const [user, { posts, nextCursor, hasMore }, tags] = await Promise.all([
+  const [user, { posts, total }, tags] = await Promise.all([
     getCurrentUser(),
     getInitialPosts(),
     getTags(),
@@ -90,8 +92,7 @@ export default async function HomePage() {
     <FeedClient
       isAdmin={user?.isAdmin ?? false}
       initialPosts={posts}
-      initialCursor={nextCursor}
-      initialHasMore={hasMore}
+      initialTotal={total}
       tags={tags.map((t) => ({ id: t.id, name: t.name, slug: t.slug }))}
     />
   );

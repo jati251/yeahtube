@@ -23,9 +23,10 @@ interface MediaListItemProps {
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
   onDelete?: (id: number) => void;
+  deleting?: boolean;
 }
 
-export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete }: MediaListItemProps) {
+export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, deleting }: MediaListItemProps) {
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
@@ -207,9 +208,10 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
                     setMenuOpen(false);
                     onDelete?.(post.id);
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700"
+                  disabled={deleting}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-gray-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-gray-700"
                 >
-                  Delete
+                  {deleting ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </>

@@ -74,11 +74,9 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Delete posts from DB (cascades to media + post_tags)
-    for (const id of ids) {
-      await await db.delete(schema.posts).where(eq(schema.posts.id, id));
-      deletedCount++;
-    }
+    // Delete posts from DB (cascades to media + post_tags) — single batch query
+    const deleted = await db.delete(schema.posts).where(inArray(schema.posts.id, ids));
+    deletedCount = deleted.rowCount ?? ids.length;
 
     return NextResponse.json({
       success: true,
