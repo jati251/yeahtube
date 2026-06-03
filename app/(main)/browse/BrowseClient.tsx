@@ -37,22 +37,20 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
   const searchParams = useSearchParams();
   const { addToast } = useToast();
 
-  // Restore state from Zustand store
-  const savedBrowse = useAppStore((s) => s.browse);
-  const setBrowseScroll = useAppStore((s) => s.setBrowseScroll);
-  const setBrowsePage = useAppStore((s) => s.setBrowsePage);
-  const setBrowseState = useAppStore((s) => s.setBrowseState);
+  // Zustand: scroll only
+  const browseScrollY = useAppStore((s) => s.browseScrollY);
+  const setBrowseScrollY = useAppStore((s) => s.setBrowseScrollY);
 
-  // Filters from URL (or from saved state on first mount)
-  const mediaType = searchParams.get("type") || savedBrowse.mediaType;
-  const selectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || 
-    (savedBrowse.tags ? savedBrowse.tags.split(",").filter(Boolean) : []);
-  const searchQuery = searchParams.get("q") || savedBrowse.searchQuery;
-  const sort = searchParams.get("sort") || savedBrowse.sort || "newest";
-  const category = searchParams.get("category") || savedBrowse.category;
-  const year = searchParams.get("year") || savedBrowse.year;
+  // Filters from URL
+  const mediaType = searchParams.get("type");
+  const selectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
+  const searchQuery = searchParams.get("q") || "";
+  const sort = searchParams.get("sort") || "newest";
+  const category = searchParams.get("category");
+  const year = searchParams.get("year");
+  const urlPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
-  const [viewMode, setViewMode] = useState<"grid" | "list">(savedBrowse.viewMode || "grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(searchQuery);
   const [restoredScroll, setRestoredScroll] = useState(false);
@@ -76,31 +74,30 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
       category: category || null,
       year: year || null,
     },
-    initialPage: savedBrowse.page > 1 ? savedBrowse.page : 1,
+    initialPage: urlPage,
     autoFetch: true,
   });
 
-  // If saved page > 1, navigate to it after auto-fetch completes
+  // Scroll to top on page change
+  const prevPageRef = React.useRef(page);
   useEffect(() => {
-    if (savedBrowse.page > 1) {
-      const timer = setTimeout(() => {
-        goToPage(savedBrowse.page);
-      }, 300);
-      return () => clearTimeout(timer);
+    if (page !== prevPageRef.current && prevPageRef.current !== 0) {
+      window.scrollTo(0, 0);
+      setBrowseScrollY(0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    prevPageRef.current = page;
+  }, [page, setBrowseScrollY]);
 
-  // Restore scroll position after posts render
+  // Restore scroll when coming back from detail (same page)
   useEffect(() => {
-    if (!loading && posts.length > 0 && !restoredScroll && savedBrowse.scrollY > 0) {
+    if (!restoredScroll && browseScrollY > 0 && posts.length > 0 && !loading) {
       const timer = setTimeout(() => {
-        window.scrollTo(0, savedBrowse.scrollY);
+        window.scrollTo(0, browseScrollY);
         setRestoredScroll(true);
-      }, 150);
+      }, 100);
       return () => clearTimeout(timer);
     }
-  }, [loading, posts.length, restoredScroll, savedBrowse.scrollY]);
+  }, [restoredScroll, browseScrollY, posts.length, loading]);
 
   // Track and persist scroll position
   useEffect(() => {
@@ -108,7 +105,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          setBrowseScroll(window.scrollY);
+          setBrowseScrollY(window.scrollY);
           ticking = false;
         });
         ticking = true;
@@ -116,25 +113,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [setBrowseScroll]);
-
-  // Persist page changes
-  useEffect(() => {
-    setBrowsePage(page);
-  }, [page, setBrowsePage]);
-
-  // Persist filter state on changes
-  useEffect(() => {
-    setBrowseState({
-      sort,
-      mediaType: mediaType || null,
-      tags: selectedTags.join(","),
-      searchQuery: searchQuery || "",
-      category: category || null,
-      year: year || null,
-      viewMode,
-    });
-  }, [sort, mediaType, selectedTags, searchQuery, category, year, viewMode, setBrowseState]);
+  }, [setBrowseScrollY]);
 
   const {
     selectedIds,
@@ -158,7 +137,21 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
         if (value) sp.set(key, value);
         else sp.delete(key);
       });
+      // Reset page to 1 when filters change
+      if (!("page" in params)) {
+        sp.delete("page");
+      }
       router.push(`/browse?${sp.toString()}`);
+    },
+    [router, searchParams],
+  );
+
+  const navigateToPage = useCallback(
+    (newPage: number) => {
+      const sp = new URLSearchParams(searchParams.toString());
+      if (newPage > 1) sp.set("page", String(newPage));
+      else sp.delete("page");
+      router.push(`/browse?${sp.toString()}`, { scroll: false });
     },
     [router, searchParams],
   );
@@ -185,10 +178,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     setSearchInput("");
     router.push("/browse");
   };
-
-  const handleCardClick = useCallback(() => {
-    setBrowseScroll(window.scrollY);
-  }, [setBrowseScroll]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -231,7 +220,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
       />
 
       <div className="lg:flex lg:gap-8">
-        {/* Desktop sidebar */}
         <aside className="hidden w-60 flex-shrink-0 lg:block">
           <FilterSidebar
             mediaType={mediaType}
@@ -248,7 +236,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
           />
         </aside>
 
-        {/* Mobile filters */}
         <MobileFilters
           isOpen={mobileFiltersOpen}
           onClose={() => setMobileFiltersOpen(false)}
@@ -265,9 +252,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
           onClearAll={clearAll}
         />
 
-        {/* Results */}
         <div className="flex-1">
-          {/* Controls bar */}
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
@@ -340,7 +325,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             </div>
           </div>
 
-          {/* Tag cloud (mobile) */}
           <div className="mb-4 lg:hidden">
             <TagCloud
               tags={tags}
@@ -349,12 +333,10 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             />
           </div>
 
-          {/* Results count */}
           <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
             {loading ? "Loading..." : `${total} result${total !== 1 ? "s" : ""}`}
           </p>
 
-          {/* Content */}
           {loading && posts.length === 0 ? (
             viewMode === "grid" ? (
               <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -394,7 +376,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               </p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3" onClick={handleCardClick}>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
               {posts.map((post) => (
                 <MediaCard
                   key={post.id}
@@ -409,7 +391,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               ))}
             </div>
           ) : (
-            <div className="space-y-3" onClick={handleCardClick}>
+            <div className="space-y-3">
               {posts.map((post) => (
                 <MediaListItem
                   key={post.id}
@@ -425,15 +407,16 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             </div>
           )}
 
-          {/* Pagination controls */}
           <PaginationControls
             page={page}
             totalPages={totalPages}
             total={total}
             loading={loading}
-            onNext={nextPage}
-            onPrev={prevPage}
-            onPage={goToPage}
+            onNext={() => navigateToPage(page + 1)}
+            onPrev={() => navigateToPage(page - 1)}
+            onFirst={() => navigateToPage(1)}
+            onLast={() => navigateToPage(totalPages)}
+            onPage={navigateToPage}
           />
 
           {loading && posts.length > 0 && (
@@ -445,7 +428,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             </div>
           )}
 
-          {/* Bulk action bar */}
           {isAdmin && selectMode && selectedIds.size > 0 && (
             <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/95 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
               <div className="flex items-center justify-between">
@@ -471,7 +453,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             </div>
           )}
 
-          {/* Confirmation modal */}
           {confirmState && (
             <ConfirmModal
               isOpen={confirmState.open}

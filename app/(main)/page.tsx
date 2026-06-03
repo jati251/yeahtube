@@ -6,13 +6,21 @@ import { FeedClient } from "./FeedClient";
 
 export const dynamic = "force-dynamic";
 
-async function getInitialPosts() {
+const PAGE_SIZE = 20;
+
+async function getInitialPosts(page: number, sort: string) {
   const db = getDb();
 
-  // Get total count first
   const [totalResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.posts);
+
+  const total = totalResult?.count ?? 0;
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const orderBy = sort === "oldest"
+    ? [schema.posts.createdAt, schema.posts.id] as const
+    : [desc(schema.posts.createdAt), desc(schema.posts.id)] as const;
 
   const posts = await db
     .select({
@@ -22,11 +30,12 @@ async function getInitialPosts() {
       createdAt: schema.posts.createdAt,
     })
     .from(schema.posts)
-    .orderBy(desc(schema.posts.createdAt))
-    .limit(20);
+    .orderBy(...orderBy)
+    .limit(PAGE_SIZE)
+    .offset(offset);
 
   if (posts.length === 0) {
-    return { posts: [], total: 0 };
+    return { posts: [], total };
   }
 
   const postIds = posts.map((p) => p.id);
@@ -73,7 +82,7 @@ async function getInitialPosts() {
     };
   });
 
-  return { posts: result, total: totalResult?.count ?? 0 };
+  return { posts: result, total };
 }
 
 async function getTags() {
@@ -81,10 +90,18 @@ async function getTags() {
   return db.select().from(schema.tags).orderBy(schema.tags.name);
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; sort?: string }>;
+}) {
+  const sp = await searchParams;
+  const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
+  const sort = sp.sort === "oldest" ? "oldest" : "newest";
+
   const [user, { posts, total }, tags] = await Promise.all([
     getCurrentUser(),
-    getInitialPosts(),
+    getInitialPosts(page, sort),
     getTags(),
   ]);
 
@@ -93,6 +110,8 @@ export default async function HomePage() {
       isAdmin={user?.isAdmin ?? false}
       initialPosts={posts}
       initialTotal={total}
+      initialPage={page}
+      initialSort={sort}
       tags={tags.map((t) => ({ id: t.id, name: t.name, slug: t.slug }))}
     />
   );

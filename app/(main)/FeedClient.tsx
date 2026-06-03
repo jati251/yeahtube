@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
 import { TagCloud } from "@/components/filters/TagCloud";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
-import { RefreshCw, LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List } from "lucide-react";
 import { PostItem, TagItem } from "@/types/post";
-import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
 import { useAppStore } from "@/stores/appStore";
 
@@ -18,70 +17,69 @@ interface FeedClientProps {
   isAdmin: boolean;
   initialPosts: PostItem[];
   initialTotal: number;
+  initialPage: number;
+  initialSort: "newest" | "oldest";
   tags: TagItem[];
 }
+
+const PAGE_SIZE = 20;
 
 export function FeedClient({
   isAdmin,
   initialPosts,
   initialTotal,
+  initialPage,
+  initialSort,
   tags,
 }: FeedClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToast } = useToast();
 
-  // Restore state from Zustand store
-  const savedFeed = useAppStore((s) => s.feed);
-  const setFeedScroll = useAppStore((s) => s.setFeedScroll);
-  const setFeedPage = useAppStore((s) => s.setFeedPage);
-  const setFeedSort = useAppStore((s) => s.setFeedSort);
-  const setFeedActiveTag = useAppStore((s) => s.setFeedActiveTag);
-  const setFeedViewMode = useAppStore((s) => s.setFeedViewMode);
+  // Zustand: only for scroll position
+  const feedScrollY = useAppStore((s) => s.feedScrollY);
+  const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
 
-  const [sort, setSortState] = useState<"newest" | "oldest">(savedFeed.sort);
-  const [activeTag, setActiveTagState] = useState<string | null>(savedFeed.activeTag);
-  const [viewMode, setViewModeState] = useState<"grid" | "list">(savedFeed.viewMode);
+  // Derive state from URL (source of truth)
+  const page = Math.max(1, parseInt(searchParams.get("page") || String(initialPage), 10) || 1);
+  const sort = (searchParams.get("sort") || initialSort) as "newest" | "oldest";
+  const totalPages = Math.max(1, Math.ceil(initialTotal / PAGE_SIZE));
+
+  // Local-only state
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [restoredScroll, setRestoredScroll] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Use initialPosts directly from server (no fetching needed for feed — SSR handles it)
+  const [posts, setPosts] = useState<PostItem[]>(initialPosts);
+  const [total, setTotal] = useState(initialTotal);
 
-  const {
-    posts,
-    setPosts,
-    loading,
-    page,
-    total,
-    totalPages,
-    goToPage,
-    nextPage,
-    prevPage,
-  } = usePaginatedPosts({
-    initialPosts,
-    initialTotal,
-    initialPage: savedFeed.page > 1 ? savedFeed.page : 1,
-    fetchParams: { sort, tags: activeTag },
-    autoFetch: false,
-  });
-
-  // If saved page > 1 and we have initialPosts for page 1, navigate to saved page after mount
+  // Sync posts/total when props change (URL navigation)
   useEffect(() => {
-    if (savedFeed.page > 1) {
-      goToPage(savedFeed.page);
+    setPosts(initialPosts);
+    setTotal(initialTotal);
+  }, [initialPosts, initialTotal]);
+
+  // Scroll to top on page change (pagination navigation)
+  const prevPageRef = useRef(page);
+  useEffect(() => {
+    if (page !== prevPageRef.current) {
+      window.scrollTo(0, 0);
+      setFeedScrollY(0);
+      prevPageRef.current = page;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, setFeedScrollY]);
 
-  // Restore scroll position after posts render
+  // Restore scroll position when coming back from detail (same page, no page change)
   useEffect(() => {
-    if (!loading && posts.length > 0 && !restoredScroll && savedFeed.scrollY > 0) {
-      // Delay to let DOM settle
+    if (!restoredScroll && feedScrollY > 0 && posts.length > 0) {
       const timer = setTimeout(() => {
-        window.scrollTo(0, savedFeed.scrollY);
+        window.scrollTo(0, feedScrollY);
         setRestoredScroll(true);
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [loading, posts.length, restoredScroll, savedFeed.scrollY]);
+  }, [restoredScroll, feedScrollY, posts.length]);
 
   // Track and persist scroll position
   useEffect(() => {
@@ -89,7 +87,7 @@ export function FeedClient({
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          setFeedScroll(window.scrollY);
+          setFeedScrollY(window.scrollY);
           ticking = false;
         });
         ticking = true;
@@ -97,27 +95,7 @@ export function FeedClient({
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [setFeedScroll]);
-
-  // Persist page changes
-  useEffect(() => {
-    setFeedPage(page);
-  }, [page, setFeedPage]);
-
-  // Persist sort changes
-  useEffect(() => {
-    setFeedSort(sort);
-  }, [sort, setFeedSort]);
-
-  // Persist active tag
-  useEffect(() => {
-    setFeedActiveTag(activeTag);
-  }, [activeTag, setFeedActiveTag]);
-
-  // Persist view mode
-  useEffect(() => {
-    setFeedViewMode(viewMode);
-  }, [viewMode, setFeedViewMode]);
+  }, [setFeedScrollY]);
 
   const {
     selectedIds,
@@ -133,24 +111,37 @@ export function FeedClient({
     closeConfirm,
   } = usePostSelection(posts, setPosts, addToast);
 
+  // URL navigation helpers
+  const navigateToPage = useCallback(
+    (newPage: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (newPage > 1) params.set("page", String(newPage));
+      else params.delete("page");
+      if (sort !== "newest") params.set("sort", sort);
+      else params.delete("sort");
+      const qs = params.toString();
+      router.push(qs ? `/?${qs}` : "/");
+    },
+    [router, searchParams, sort],
+  );
+
+  const toggleSort = () => {
+    const newSort = sort === "newest" ? "oldest" : "newest";
+    const params = new URLSearchParams(searchParams.toString());
+    if (newSort !== "newest") params.set("sort", newSort);
+    else params.delete("sort");
+    params.delete("page"); // reset to page 1 on sort change
+    const qs = params.toString();
+    router.push(qs ? `/?${qs}` : "/");
+  };
+
   const handleTagFilter = (slug: string | null) => {
-    setActiveTagState(slug);
+    setActiveTag(slug);
     router.push(slug ? `/browse?tags=${slug}` : "/");
   };
 
-  const toggleSort = () => {
-    setSortState((prev) => (prev === "newest" ? "oldest" : "newest"));
-  };
-
-  // Scroll to top and reset scroll state when clicking a card to navigate
-  // (happens via MediaCard's <Link> — we intercept via beforeunload-like approach)
-  const handleCardClick = useCallback(() => {
-    // Save current scroll right before navigation
-    setFeedScroll(window.scrollY);
-  }, [setFeedScroll]);
-
   return (
-    <div ref={containerRef} className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Controls bar */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <TagCloud
@@ -182,7 +173,7 @@ export function FeedClient({
 
           <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">
             <button
-              onClick={() => setViewModeState("grid")}
+              onClick={() => setViewMode("grid")}
               className={`rounded-l-lg p-2 ${
                 viewMode === "grid"
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
@@ -193,7 +184,7 @@ export function FeedClient({
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button
-              onClick={() => setViewModeState("list")}
+              onClick={() => setViewMode("list")}
               className={`rounded-r-lg p-2 ${
                 viewMode === "list"
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
@@ -208,19 +199,7 @@ export function FeedClient({
       </div>
 
       {/* Posts */}
-      {loading && posts.length === 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700">
-              <div className="aspect-video rounded-t-xl bg-gray-200 dark:bg-gray-700" />
-              <div className="space-y-2 p-3">
-                <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-                <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : posts.length === 0 ? (
+      {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="mb-4 text-6xl">📂</div>
           <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
@@ -231,7 +210,7 @@ export function FeedClient({
           </p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" onClick={handleCardClick}>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {posts.map((post) => (
             <MediaCard
               key={post.id}
@@ -246,7 +225,7 @@ export function FeedClient({
           ))}
         </div>
       ) : (
-        <div className="space-y-3" onClick={handleCardClick}>
+        <div className="space-y-3">
           {posts.map((post) => (
             <MediaListItem
               key={post.id}
@@ -267,21 +246,12 @@ export function FeedClient({
         page={page}
         totalPages={totalPages}
         total={total}
-        loading={loading}
-        onNext={nextPage}
-        onPrev={prevPage}
-        onPage={goToPage}
+        onNext={() => navigateToPage(page + 1)}
+        onPrev={() => navigateToPage(page - 1)}
+        onFirst={() => navigateToPage(1)}
+        onLast={() => navigateToPage(totalPages)}
+        onPage={navigateToPage}
       />
-
-      {/* Loading indicator for page transitions */}
-      {loading && posts.length > 0 && (
-        <div className="mt-4 flex justify-center">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            Loading...
-          </div>
-        </div>
-      )}
 
       {/* Bulk action bar */}
       {isAdmin && selectMode && selectedIds.size > 0 && (

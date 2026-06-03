@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { clsx } from "clsx";
 
 interface PaginationControlsProps {
@@ -11,6 +11,8 @@ interface PaginationControlsProps {
   loading?: boolean;
   onNext: () => void;
   onPrev: () => void;
+  onFirst: () => void;
+  onLast: () => void;
   onPage?: (page: number) => void;
 }
 
@@ -21,11 +23,16 @@ export function PaginationControls({
   loading,
   onNext,
   onPrev,
+  onFirst,
+  onLast,
   onPage,
 }: PaginationControlsProps) {
   if (totalPages <= 1 && total <= 0) return null;
 
-  // Build page numbers to show: [1] ... [page-1] [page] [page+1] ... [totalPages]
+  const isFirst = page <= 1;
+  const isLast = page >= totalPages;
+
+  // Build page numbers to show
   const pages: (number | "ellipsis")[] = [];
   const maxVisible = 5;
 
@@ -44,6 +51,11 @@ export function PaginationControls({
     pages.push(totalPages);
   }
 
+  const btnBase = "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed";
+  const btnActive = "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
+  const btnInactive = "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800";
+  const btnDisabled = "cursor-not-allowed border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600";
+
   return (
     <div className="mt-8 flex flex-col items-center gap-3">
       {/* Page info */}
@@ -53,28 +65,34 @@ export function PaginationControls({
 
       {/* Controls */}
       <div className="flex items-center gap-1">
+        {/* First */}
+        <button
+          onClick={onFirst}
+          disabled={isFirst || loading}
+          className={clsx(btnBase, "px-2 py-2", isFirst || loading ? btnDisabled : btnInactive)}
+          aria-label="First page"
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </button>
+
+        {/* Prev */}
         <button
           onClick={onPrev}
-          disabled={page <= 1 || loading}
-          className={clsx(
-            "inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-            page <= 1 || loading
-              ? "cursor-not-allowed border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600"
-              : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800",
-          )}
+          disabled={isFirst || loading}
+          className={clsx(btnBase, "gap-1 px-3 py-2", isFirst || loading ? btnDisabled : btnInactive)}
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
-          Prev
+          <span className="hidden sm:inline">Prev</span>
         </button>
 
-        {/* Page numbers */}
-        <div className="hidden sm:flex items-center gap-1">
+        {/* Page numbers — visible on all screens */}
+        <div className="flex items-center gap-1">
           {pages.map((p, i) =>
             p === "ellipsis" ? (
               <span
                 key={`e-${i}`}
-                className="px-2 text-sm text-gray-400 dark:text-gray-500"
+                className="px-1 text-sm text-gray-400 dark:text-gray-500"
               >
                 …
               </span>
@@ -84,10 +102,9 @@ export function PaginationControls({
                 onClick={() => onPage?.(p)}
                 disabled={loading}
                 className={clsx(
-                  "min-w-[2.25rem] rounded-lg border px-2 py-2 text-sm font-medium transition-colors",
-                  p === page
-                    ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                    : "border-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+                  btnBase,
+                  "min-w-[2rem] px-1.5 py-2 sm:min-w-[2.25rem] sm:px-2",
+                  p === page ? btnActive : "border-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
                   loading && "cursor-not-allowed opacity-50",
                 )}
               >
@@ -97,19 +114,25 @@ export function PaginationControls({
           )}
         </div>
 
+        {/* Next */}
         <button
           onClick={onNext}
-          disabled={page >= totalPages || loading}
-          className={clsx(
-            "inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-            page >= totalPages || loading
-              ? "cursor-not-allowed border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600"
-              : "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800",
-          )}
+          disabled={isLast || loading}
+          className={clsx(btnBase, "gap-1 px-3 py-2", isLast || loading ? btnDisabled : btnInactive)}
           aria-label="Next page"
         >
-          Next
+          <span className="hidden sm:inline">Next</span>
           <ChevronRight className="h-4 w-4" />
+        </button>
+
+        {/* Last */}
+        <button
+          onClick={onLast}
+          disabled={isLast || loading}
+          className={clsx(btnBase, "px-2 py-2", isLast || loading ? btnDisabled : btnInactive)}
+          aria-label="Last page"
+        >
+          <ChevronsRight className="h-4 w-4" />
         </button>
       </div>
     </div>
