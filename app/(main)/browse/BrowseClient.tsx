@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
@@ -15,6 +15,7 @@ import { Search, RefreshCw, SlidersHorizontal, LayoutGrid, List } from "lucide-r
 import { TagItem, CategoryItem } from "@/types/post";
 import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
+import { useAppStore } from "@/stores/appStore";
 
 interface BrowseClientProps {
   isAdmin: boolean;
@@ -36,13 +37,25 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
   const searchParams = useSearchParams();
   const { addToast } = useToast();
 
-  // Filters from URL
-  const mediaType = searchParams.get("type");
-  const selectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
-  const searchQuery = searchParams.get("q") || "";
-  const sort = searchParams.get("sort") || "newest";
-  const category = searchParams.get("category");
-  const year = searchParams.get("year");
+  // Restore state from Zustand store
+  const savedBrowse = useAppStore((s) => s.browse);
+  const setBrowseScroll = useAppStore((s) => s.setBrowseScroll);
+  const setBrowsePage = useAppStore((s) => s.setBrowsePage);
+  const setBrowseState = useAppStore((s) => s.setBrowseState);
+
+  // Filters from URL (or from saved state on first mount)
+  const mediaType = searchParams.get("type") || savedBrowse.mediaType;
+  const selectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || 
+    (savedBrowse.tags ? savedBrowse.tags.split(",").filter(Boolean) : []);
+  const searchQuery = searchParams.get("q") || savedBrowse.searchQuery;
+  const sort = searchParams.get("sort") || savedBrowse.sort || "newest";
+  const category = searchParams.get("category") || savedBrowse.category;
+  const year = searchParams.get("year") || savedBrowse.year;
+
+  const [viewMode, setViewMode] = useState<"grid" | "list">(savedBrowse.viewMode || "grid");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(searchQuery);
+  const [restoredScroll, setRestoredScroll] = useState(false);
 
   const {
     posts,
@@ -56,15 +69,72 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     prevPage,
   } = usePaginatedPosts({
     fetchParams: {
-      type: mediaType,
-      tags: searchParams.get("tags"),
-      q: searchQuery,
+      type: mediaType || null,
+      tags: selectedTags.join(",") || null,
+      q: searchQuery || null,
       sort,
-      category,
-      year,
+      category: category || null,
+      year: year || null,
     },
+    initialPage: savedBrowse.page > 1 ? savedBrowse.page : 1,
     autoFetch: true,
   });
+
+  // If saved page > 1, navigate to it after auto-fetch completes
+  useEffect(() => {
+    if (savedBrowse.page > 1) {
+      const timer = setTimeout(() => {
+        goToPage(savedBrowse.page);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Restore scroll position after posts render
+  useEffect(() => {
+    if (!loading && posts.length > 0 && !restoredScroll && savedBrowse.scrollY > 0) {
+      const timer = setTimeout(() => {
+        window.scrollTo(0, savedBrowse.scrollY);
+        setRestoredScroll(true);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, posts.length, restoredScroll, savedBrowse.scrollY]);
+
+  // Track and persist scroll position
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setBrowseScroll(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [setBrowseScroll]);
+
+  // Persist page changes
+  useEffect(() => {
+    setBrowsePage(page);
+  }, [page, setBrowsePage]);
+
+  // Persist filter state on changes
+  useEffect(() => {
+    setBrowseState({
+      sort,
+      mediaType: mediaType || null,
+      tags: selectedTags.join(","),
+      searchQuery: searchQuery || "",
+      category: category || null,
+      year: year || null,
+      viewMode,
+    });
+  }, [sort, mediaType, selectedTags, searchQuery, category, year, viewMode, setBrowseState]);
 
   const {
     selectedIds,
@@ -79,10 +149,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     confirmState,
     closeConfirm,
   } = usePostSelection(posts, setPosts, addToast);
-
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [searchInput, setSearchInput] = useState(searchQuery);
 
   // URL helpers
   const updateUrl = useCallback(
@@ -119,6 +185,10 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
     setSearchInput("");
     router.push("/browse");
   };
+
+  const handleCardClick = useCallback(() => {
+    setBrowseScroll(window.scrollY);
+  }, [setBrowseScroll]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -200,7 +270,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
           {/* Controls bar */}
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              {/* Mobile filter button */}
               <button
                 onClick={() => setMobileFiltersOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
@@ -209,7 +278,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
                 Filters
               </button>
 
-              {/* Sort dropdown */}
               <select
                 value={sort}
                 onChange={(e) => handleSortChange(e.target.value)}
@@ -224,7 +292,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Select toggle (admin only) */}
               {isAdmin && (
                 <button
                   onClick={toggleSelectMode}
@@ -238,7 +305,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
                 </button>
               )}
 
-              {/* Tag cloud (desktop) */}
               <div className="hidden lg:block">
                 <TagCloud
                   tags={tags}
@@ -247,7 +313,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
                 />
               </div>
 
-              {/* View toggle */}
               <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">
                 <button
                   onClick={() => setViewMode("grid")}
@@ -294,10 +359,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             viewMode === "grid" ? (
               <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700"
-                  >
+                  <div key={i} className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700">
                     <div className="aspect-video rounded-t-xl bg-gray-200 dark:bg-gray-700" />
                     <div className="space-y-2 p-3">
                       <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
@@ -309,10 +371,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             ) : (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700"
-                  >
+                  <div key={i} className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700">
                     <div className="flex gap-4 p-4">
                       <div className="h-20 w-28 rounded-lg bg-gray-200 dark:bg-gray-700 sm:h-24 sm:w-36" />
                       <div className="flex-1 space-y-2">
@@ -335,7 +394,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               </p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3" onClick={handleCardClick}>
               {posts.map((post) => (
                 <MediaCard
                   key={post.id}
@@ -350,7 +409,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               ))}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3" onClick={handleCardClick}>
               {posts.map((post) => (
                 <MediaListItem
                   key={post.id}
@@ -377,7 +436,6 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             onPage={goToPage}
           />
 
-          {/* Loading indicator for page transitions */}
           {loading && posts.length > 0 && (
             <div className="mt-4 flex justify-center">
               <div className="flex items-center gap-2 text-sm text-gray-500">

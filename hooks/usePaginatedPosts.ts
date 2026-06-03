@@ -95,10 +95,12 @@ export function usePaginatedPosts({
 
   const goToPage = useCallback(
     (pageNum: number) => {
-      const clamped = Math.max(1, Math.min(pageNum, totalPages || 1));
-      fetchPageRef.current(clamped);
+      // Don't clamp by totalPages — API handles out-of-range gracefully.
+      // This allows restoring a saved page even before total is known.
+      const safe = Math.max(1, pageNum);
+      fetchPageRef.current(safe);
     },
-    [totalPages],
+    [],
   );
 
   const nextPage = useCallback(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
@@ -12,6 +12,7 @@ import { RefreshCw, LayoutGrid, List } from "lucide-react";
 import { PostItem, TagItem } from "@/types/post";
 import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
+import { useAppStore } from "@/stores/appStore";
 
 interface FeedClientProps {
   isAdmin: boolean;
@@ -29,9 +30,20 @@ export function FeedClient({
   const router = useRouter();
   const { addToast } = useToast();
 
-  const [sort, setSort] = useState<"newest" | "oldest">("newest");
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // Restore state from Zustand store
+  const savedFeed = useAppStore((s) => s.feed);
+  const setFeedScroll = useAppStore((s) => s.setFeedScroll);
+  const setFeedPage = useAppStore((s) => s.setFeedPage);
+  const setFeedSort = useAppStore((s) => s.setFeedSort);
+  const setFeedActiveTag = useAppStore((s) => s.setFeedActiveTag);
+  const setFeedViewMode = useAppStore((s) => s.setFeedViewMode);
+
+  const [sort, setSortState] = useState<"newest" | "oldest">(savedFeed.sort);
+  const [activeTag, setActiveTagState] = useState<string | null>(savedFeed.activeTag);
+  const [viewMode, setViewModeState] = useState<"grid" | "list">(savedFeed.viewMode);
+  const [restoredScroll, setRestoredScroll] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     posts,
@@ -46,10 +58,66 @@ export function FeedClient({
   } = usePaginatedPosts({
     initialPosts,
     initialTotal,
-    initialPage: 1,
+    initialPage: savedFeed.page > 1 ? savedFeed.page : 1,
     fetchParams: { sort, tags: activeTag },
     autoFetch: false,
   });
+
+  // If saved page > 1 and we have initialPosts for page 1, navigate to saved page after mount
+  useEffect(() => {
+    if (savedFeed.page > 1) {
+      goToPage(savedFeed.page);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Restore scroll position after posts render
+  useEffect(() => {
+    if (!loading && posts.length > 0 && !restoredScroll && savedFeed.scrollY > 0) {
+      // Delay to let DOM settle
+      const timer = setTimeout(() => {
+        window.scrollTo(0, savedFeed.scrollY);
+        setRestoredScroll(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, posts.length, restoredScroll, savedFeed.scrollY]);
+
+  // Track and persist scroll position
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setFeedScroll(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [setFeedScroll]);
+
+  // Persist page changes
+  useEffect(() => {
+    setFeedPage(page);
+  }, [page, setFeedPage]);
+
+  // Persist sort changes
+  useEffect(() => {
+    setFeedSort(sort);
+  }, [sort, setFeedSort]);
+
+  // Persist active tag
+  useEffect(() => {
+    setFeedActiveTag(activeTag);
+  }, [activeTag, setFeedActiveTag]);
+
+  // Persist view mode
+  useEffect(() => {
+    setFeedViewMode(viewMode);
+  }, [viewMode, setFeedViewMode]);
 
   const {
     selectedIds,
@@ -66,16 +134,23 @@ export function FeedClient({
   } = usePostSelection(posts, setPosts, addToast);
 
   const handleTagFilter = (slug: string | null) => {
-    setActiveTag(slug);
+    setActiveTagState(slug);
     router.push(slug ? `/browse?tags=${slug}` : "/");
   };
 
   const toggleSort = () => {
-    setSort((prev) => (prev === "newest" ? "oldest" : "newest"));
+    setSortState((prev) => (prev === "newest" ? "oldest" : "newest"));
   };
 
+  // Scroll to top and reset scroll state when clicking a card to navigate
+  // (happens via MediaCard's <Link> — we intercept via beforeunload-like approach)
+  const handleCardClick = useCallback(() => {
+    // Save current scroll right before navigation
+    setFeedScroll(window.scrollY);
+  }, [setFeedScroll]);
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div ref={containerRef} className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Controls bar */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <TagCloud
@@ -85,7 +160,6 @@ export function FeedClient({
         />
 
         <div className="flex items-center gap-3">
-          {/* Select toggle (admin only) */}
           {isAdmin && (
             <button
               onClick={toggleSelectMode}
@@ -108,7 +182,7 @@ export function FeedClient({
 
           <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">
             <button
-              onClick={() => setViewMode("grid")}
+              onClick={() => setViewModeState("grid")}
               className={`rounded-l-lg p-2 ${
                 viewMode === "grid"
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
@@ -119,7 +193,7 @@ export function FeedClient({
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button
-              onClick={() => setViewMode("list")}
+              onClick={() => setViewModeState("list")}
               className={`rounded-r-lg p-2 ${
                 viewMode === "list"
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
@@ -157,7 +231,7 @@ export function FeedClient({
           </p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" onClick={handleCardClick}>
           {posts.map((post) => (
             <MediaCard
               key={post.id}
@@ -172,7 +246,7 @@ export function FeedClient({
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" onClick={handleCardClick}>
           {posts.map((post) => (
             <MediaListItem
               key={post.id}
