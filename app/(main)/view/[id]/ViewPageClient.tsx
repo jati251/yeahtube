@@ -51,9 +51,18 @@ export function ViewPageClient({
 }: ViewPageClientProps) {
   const router = useRouter();
 
-  // Scroll to top on mount so user sees the media immediately
+  // Force scroll to top on mount — Next.js App Router overrides with scroll restoration,
+  // so we disable it temporarily and scroll with rAF to ensure it sticks.
   useEffect(() => {
+    const prev = history.scrollRestoration;
+    history.scrollRestoration = "manual";
     window.scrollTo(0, 0);
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+    });
+    return () => {
+      history.scrollRestoration = prev;
+    };
   }, []);
 
   const formatDate = (dateStr: string) => {

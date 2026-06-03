@@ -54,9 +54,18 @@ export function WatchPageClient({
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const currentVideo = videos[currentVideoIndex];
 
-  // Scroll to top on mount so user sees the video player immediately
+  // Force scroll to top on mount — Next.js App Router overrides with scroll restoration,
+  // so we disable it temporarily and scroll with rAF to ensure it sticks.
   useEffect(() => {
+    const prev = history.scrollRestoration;
+    history.scrollRestoration = "manual";
     window.scrollTo(0, 0);
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+    });
+    return () => {
+      history.scrollRestoration = prev;
+    };
   }, []);
 
   const formatDate = (dateStr: string) => {
