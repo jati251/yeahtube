@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Slate-based light theme for a premium feel */
   --background: #f8fafc;
@@ -30,12 +32,10 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Deep slate dark theme */
-    --background: #020617;
-    --foreground: #f1f5f9;
-  }
+.dark {
+  /* Deep slate dark theme */
+  --background: #020617;
+  --foreground: #f1f5f9;
 }
 
 body {
