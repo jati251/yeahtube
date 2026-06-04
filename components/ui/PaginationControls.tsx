@@ -58,8 +58,8 @@ export function PaginationControls({
 
   return (
     <div className="mt-8 flex flex-col items-center gap-3">
-      {/* Page info */}
-      <p className="text-sm text-gray-500 dark:text-gray-400">
+      {/* Page info (Desktop) */}
+      <p className="hidden text-sm text-gray-500 sm:block dark:text-gray-400">
         Page {page} of {totalPages} ({total} total)
       </p>
 
@@ -86,8 +86,13 @@ export function PaginationControls({
           <span className="hidden sm:inline">Prev</span>
         </button>
 
-        {/* Page numbers — visible on all screens */}
-        <div className="flex items-center gap-1">
+        {/* Page info (Mobile) */}
+        <span className="px-3 text-sm font-medium text-slate-700 dark:text-slate-300 sm:hidden">
+          {page} / {totalPages}
+        </span>
+
+        {/* Page numbers (Desktop only) */}
+        <div className="hidden items-center gap-1 sm:flex">
           {pages.map((p, i) =>
             p === "ellipsis" ? (
               <span
