@@ -1,15 +1,15 @@
 export default function BrowseLoading() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6 h-10 w-full animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+      <div className="mb-6 h-12 w-full animate-pulse rounded-xl bg-slate-200/70 dark:bg-slate-700/50" />
       <div className="lg:flex lg:gap-8">
-        <div className="hidden w-60 flex-shrink-0 space-y-4 lg:block">
-          <div className="h-6 w-20 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
+        <div className="hidden w-60 flex-shrink-0 space-y-5 lg:block">
+          <div className="h-6 w-24 animate-pulse rounded-md bg-slate-200/70 dark:bg-slate-700/50" />
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="h-8 w-full animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700"
+                className="h-10 w-full animate-pulse rounded-lg bg-slate-200/70 dark:bg-slate-700/50"
               />
             ))}
           </div>
@@ -19,12 +19,15 @@ export default function BrowseLoading() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="animate-pulse overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700"
+                className="animate-pulse overflow-hidden rounded-xl border border-slate-100 bg-white/50 dark:border-slate-800/60 dark:bg-slate-800/30"
               >
-                <div className="aspect-video bg-gray-200 dark:bg-gray-700" />
-                <div className="space-y-2 p-3">
-                  <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-                  <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                <div className="aspect-video bg-slate-200/70 dark:bg-slate-700/50" />
+                <div className="space-y-3 p-4">
+                  <div className="h-5 w-3/4 rounded-md bg-slate-200/70 dark:bg-slate-700/50" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-full rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+                    <div className="h-3 w-4/6 rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+                  </div>
                 </div>
               </div>
             ))}

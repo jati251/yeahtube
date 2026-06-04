@@ -82,7 +82,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
       {/* Info */}
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="truncate text-base font-bold text-slate-900 dark:text-white" title={post.title}>
+          <h3 className="truncate text-sm font-semibold tracking-tight sm:text-base text-slate-900 dark:text-white" title={post.title}>
             {post.title}
           </h3>
           {post.mediaCount > 1 && (
@@ -94,7 +94,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         </div>
 
         {post.description && (
-          <p className="line-clamp-1 break-words text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+          <p className="line-clamp-1 break-words text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             {post.description}
           </p>
         )}

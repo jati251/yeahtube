@@ -72,9 +72,9 @@ export async function GET(
         }),
       );
 
-      const body = await s3Response.Body?.transformToByteArray() ?? new Uint8Array();
+      const bodyStream = s3Response.Body?.transformToWebStream();
 
-      return new NextResponse(body as BodyInit, {
+      return new NextResponse(bodyStream as BodyInit, {
         status: 206,
         headers: {
           "Content-Type": mediaFile.mimeType,
@@ -94,9 +94,9 @@ export async function GET(
       }),
     );
 
-    const body = await s3Response.Body?.transformToByteArray() ?? new Uint8Array();
+    const bodyStream = s3Response.Body?.transformToWebStream();
 
-    return new NextResponse(body as BodyInit, {
+    return new NextResponse(bodyStream as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": mediaFile.mimeType,

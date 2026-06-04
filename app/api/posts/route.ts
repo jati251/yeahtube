@@ -155,91 +155,55 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse cursor (Base64 JSON or fallback to raw string)
-    let cursorData: { createdAt?: string; title?: string; updatedAt?: string; mediaCount?: number; id?: number } | null = null;
+    let cursorData: any = null;
     if (cursor) {
       try {
-        const decoded = Buffer.from(cursor, "base64").toString("utf-8");
-        cursorData = JSON.parse(decoded);
+        cursorData = JSON.parse(Buffer.from(cursor, "base64").toString("utf-8"));
       } catch {
         cursorData = { createdAt: cursor };
       }
     }
 
-    // Apply cursor pagination (only if no offset is specified)
-    if (cursorData && offset === 0) {
-      if (sort === "oldest") {
-        if (cursorData.createdAt && cursorData.id) {
-          query = query.where(
-            sql`(${schema.posts.createdAt}, ${schema.posts.id}) > (${cursorData.createdAt}, ${cursorData.id})`
-          ) as typeof query;
-        } else if (cursorData.createdAt) {
-          query = query.where(sql`${schema.posts.createdAt} > ${cursorData.createdAt}`) as typeof query;
-        }
-      } else if (sort === "title-asc") {
-        if (cursorData.title && cursorData.id) {
-          query = query.where(
-            sql`(${schema.posts.title}, ${schema.posts.id}) > (${cursorData.title}, ${cursorData.id})`
-          ) as typeof query;
-        }
-      } else if (sort === "title-desc") {
-        if (cursorData.title && cursorData.id) {
-          query = query.where(
-            sql`(${schema.posts.title}, ${schema.posts.id}) < (${cursorData.title}, ${cursorData.id})`
-          ) as typeof query;
-        }
-      } else if (sort === "recently-updated") {
-        if (cursorData.updatedAt && cursorData.id) {
-          query = query.where(
-            sql`(${schema.posts.updatedAt}, ${schema.posts.id}) < (${cursorData.updatedAt}, ${cursorData.id})`
-          ) as typeof query;
-        }
-      } else if (sort === "most-media") {
-        if (cursorData.mediaCount !== undefined && cursorData.createdAt && cursorData.id) {
-          query = query.where(
-            sql`(coalesce(${mediaCountSubquery.count}, 0), ${schema.posts.createdAt}, ${schema.posts.id}) < (${cursorData.mediaCount}, ${cursorData.createdAt}, ${cursorData.id})`
-          ) as typeof query;
-        }
-      } else {
-        // newest (default)
-        if (cursorData.createdAt && cursorData.id) {
-          query = query.where(
-            sql`(${schema.posts.createdAt}, ${schema.posts.id}) < (${cursorData.createdAt}, ${cursorData.id})`
-          ) as typeof query;
-        } else if (cursorData.createdAt) {
-          query = query.where(sql`${schema.posts.createdAt} < ${cursorData.createdAt}`) as typeof query;
-        }
+    // Apply cursor pagination & sorting config
+    type SortKey = "newest" | "oldest" | "title-asc" | "title-desc" | "recently-updated" | "most-media";
+    const sortConfigs: Record<SortKey, { 
+      where: (c: any) => ReturnType<typeof sql> | undefined, 
+      orderBy: any[] 
+    }> = {
+      "oldest": {
+        where: (c) => c.createdAt && c.id ? sql`(${schema.posts.createdAt}, ${schema.posts.id}) > (${c.createdAt}, ${c.id})` : c.createdAt ? sql`${schema.posts.createdAt} > ${c.createdAt}` : undefined,
+        orderBy: [schema.posts.createdAt, schema.posts.id]
+      },
+      "title-asc": {
+        where: (c) => c.title && c.id ? sql`(${schema.posts.title}, ${schema.posts.id}) > (${c.title}, ${c.id})` : undefined,
+        orderBy: [schema.posts.title, schema.posts.id]
+      },
+      "title-desc": {
+        where: (c) => c.title && c.id ? sql`(${schema.posts.title}, ${schema.posts.id}) < (${c.title}, ${c.id})` : undefined,
+        orderBy: [desc(schema.posts.title), desc(schema.posts.id)]
+      },
+      "recently-updated": {
+        where: (c) => c.updatedAt && c.id ? sql`(${schema.posts.updatedAt}, ${schema.posts.id}) < (${c.updatedAt}, ${c.id})` : undefined,
+        orderBy: [desc(schema.posts.updatedAt), desc(schema.posts.id)]
+      },
+      "most-media": {
+        where: (c) => c.mediaCount !== undefined && c.createdAt && c.id ? sql`(coalesce(${mediaCountSubquery.count}, 0), ${schema.posts.createdAt}, ${schema.posts.id}) < (${c.mediaCount}, ${c.createdAt}, ${c.id})` : undefined,
+        orderBy: [desc(sql`coalesce(${mediaCountSubquery.count}, 0)`), desc(schema.posts.createdAt), desc(schema.posts.id)]
+      },
+      "newest": {
+        where: (c) => c.createdAt && c.id ? sql`(${schema.posts.createdAt}, ${schema.posts.id}) < (${c.createdAt}, ${c.id})` : c.createdAt ? sql`${schema.posts.createdAt} < ${c.createdAt}` : undefined,
+        orderBy: [desc(schema.posts.createdAt), desc(schema.posts.id)]
       }
+    };
+
+    const activeSort = sortConfigs[sort as SortKey] || sortConfigs["newest"];
+
+    if (cursorData && offset === 0) {
+      const whereCondition = activeSort.where(cursorData);
+      if (whereCondition) query = query.where(whereCondition) as typeof query;
     }
 
-    // Apply sorting
-    switch (sort) {
-      case "oldest":
-        query = query.orderBy(schema.posts.createdAt, schema.posts.id);
-        break;
-      case "title-asc":
-        query = query.orderBy(schema.posts.title, schema.posts.id);
-        break;
-      case "title-desc":
-        query = query.orderBy(desc(schema.posts.title), desc(schema.posts.id));
-        break;
-      case "recently-updated":
-        query = query.orderBy(desc(schema.posts.updatedAt), desc(schema.posts.id));
-        break;
-      case "most-media":
-        query = query.orderBy(
-          desc(sql`coalesce(${mediaCountSubquery.count}, 0)`),
-          desc(schema.posts.createdAt),
-          desc(schema.posts.id)
-        );
-        break;
-      case "newest":
-      default:
-        query = query.orderBy(desc(schema.posts.createdAt), desc(schema.posts.id));
-        break;
-    }
-
-    // Apply offset/limit
-    query = query.offset(offset).limit(limit + 1);
+    query = query.orderBy(...activeSort.orderBy).offset(offset).limit(limit + 1);
 
     const posts = await query;
 
@@ -311,19 +275,13 @@ export async function GET(request: NextRequest) {
 
     if (hasMore) {
       const lastPost = posts[limit - 1];
-      const cursorObj: Record<string, any> = { id: lastPost.id };
-      
-      if (sort === "newest" || sort === "oldest") {
-        cursorObj.createdAt = lastPost.createdAt;
-      } else if (sort === "title-asc" || sort === "title-desc") {
-        cursorObj.title = lastPost.title;
-      } else if (sort === "recently-updated") {
-        cursorObj.updatedAt = lastPost.updatedAt;
-      } else if (sort === "most-media") {
-        cursorObj.mediaCount = lastPost.mediaCount;
-        cursorObj.createdAt = lastPost.createdAt;
-      }
-      
+      const cursorObj = {
+        id: lastPost.id,
+        createdAt: lastPost.createdAt,
+        title: lastPost.title,
+        updatedAt: lastPost.updatedAt,
+        mediaCount: lastPost.mediaCount,
+      };
       nextCursor = Buffer.from(JSON.stringify(cursorObj)).toString("base64");
     }
 

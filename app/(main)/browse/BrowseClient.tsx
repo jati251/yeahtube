@@ -337,15 +337,32 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             {loading ? "Loading..." : `${total} result${total !== 1 ? "s" : ""}`}
           </p>
 
+          <div className="mb-4">
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              loading={loading}
+              onNext={() => navigateToPage(page + 1)}
+              onPrev={() => navigateToPage(page - 1)}
+              onFirst={() => navigateToPage(1)}
+              onLast={() => navigateToPage(totalPages)}
+              onPage={navigateToPage}
+            />
+          </div>
+
           {loading && posts.length === 0 ? (
             viewMode === "grid" ? (
               <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700">
-                    <div className="aspect-video rounded-t-xl bg-gray-200 dark:bg-gray-700" />
-                    <div className="space-y-2 p-3">
-                      <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-                      <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                  <div key={i} className="animate-pulse overflow-hidden rounded-xl border border-slate-100 bg-white/50 dark:border-slate-800/60 dark:bg-slate-800/30">
+                    <div className="aspect-video rounded-t-xl bg-slate-200/70 dark:bg-slate-700/50" />
+                    <div className="space-y-3 p-4">
+                      <div className="h-5 w-3/4 rounded-md bg-slate-200/70 dark:bg-slate-700/50" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+                        <div className="h-3 w-4/6 rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -353,12 +370,13 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             ) : (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="animate-pulse rounded-xl border border-gray-200 dark:border-gray-700">
-                    <div className="flex gap-4 p-4">
-                      <div className="h-20 w-28 rounded-lg bg-gray-200 dark:bg-gray-700 sm:h-24 sm:w-36" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
-                        <div className="h-3 w-1/2 rounded bg-gray-200 dark:bg-gray-700" />
+                  <div key={i} className="flex animate-pulse gap-4 rounded-xl border border-slate-100 bg-white/50 p-4 dark:border-slate-800/60 dark:bg-slate-800/30">
+                    <div className="h-20 w-28 rounded-lg bg-slate-200/70 dark:bg-slate-700/50 sm:h-24 sm:w-36" />
+                    <div className="flex-1 space-y-3 pt-1">
+                      <div className="h-5 w-3/4 rounded-md bg-slate-200/70 dark:bg-slate-700/50" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+                        <div className="h-3 w-1/2 rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
                       </div>
                     </div>
                   </div>
@@ -376,36 +394,36 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               </p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {posts.map((post) => (
-                <MediaCard
-                  key={post.id}
-                  post={post}
-                  isAdmin={isAdmin}
-                  selectMode={selectMode}
-                  selected={selectedIds.has(post.id)}
-                  onToggleSelect={toggleSelect}
-                  onDelete={handleDelete}
-                  deleting={deletingId === post.id}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {posts.map((post) => (
-                <MediaListItem
-                  key={post.id}
-                  post={post}
-                  isAdmin={isAdmin}
-                  selectMode={selectMode}
-                  selected={selectedIds.has(post.id)}
-                  onToggleSelect={toggleSelect}
-                  onDelete={handleDelete}
-                  deleting={deletingId === post.id}
-                />
-              ))}
-            </div>
-          )}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 animate-slide-up">
+               {posts.map((post) => (
+                 <MediaCard
+                   key={post.id}
+                   post={post}
+                   isAdmin={isAdmin}
+                   selectMode={selectMode}
+                   selected={selectedIds.has(post.id)}
+                   onToggleSelect={toggleSelect}
+                   onDelete={handleDelete}
+                   deleting={deletingId === post.id}
+                 />
+               ))}
+             </div>
+           ) : (
+            <div className="space-y-3 animate-slide-up">
+               {posts.map((post) => (
+                 <MediaListItem
+                   key={post.id}
+                   post={post}
+                   isAdmin={isAdmin}
+                   selectMode={selectMode}
+                   selected={selectedIds.has(post.id)}
+                   onToggleSelect={toggleSelect}
+                   onDelete={handleDelete}
+                   deleting={deletingId === post.id}
+                 />
+               ))}
+             </div>
+           )}
 
           <PaginationControls
             page={page}

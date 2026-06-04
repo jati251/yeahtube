@@ -140,30 +140,32 @@ export function ViewPageClient({
               <h3 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
                 Also includes {videos.length} video{videos.length > 1 ? "s" : ""}
               </h3>
-              {videos.map((video) => (
-                <Link
-                  key={video.id}
-                  href={`/watch/${post.id}`}
-                  className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 min-w-0"
-                >
-                  <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
-                    {video.thumbnailKey ? (
-                      <img
-                        src={`/api/media/${video.id}/thumbnail`}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-gray-400 text-[10px]">
-                        Video
-                      </div>
-                    )}
-                  </div>
-                  <span className="truncate text-xs text-gray-600 dark:text-gray-400">
-                    {video.filename}
-                  </span>
-                </Link>
-              ))}
+              <div className="flex flex-col gap-2">
+                {videos.map((video) => (
+                  <Link
+                    key={video.id}
+                    href={`/watch/${post.id}`}
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 min-w-0"
+                  >
+                    <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
+                      {video.thumbnailKey ? (
+                        <img
+                          src={`/api/media/${video.id}/thumbnail`}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-gray-400 text-[10px]">
+                          Video
+                        </div>
+                      )}
+                    </div>
+                    <span className="truncate text-xs text-gray-600 dark:text-gray-400">
+                      {video.filename}
+                    </span>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </div>

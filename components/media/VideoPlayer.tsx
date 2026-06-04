@@ -52,6 +52,11 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    
+    // Sometimes the browser caches metadata and fires onLoadedMetadata before React attaches the listener.
+    if (videoRef.current && videoRef.current.readyState >= 1) {
+      setDuration(videoRef.current.duration);
+    }
   }, [src]);
 
   const togglePlay = useCallback(() => {
@@ -196,6 +201,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
   }, [controlsTimeout]);
 
   const formatTime = (t: number) => {
+    if (isNaN(t) || !isFinite(t)) return "0:00";
     const h = Math.floor(t / 3600);
     const m = Math.floor((t % 3600) / 60);
     const s = Math.floor(t % 60);

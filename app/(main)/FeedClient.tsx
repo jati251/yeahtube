@@ -209,49 +209,68 @@ export function FeedClient({
             Upload your first photo or video to get started.
           </p>
         </div>
-      ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {posts.map((post) => (
-            <MediaCard
-              key={post.id}
-              post={post}
-              isAdmin={isAdmin}
-              selectMode={selectMode}
-              selected={selectedIds.has(post.id)}
-              onToggleSelect={toggleSelect}
-              onDelete={handleDelete}
-              deleting={deletingId === post.id}
-            />
-          ))}
-        </div>
       ) : (
-        <div className="space-y-3">
-          {posts.map((post) => (
-            <MediaListItem
-              key={post.id}
-              post={post}
-              isAdmin={isAdmin}
-              selectMode={selectMode}
-              selected={selectedIds.has(post.id)}
-              onToggleSelect={toggleSelect}
-              onDelete={handleDelete}
-              deleting={deletingId === post.id}
+        <>
+          <div className="mb-4">
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              onNext={() => navigateToPage(page + 1)}
+              onPrev={() => navigateToPage(page - 1)}
+              onFirst={() => navigateToPage(1)}
+              onLast={() => navigateToPage(totalPages)}
+              onPage={navigateToPage}
             />
-          ))}
-        </div>
-      )}
+          </div>
+          
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 animate-slide-up">
+              {posts.map((post) => (
+                <MediaCard
+                  key={post.id}
+                  post={post}
+                  isAdmin={isAdmin}
+                  selectMode={selectMode}
+                  selected={selectedIds.has(post.id)}
+                  onToggleSelect={toggleSelect}
+                  onDelete={handleDelete}
+                  deleting={deletingId === post.id}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3 animate-slide-up">
+              {posts.map((post) => (
+                <MediaListItem
+                  key={post.id}
+                  post={post}
+                  isAdmin={isAdmin}
+                  selectMode={selectMode}
+                  selected={selectedIds.has(post.id)}
+                  onToggleSelect={toggleSelect}
+                  onDelete={handleDelete}
+                  deleting={deletingId === post.id}
+                />
+              ))}
+            </div>
+          )}
 
-      {/* Pagination controls */}
-      <PaginationControls
-        page={page}
-        totalPages={totalPages}
-        total={total}
-        onNext={() => navigateToPage(page + 1)}
-        onPrev={() => navigateToPage(page - 1)}
-        onFirst={() => navigateToPage(1)}
-        onLast={() => navigateToPage(totalPages)}
-        onPage={navigateToPage}
-      />
+          {/* Pagination controls (bottom) */}
+          <div className="mt-4">
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              onNext={() => navigateToPage(page + 1)}
+              onPrev={() => navigateToPage(page - 1)}
+              onFirst={() => navigateToPage(1)}
+              onLast={() => navigateToPage(totalPages)}
+              onPage={navigateToPage}
+            />
+          </div>
+        </>
+      )}
 
       {/* Bulk action bar */}
       {isAdmin && selectMode && selectedIds.size > 0 && (

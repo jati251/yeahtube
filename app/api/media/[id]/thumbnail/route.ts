@@ -59,12 +59,12 @@ export async function GET(
       }),
     );
 
-    const body = await response.Body?.transformToByteArray() ?? new Uint8Array();
+    const bodyStream = response.Body?.transformToWebStream();
 
-    return new NextResponse(body as BodyInit, {
+    return new NextResponse(bodyStream as BodyInit, {
       headers: {
         "Content-Type": "image/webp",
-        "Cache-Control": "private, max-age=86400",
+        "Cache-Control": "private, max-age=31536000",
       },
     });
   } catch (error) {

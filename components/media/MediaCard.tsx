@@ -89,11 +89,11 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
 
       {/* Info */}
       <div className="min-w-0 p-4">
-        <h3 className="truncate text-base font-bold text-slate-900 dark:text-white" title={post.title}>
+        <h3 className="truncate text-lg font-semibold tracking-tight text-slate-900 dark:text-white" title={post.title}>
           {post.title}
         </h3>
         {post.description && (
-          <p className="mt-1.5 line-clamp-2 break-words text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+          <p className="mt-1.5 line-clamp-2 break-words text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             {post.description}
           </p>
         )}
