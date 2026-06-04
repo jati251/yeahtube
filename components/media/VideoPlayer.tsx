@@ -33,11 +33,13 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
   const [fullscreen, setFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [buffered, setBuffered] = useState(0);
+  const [waiting, setWaiting] = useState(false);
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Tap-to-skip overlay state
   const [skipOverlay, setSkipOverlay] = useState<"back" | "forward" | null>(null);
   const skipOverlayTimeout = useRef<NodeJS.Timeout | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
 
   const showSkipOverlay = useCallback((direction: "back" | "forward") => {
     setSkipOverlay(direction);
@@ -52,6 +54,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     setPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    setWaiting(false);
     
     // Sometimes the browser caches metadata and fires onLoadedMetadata before React attaches the listener.
     if (videoRef.current && videoRef.current.readyState >= 1) {
@@ -123,29 +126,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     showSkipOverlay("back");
   }, [showSkipOverlay]);
 
-  // Mobile tap zones: left = skip back, center = play/pause, right = skip forward
-  const handleTapZone = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const widthRatio = x / rect.width;
-
-      // Only trigger if not clicking on controls area (bottom 15%)
-      const yRatio = (e.clientY - rect.top) / rect.height;
-      if (yRatio > 0.85) return;
-
-      if (widthRatio < 0.3) {
-        skipBackward();
-      } else if (widthRatio > 0.7) {
-        skipForward();
-      } else {
-        togglePlay();
-      }
-    },
-    [skipBackward, skipForward, togglePlay],
-  );
-
   // Auto-hide controls
   const showControlsTemporarily = useCallback(() => {
     setShowControls(true);
@@ -155,6 +135,51 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     }, 3000);
     setControlsTimeout(timeout);
   }, [playing, controlsTimeout]);
+
+  // Mobile tap zones: double click/tap on left/right to skip 10s, single click/tap to toggle controls
+  const handleTapZone = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!containerRef.current || !videoRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const widthRatio = x / rect.width;
+      const yRatio = y / rect.height;
+
+      // Ignore if clicking on controls area (bottom 15%)
+      if (yRatio > 0.85) return;
+
+      const now = Date.now();
+      const DOUBLE_TAP_DELAY = 300; // ms
+
+      if (
+        lastTapRef.current &&
+        now - lastTapRef.current.time < DOUBLE_TAP_DELAY &&
+        Math.abs(x - lastTapRef.current.x) < 40 &&
+        Math.abs(y - lastTapRef.current.y) < 40
+      ) {
+        // Double tap/click detected!
+        if (widthRatio < 0.35) {
+          skipBackward();
+        } else if (widthRatio > 0.65) {
+          skipForward();
+        } else {
+          togglePlay();
+        }
+        lastTapRef.current = null;
+      } else {
+        // Single tap: toggle controls
+        setShowControls((prev) => !prev);
+        if (!playing) {
+          setShowControls(true);
+        } else {
+          showControlsTemporarily();
+        }
+        lastTapRef.current = { time: now, x, y };
+      }
+    },
+    [playing, skipBackward, skipForward, togglePlay, showControlsTemporarily],
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -234,12 +259,27 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
           }
         }}
         onProgress={() => {
-          if (videoRef.current && videoRef.current.buffered.length > 0) {
-            setBuffered(
-              videoRef.current.buffered.end(videoRef.current.buffered.length - 1),
-            );
+          if (videoRef.current) {
+            const current = videoRef.current.currentTime;
+            const bufferedRanges = videoRef.current.buffered;
+            for (let i = 0; i < bufferedRanges.length; i++) {
+              const start = bufferedRanges.start(i);
+              const end = bufferedRanges.end(i);
+              if (current >= start && current <= end) {
+                setBuffered(end);
+                return;
+              }
+            }
+            if (bufferedRanges.length > 0) {
+              setBuffered(bufferedRanges.end(bufferedRanges.length - 1));
+            }
           }
         }}
+        onWaiting={() => setWaiting(true)}
+        onPlaying={() => setWaiting(false)}
+        onSeeking={() => setWaiting(true)}
+        onSeeked={() => setWaiting(false)}
+        onCanPlay={() => setWaiting(false)}
         onEnded={() => setPlaying(false)}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
@@ -252,6 +292,13 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
         className="absolute inset-0 z-[5] cursor-pointer"
         onClick={handleTapZone}
       />
+
+      {/* Loading Spinner */}
+      {waiting && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-blue-500" />
+        </div>
+      )}
 
       {/* Skip overlay feedback */}
       {skipOverlay && (
