@@ -156,6 +156,7 @@ export function ViewPageClient({
                           fill
                           className="object-cover"
                           sizes="64px"
+                          unoptimized
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-gray-400 text-[10px]">

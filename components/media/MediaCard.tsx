@@ -152,10 +152,11 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
               alt={post.title}
               fill
               className={clsx(
-                "relative z-10 mx-auto h-full w-full object-contain transition-all duration-300",
+                "z-10 object-contain transition-all duration-300",
                 isPlaying ? "scale-105 opacity-0" : "scale-100 opacity-100"
               )}
               sizes="(max-width: 768px) 50vw, 33vw"
+              unoptimized
             />
           </>
         ) : (

@@ -49,6 +49,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="180px"
+            unoptimized
           />
         ) : (
           <div className="flex h-full items-center justify-center">
