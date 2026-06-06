@@ -33,6 +33,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
 
   const timeAgo = getTimeAgo(post.createdAt);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const CardContent = (
     <>
@@ -41,17 +42,34 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         {(post.previewUrl || post.videoUrl) && (
           <video
             src={post.previewUrl || post.videoUrl || undefined}
-            className="absolute inset-0 z-10 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+            className={clsx(
+              "absolute inset-0 z-10 h-full w-full object-cover transition-opacity duration-500",
+              isPlaying ? "opacity-100" : "opacity-0"
+            )}
             muted
             loop
             playsInline
             preload="none"
             onMouseEnter={(e) => {
-              e.currentTarget.play().catch(() => {
-                // Ignore auto-play errors
-              });
+              setIsPlaying(true);
+              e.currentTarget.play().catch(() => {});
             }}
             onMouseLeave={(e) => {
+              setIsPlaying(false);
+              e.currentTarget.pause();
+              e.currentTarget.currentTime = 0;
+            }}
+            onTouchStart={(e) => {
+              setIsPlaying(true);
+              e.currentTarget.play().catch(() => {});
+            }}
+            onTouchEnd={(e) => {
+              setIsPlaying(false);
+              e.currentTarget.pause();
+              e.currentTarget.currentTime = 0;
+            }}
+            onTouchCancel={(e) => {
+              setIsPlaying(false);
               e.currentTarget.pause();
               e.currentTarget.currentTime = 0;
             }}
@@ -62,8 +80,8 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             src={post.thumbnailUrl}
             alt={post.title}
             className={clsx(
-              "h-full w-full object-cover transition-transform duration-300 group-hover:scale-105",
-              (post.previewUrl || post.videoUrl) && "group-hover:opacity-0 transition-opacity duration-500"
+              "h-full w-full object-cover transition-all duration-300",
+              isPlaying ? "scale-105 opacity-0" : "scale-100 opacity-100"
             )}
             loading="lazy"
             decoding="async"
