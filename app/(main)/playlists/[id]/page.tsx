@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { MediaCard } from "@/components/media/MediaCard";
 import { getPresignedUrl } from "@/lib/storage";
 
@@ -59,15 +59,9 @@ export default async function PlaylistPage({
 
   // Get media for these posts
   const postIds = items.map((i) => i.id);
-  const allMedia = postIds.length > 0 ? await db.select().from(schema.media).where(eq(schema.media.postId, postIds[0])) /* We need inArray, doing manual loop for safety due to Drizzle typing */ : [];
-  
-  const mediaRecords = [];
-  if (postIds.length > 0) {
-    for (const pid of postIds) {
-      const pMedia = await db.select().from(schema.media).where(eq(schema.media.postId, pid));
-      mediaRecords.push(...pMedia);
-    }
-  }
+  const mediaRecords = postIds.length > 0 
+    ? await db.select().from(schema.media).where(inArray(schema.media.postId, postIds))
+    : [];
 
   const posts = await Promise.all(items.map(async (post) => {
     const postMedia = mediaRecords.filter((m) => m.postId === post.id);

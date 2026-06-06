@@ -32,7 +32,7 @@ export function PaginationControls({
   const isFirst = page <= 1;
   const isLast = page >= totalPages;
 
-  // Build page numbers to show
+  // Build page numbers to show for desktop
   const pages: (number | "ellipsis")[] = [];
   const maxVisible = 7;
 
@@ -49,6 +49,28 @@ export function PaginationControls({
 
     if (page < totalPages - 3) pages.push("ellipsis");
     pages.push(totalPages);
+  }
+
+  // Build page numbers to show for mobile (max 5 buttons to prevent overflow)
+  const mobilePages: (number | "ellipsis")[] = [];
+  if (totalPages <= 5) {
+    for (let i = 1; i <= totalPages; i++) mobilePages.push(i);
+  } else {
+    mobilePages.push(1);
+    if (page <= 3) {
+      mobilePages.push(2);
+      mobilePages.push(3);
+      mobilePages.push("ellipsis");
+    } else if (page >= totalPages - 2) {
+      mobilePages.push("ellipsis");
+      mobilePages.push(totalPages - 2);
+      mobilePages.push(totalPages - 1);
+    } else {
+      mobilePages.push("ellipsis");
+      mobilePages.push(page);
+      mobilePages.push("ellipsis");
+    }
+    mobilePages.push(totalPages);
   }
 
   const btnBase = "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed";
@@ -69,7 +91,7 @@ export function PaginationControls({
         <button
           onClick={onFirst}
           disabled={isFirst || loading}
-          className={clsx(btnBase, "hidden sm:inline-flex px-2 py-2", isFirst || loading ? btnDisabled : btnInactive)}
+          className={clsx(btnBase, "hidden sm:inline-flex h-9 w-9", isFirst || loading ? btnDisabled : btnInactive)}
           aria-label="First page"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -79,25 +101,20 @@ export function PaginationControls({
         <button
           onClick={onPrev}
           disabled={isFirst || loading}
-          className={clsx(btnBase, "gap-1 px-3 py-2", isFirst || loading ? btnDisabled : btnInactive)}
+          className={clsx(btnBase, "h-8 w-8 sm:h-9 sm:w-auto sm:px-3 gap-1", isFirst || loading ? btnDisabled : btnInactive)}
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Prev</span>
         </button>
 
-        {/* Page info (Mobile) */}
-        <span className="px-3 text-sm font-medium text-slate-700 dark:text-slate-300 sm:hidden">
-          {page} / {totalPages}
-        </span>
-
-        {/* Page numbers (Desktop only) */}
-        <div className="hidden items-center gap-1 sm:flex">
-          {pages.map((p, i) =>
+        {/* Page numbers (Mobile only) */}
+        <div className="flex items-center gap-1 sm:hidden">
+          {mobilePages.map((p, i) =>
             p === "ellipsis" ? (
               <span
                 key={`e-${i}`}
-                className="px-1 text-sm text-gray-400 dark:text-gray-500"
+                className="w-6 text-center text-xs text-gray-400 dark:text-gray-500"
               >
                 …
               </span>
@@ -108,7 +125,35 @@ export function PaginationControls({
                 disabled={loading}
                 className={clsx(
                   btnBase,
-                  "min-w-[2rem] px-1.5 py-2 sm:min-w-[2.25rem] sm:px-2",
+                  "h-8 w-8 text-xs",
+                  p === page ? btnActive : "border-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+                  loading && "cursor-not-allowed opacity-50",
+                )}
+              >
+                {p}
+              </button>
+            )
+          )}
+        </div>
+
+        {/* Page numbers (Desktop only) */}
+        <div className="hidden items-center gap-1 sm:flex">
+          {pages.map((p, i) =>
+            p === "ellipsis" ? (
+              <span
+                key={`e-${i}`}
+                className="w-9 text-center text-sm text-gray-400 dark:text-gray-500"
+              >
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onPage?.(p)}
+                disabled={loading}
+                className={clsx(
+                  btnBase,
+                  "h-9 w-9 text-sm",
                   p === page ? btnActive : "border-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
                   loading && "cursor-not-allowed opacity-50",
                 )}
@@ -123,7 +168,7 @@ export function PaginationControls({
         <button
           onClick={onNext}
           disabled={isLast || loading}
-          className={clsx(btnBase, "gap-1 px-3 py-2", isLast || loading ? btnDisabled : btnInactive)}
+          className={clsx(btnBase, "h-8 w-8 sm:h-9 sm:w-auto sm:px-3 gap-1", isLast || loading ? btnDisabled : btnInactive)}
           aria-label="Next page"
         >
           <span className="hidden sm:inline">Next</span>
@@ -134,7 +179,7 @@ export function PaginationControls({
         <button
           onClick={onLast}
           disabled={isLast || loading}
-          className={clsx(btnBase, "hidden sm:inline-flex px-2 py-2", isLast || loading ? btnDisabled : btnInactive)}
+          className={clsx(btnBase, "hidden sm:inline-flex h-9 w-9", isLast || loading ? btnDisabled : btnInactive)}
           aria-label="Last page"
         >
           <ChevronsRight className="h-4 w-4" />

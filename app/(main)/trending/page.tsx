@@ -26,7 +26,7 @@ export default async function TrendingPage() {
     .orderBy(desc(sql<number>`count(${schema.likes.id})::int`))
     .limit(20);
 
-  let trendingPosts = [];
+  let trendingPosts: any[] = [];
 
   if (trendingQuery.length > 0) {
     const postIds = trendingQuery.map((t) => t.postId);

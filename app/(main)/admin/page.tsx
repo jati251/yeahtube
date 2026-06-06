@@ -16,6 +16,7 @@ export default async function AdminPage() {
 
   const db = getDb();
   const users = await db.select().from(schema.users).orderBy(schema.users.username);
+  const categories = await db.select().from(schema.categories).orderBy(schema.categories.name);
   const [sizeResult] = await db
     .select({ totalSize: sql<number>`sum(${schema.media.fileSize})` })
     .from(schema.media);
