@@ -48,10 +48,16 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const [previewTriggered, setPreviewTriggered] = useState(false);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const isDispatchingRef = useRef(false);
 
   // Listen for global "stop-all-previews" event to stop playback
   useEffect(() => {
     const handleStopAll = () => {
+      // Don't stop ourselves — we just started
+      if (isDispatchingRef.current) {
+        isDispatchingRef.current = false;
+        return;
+      }
       if (isPlaying) {
         setIsPlaying(false);
         setPreviewTriggered(false);
@@ -68,7 +74,8 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   // Auto-stop mobile preview after 3 seconds
   useEffect(() => {
     if (isPlaying) {
-      // Dispatch event to stop other previews
+      // Dispatch event to stop other previews (flag prevents self-stop)
+      isDispatchingRef.current = true;
       window.dispatchEvent(new CustomEvent("stop-all-previews"));
       
       // Auto-stop after 3s on mobile
