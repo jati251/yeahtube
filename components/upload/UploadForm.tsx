@@ -33,6 +33,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [acceptType, setAcceptType] = useState("image/*,video/*");
   const [instantUpload, setInstantUpload] = useState(false);
+  const [albumMode, setAlbumMode] = useState(false);
   const [windowDragOver, setWindowDragOver] = useState(false);
   const dragCounter = useRef(0);
 
@@ -85,7 +86,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     }, 500);
   };
 
-  // Unified batch upload helper — sends all files in one request
+  // Upload helper: album OFF = individual posts, album ON = 1 album post
   const doUpload = async (filesToUpload: SelectedFile[], quick: boolean) => {
     if (filesToUpload.length === 0) return;
     setUploading(true);
@@ -93,45 +94,71 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
     const csrfToken = getCsrfToken();
     const totalFiles = filesToUpload.length;
-    const formData = new FormData();
-    formData.append("quickPost", quick ? "true" : "false");
+    const headers = { ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}) };
 
-    if (quick) {
-      const firstName = filesToUpload[0].file.name.replace(/\.[^/.]+$/, "");
-      formData.append("title", totalFiles === 1 ? firstName : `Batch upload (${totalFiles} files)`);
-    } else {
-      formData.append("title", title.trim());
-      if (category) formData.append("category", category);
-      formData.append("tags", JSON.stringify(tags));
-    }
+    const sendOne = async (file: File, title: string, idx: number): Promise<boolean> => {
+      const fd = new FormData();
+      fd.append("files", file);
+      fd.append("quickPost", quick ? "true" : "false");
+      fd.append("title", title);
+      if (!quick && idx === 0) {
+        if (category) fd.append("category", category);
+        fd.append("tags", JSON.stringify(tags));
+      }
+      setStatusText(`Uploading ${idx + 1} of ${totalFiles} file(s)`);
+      setUploadProgress(Math.floor((idx / totalFiles) * 100));
 
-    for (const sf of filesToUpload) {
-      formData.append("files", sf.file);
-    }
-
-    setStatusText(`Uploading ${totalFiles} file(s)...`);
-
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        headers: { ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}) },
-        body: formData,
-      });
-
+      const res = await fetch("/api/upload", { method: "POST", headers, body: fd });
       if (!res.ok) {
         const text = await res.text();
         console.error(`[Upload] Error (${res.status}):`, text);
-        throw new Error(text || `Upload failed (${res.status})`);
+        return false;
+      }
+      return true;
+    };
+
+    try {
+      if (albumMode) {
+        // Album mode: batch all → 1 post
+        const formData = new FormData();
+        formData.append("quickPost", quick ? "true" : "false");
+        if (quick) {
+          const firstName = filesToUpload[0].file.name.replace(/\.[^/.]+$/, "");
+          formData.append("title", totalFiles === 1 ? firstName : `Album: ${firstName} +${totalFiles - 1}`);
+        } else {
+          formData.append("title", title.trim());
+          if (category) formData.append("category", category);
+          formData.append("tags", JSON.stringify(tags));
+        }
+        for (const sf of filesToUpload) formData.append("files", sf.file);
+
+        setStatusText(`Uploading ${totalFiles} file(s)...`);
+        const res = await fetch("/api/upload", { method: "POST", headers, body: formData });
+        if (!res.ok) { const t = await res.text(); throw new Error(t || "Upload failed"); }
+      } else {
+        // Default: 1 file = 1 post
+        let successCount = 0;
+        for (let i = 0; i < filesToUpload.length; i++) {
+          const sf = filesToUpload[i];
+          const fileTitle = quick
+            ? sf.file.name.replace(/\.[^/.]+$/, "")
+            : (i === 0 ? title.trim() : sf.file.name.replace(/\.[^/.]+$/, ""));
+          const ok = await sendOne(sf.file, fileTitle, i);
+          if (!ok) {
+            addToast("error", `Failed at file ${i + 1}. Uploaded ${successCount} of ${totalFiles}.`);
+            setUploading(false);
+            return;
+          }
+          // Remove file from list one-by-one (GDrive style)
+          setSelectedFiles((prev) => { URL.revokeObjectURL(sf.preview); return prev.filter((x) => x.id !== sf.id); });
+          successCount++;
+        }
       }
 
-      setSelectedFiles((prev) => {
-        prev.forEach((sf) => URL.revokeObjectURL(sf.preview));
-        return [];
-      });
-
+      setSelectedFiles((prev) => { prev.forEach((sf) => URL.revokeObjectURL(sf.preview)); return []; });
       setUploadProgress(100);
       setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
-      finalizeUpload(quick ? "Quick post completed!" : "Published successfully!");
+      finalizeUpload(quick ? "Completed!" : "Published successfully!");
     } catch (error) {
       console.error("Upload error:", error);
       addToast("error", error instanceof Error ? error.message : "Upload failed");
@@ -541,6 +568,34 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           <div className="peer h-5 w-9 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-yellow-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
         </label>
       </div>
+
+      {/* Album mode toggle (only for multiple files) */}
+      {selectedFiles.length > 1 && (
+        <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50/40 p-4 dark:border-blue-900/30 dark:bg-blue-950/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-blue-800 dark:text-blue-400">
+                Album Mode
+              </p>
+              <p className="text-[10px] text-blue-600/95 dark:text-blue-500/90">
+                Group all files into one post instead of individual posts.
+              </p>
+            </div>
+          </div>
+          <label className="relative inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              checked={albumMode}
+              onChange={(e) => setAlbumMode(e.target.checked)}
+              className="peer sr-only"
+            />
+            <div className="peer h-5 w-9 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
+          </label>
+        </div>
+      )}
 
       {/* Submit buttons */}
       <div className="flex flex-col gap-3 sm:flex-row">
