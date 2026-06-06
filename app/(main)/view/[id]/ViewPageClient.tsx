@@ -10,21 +10,21 @@ import { RecommendedPost } from "@/lib/recommendations";
 
 interface ImageData {
   id: number;
-  storageKey: string;
+  imageUrl: string;
   filename: string;
   mimeType: string;
   width: number | null;
   height: number | null;
-  thumbnailKey: string | null;
+  thumbnailUrl: string | null;
 }
 
 interface VideoData {
   id: number;
-  storageKey: string;
+  streamUrl: string;
   filename: string;
   mimeType: string;
   duration: number | null;
-  thumbnailKey: string | null;
+  thumbnailUrl: string | null;
 }
 
 interface PostData {
@@ -148,9 +148,9 @@ export function ViewPageClient({
                     className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 min-w-0"
                   >
                     <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
-                      {video.thumbnailKey ? (
+                      {video.thumbnailUrl ? (
                         <img
-                          src={`/api/media/${video.id}/thumbnail`}
+                          src={video.thumbnailUrl}
                           alt=""
                           className="h-full w-full object-cover"
                         />

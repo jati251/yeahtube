@@ -11,21 +11,21 @@ import { RecommendedPost } from "@/lib/recommendations";
 
 interface VideoData {
   id: number;
-  storageKey: string;
+  streamUrl: string;
   filename: string;
   mimeType: string;
   duration: number | null;
-  thumbnailKey: string | null;
+  thumbnailUrl: string | null;
 }
 
 interface ImageData {
   id: number;
-  storageKey: string;
+  imageUrl: string;
   filename: string;
   mimeType: string;
   width: number | null;
   height: number | null;
-  thumbnailKey: string | null;
+  thumbnailUrl: string | null;
 }
 
 interface PostData {
@@ -98,12 +98,8 @@ export function WatchPageClient({
         <div className="lg:col-span-8">
           {/* Video player */}
           <VideoPlayer
-            src={`/api/media/${currentVideo.id}/stream`}
-            poster={
-              currentVideo.thumbnailKey
-                ? `/api/media/${currentVideo.id}/thumbnail`
-                : undefined
-            }
+            src={currentVideo.streamUrl}
+            poster={currentVideo.thumbnailUrl || undefined}
             type={currentVideo.mimeType}
           />
 
@@ -161,9 +157,9 @@ export function WatchPageClient({
                     }`}
                   >
                     <div className="relative aspect-video w-40 bg-gray-100 dark:bg-gray-700">
-                      {video.thumbnailKey ? (
+                      {video.thumbnailUrl ? (
                         <img
-                          src={`/api/media/${video.id}/thumbnail`}
+                          src={video.thumbnailUrl}
                           alt={video.filename}
                           className="h-full w-full object-cover"
                         />

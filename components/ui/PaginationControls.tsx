@@ -69,7 +69,7 @@ export function PaginationControls({
         <button
           onClick={onFirst}
           disabled={isFirst || loading}
-          className={clsx(btnBase, "px-2 py-2", isFirst || loading ? btnDisabled : btnInactive)}
+          className={clsx(btnBase, "hidden sm:inline-flex px-2 py-2", isFirst || loading ? btnDisabled : btnInactive)}
           aria-label="First page"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -134,7 +134,7 @@ export function PaginationControls({
         <button
           onClick={onLast}
           disabled={isLast || loading}
-          className={clsx(btnBase, "px-2 py-2", isLast || loading ? btnDisabled : btnInactive)}
+          className={clsx(btnBase, "hidden sm:inline-flex px-2 py-2", isLast || loading ? btnDisabled : btnInactive)}
           aria-label="Last page"
         >
           <ChevronsRight className="h-4 w-4" />

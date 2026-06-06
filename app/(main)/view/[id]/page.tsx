@@ -4,6 +4,7 @@ import { getDb, schema } from "@/db";
 import { eq } from "drizzle-orm";
 import { ViewPageClient } from "./ViewPageClient";
 import { getRecommendations } from "@/lib/recommendations";
+import { getPresignedUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,25 @@ export default async function ViewPage({ params }: PageProps) {
   const tagIds = postTags.map((t) => t.id);
   const recommendations = await getRecommendations(post.id, post.categoryId, tagIds);
 
+  const imagesWithUrls = await Promise.all(images.map(async (img) => ({
+    id: img.id,
+    imageUrl: await getPresignedUrl(img.storageKey),
+    filename: img.filename,
+    mimeType: img.mimeType,
+    width: img.width,
+    height: img.height,
+    thumbnailUrl: img.thumbnailKey ? await getPresignedUrl(img.thumbnailKey) : null,
+  })));
+
+  const videosWithUrls = await Promise.all(videos.map(async (v) => ({
+    id: v.id,
+    streamUrl: await getPresignedUrl(v.storageKey),
+    filename: v.filename,
+    mimeType: v.mimeType,
+    duration: v.duration,
+    thumbnailUrl: v.thumbnailKey ? await getPresignedUrl(v.thumbnailKey) : null,
+  })));
+
   return (
     <ViewPageClient
       post={{
@@ -59,23 +79,8 @@ export default async function ViewPage({ params }: PageProps) {
         description: post.description,
         createdAt: post.createdAt,
       }}
-      images={images.map((img) => ({
-        id: img.id,
-        storageKey: img.storageKey,
-        filename: img.filename,
-        mimeType: img.mimeType,
-        width: img.width,
-        height: img.height,
-        thumbnailKey: img.thumbnailKey,
-      }))}
-      videos={videos.map((v) => ({
-        id: v.id,
-        storageKey: v.storageKey,
-        filename: v.filename,
-        mimeType: v.mimeType,
-        duration: v.duration,
-        thumbnailKey: v.thumbnailKey,
-      }))}
+      images={imagesWithUrls}
+      videos={videosWithUrls}
       tags={postTags}
       recommendations={recommendations}
     />

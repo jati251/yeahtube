@@ -5,12 +5,12 @@ import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 
 interface Photo {
   id: number;
-  storageKey: string;
+  imageUrl: string;
   filename: string;
   mimeType: string;
   width: number | null;
   height: number | null;
-  thumbnailKey: string | null;
+  thumbnailUrl: string | null;
 }
 
 interface PhotoGalleryProps {
@@ -95,7 +95,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
     return (
       <div className="flex items-center justify-center">
         <img
-          src={`/api/media/${photos[0].id}/stream`}
+          src={photos[0].imageUrl}
           alt={photos[0].filename}
           className="max-h-[70vh] w-auto max-w-full cursor-pointer rounded-lg object-contain"
           onClick={() => openLightbox(0)}
@@ -115,11 +115,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
             onClick={() => openLightbox(index)}
           >
             <img
-              src={
-                photo.thumbnailKey
-                  ? `/api/media/${photo.id}/thumbnail`
-                  : `/api/media/${photo.id}/stream`
-              }
+              src={photo.thumbnailUrl || photo.imageUrl}
               alt={photo.filename}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               loading="lazy"
@@ -179,7 +175,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
           {/* Image */}
           <div className="flex max-h-[90vh] max-w-[90vw] items-center justify-center overflow-auto">
             <img
-              src={`/api/media/${currentPhoto.id}/stream`}
+              src={currentPhoto.imageUrl}
               alt={currentPhoto.filename}
               style={{ transform: `scale(${zoom})`, transition: "transform 0.2s" }}
               className="max-h-full max-w-full object-contain"

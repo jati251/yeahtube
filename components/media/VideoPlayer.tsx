@@ -55,6 +55,16 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     setCurrentTime(0);
     setDuration(0);
     setWaiting(false);
+
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+      } catch (e) {}
+      // load() aborts any active streams/downloads for the previous source
+      try {
+        videoRef.current.load();
+      } catch (e) {}
+    }
     
     // Sometimes the browser caches metadata and fires onLoadedMetadata before React attaches the listener.
     if (videoRef.current && videoRef.current.readyState >= 1) {
@@ -79,7 +89,14 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     if (playing) {
       videoRef.current.pause();
     } else {
-      videoRef.current.play();
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          if (error.name !== "AbortError") {
+            console.error("Playback failed:", error);
+          }
+        });
+      }
     }
   }, [playing]);
 
@@ -180,12 +197,17 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
         }
         lastTapRef.current = null;
       } else {
-        // Single tap: toggle controls
-        setShowControls((prev) => !prev);
-        if (!playing) {
-          setShowControls(true);
+        // Single tap/click
+        const isTouch = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+        if (isTouch) {
+          setShowControls((prev) => !prev);
+          if (!playing) {
+            setShowControls(true);
+          } else {
+            showControlsTemporarily();
+          }
         } else {
-          showControlsTemporarily();
+          togglePlay();
         }
         lastTapRef.current = { time: now, x, y };
       }
@@ -296,7 +318,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         playsInline
-        preload="metadata"
+        preload="auto"
       />
 
       {/* Tap zones overlay — left: skip back, center: play/pause, right: skip forward */}
@@ -337,15 +359,25 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
         </div>
       )}
 
-      {/* Center play button overlay */}
-      {!playing && (
+      {/* Center play/pause button overlay */}
+      {(!playing || (playing && showControls)) && (
         <div
-          className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center"
-          onClick={togglePlay}
+          className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-transform hover:scale-110">
-            <Play className="ml-1 h-8 w-8 text-white" fill="white" />
-          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+            className="pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-transform hover:scale-110"
+            aria-label={playing ? "Pause" : "Play"}
+          >
+            {playing ? (
+              <Pause className="h-8 w-8 text-white" fill="white" />
+            ) : (
+              <Play className="ml-1 h-8 w-8 text-white" fill="white" />
+            )}
+          </button>
         </div>
       )}
 

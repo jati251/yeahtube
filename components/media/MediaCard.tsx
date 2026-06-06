@@ -42,6 +42,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             alt={post.title}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full items-center justify-center">

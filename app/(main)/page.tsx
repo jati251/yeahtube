@@ -2,6 +2,7 @@ import "server-only";
 import { getDb, schema } from "@/db";
 import { eq, desc, inArray, sql } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
+import { getPresignedUrl } from "@/lib/storage";
 import { FeedClient } from "./FeedClient";
 
 export const dynamic = "force-dynamic";
@@ -56,31 +57,36 @@ async function getInitialPosts(page: number, sort: string) {
     .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
     .where(inArray(schema.postTags.postId, postIds));
 
-  const result = posts.map((post) => {
-    const postMedia = allMedia.filter((m) => m.postId === post.id);
-    const postTags = allPostTags
-      .filter((pt) => pt.postId === post.id)
-      .map((pt) => ({ id: pt.tagId, name: pt.tagName, slug: pt.tagSlug }));
+  const result = await Promise.all(
+    posts.map(async (post) => {
+      const postMedia = allMedia.filter((m) => m.postId === post.id);
+      const postTags = allPostTags
+        .filter((pt) => pt.postId === post.id)
+        .map((pt) => ({ id: pt.tagId, name: pt.tagName, slug: pt.tagSlug }));
 
-    const hasVideo = postMedia.some((m) => m.mediaType === "video");
-    const hasImage = postMedia.some((m) => m.mediaType === "image");
-    const firstMedia = postMedia[0];
+      const hasVideo = postMedia.some((m) => m.mediaType === "video");
+      const hasImage = postMedia.some((m) => m.mediaType === "image");
+      const firstMedia = postMedia[0];
 
-    return {
-      id: post.id,
-      title: post.title,
-      description: post.description,
-      createdAt: post.createdAt,
-      tags: postTags,
-      mediaCount: postMedia.length,
-      mediaType: (hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image") as "image" | "video" | "mixed",
-      thumbnailUrl: firstMedia?.thumbnailKey
-        ? `/api/media/${firstMedia.id}/thumbnail`
-        : null,
-      duration: firstMedia?.duration || null,
-      category: null as string | null,
-    };
-  });
+      let thumbnailUrl = null;
+      if (firstMedia?.thumbnailKey) {
+        thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
+      }
+
+      return {
+        id: post.id,
+        title: post.title,
+        description: post.description,
+        createdAt: post.createdAt,
+        tags: postTags,
+        mediaCount: postMedia.length,
+        mediaType: (hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image") as "image" | "video" | "mixed",
+        thumbnailUrl,
+        duration: firstMedia?.duration || null,
+        category: null as string | null,
+      };
+    })
+  );
 
   return { posts: result, total };
 }

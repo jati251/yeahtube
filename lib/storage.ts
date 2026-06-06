@@ -19,7 +19,8 @@
  *   └── processed/
  */
 
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -112,4 +113,20 @@ export const StoragePaths = {
 export function getStorageUrl(key: string): string {
   const { endpoint, bucket } = getStorageConfig();
   return `${endpoint}/${bucket}/${key}`;
+}
+
+/**
+ * Builds a pre-signed URL for an object in the bucket.
+ * This URL allows direct download from MinIO without proxying through Next.js.
+ */
+export async function getPresignedUrl(key: string, expiresInSeconds: number = 3600): Promise<string> {
+  const s3 = getS3Client();
+  const { bucket } = getStorageConfig();
+  
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+  });
+
+  return getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
 }

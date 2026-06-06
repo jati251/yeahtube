@@ -1,5 +1,6 @@
 import { getDb, schema } from "@/db";
 import { eq, ne, or, inArray, and, desc, notInArray } from "drizzle-orm";
+import { getPresignedUrl } from "@/lib/storage";
 
 export interface RecommendedPost {
   id: number;
@@ -102,7 +103,7 @@ export async function getRecommendations(
     .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
     .where(inArray(schema.postTags.postId, postIds));
 
-  return recommendedPosts.map((post) => {
+  return Promise.all(recommendedPosts.map(async (post) => {
     const postMedia = allMedia.filter((m) => m.postId === post.id);
     const postTags = allPostTags
       .filter((pt) => pt.postId === post.id)
@@ -112,6 +113,11 @@ export async function getRecommendations(
     const hasImage = postMedia.some((m) => m.mediaType === "image");
     const firstMedia = postMedia[0];
 
+    let thumbnailUrl = null;
+    if (firstMedia?.thumbnailKey) {
+      thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
+    }
+
     return {
       id: post.id,
       title: post.title,
@@ -120,11 +126,9 @@ export async function getRecommendations(
       tags: postTags,
       mediaCount: postMedia.length,
       mediaType: (hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image") as "image" | "video" | "mixed",
-      thumbnailUrl: firstMedia?.thumbnailKey
-        ? `/api/media/${firstMedia.id}/thumbnail`
-        : null,
+      thumbnailUrl,
       duration: firstMedia?.duration || null,
       category: null,
     };
-  });
+  }));
 }
