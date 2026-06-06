@@ -450,7 +450,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         {/* Progress bar */}
         <div
           ref={progressRef}
-          className="group relative mb-3 h-1.5 cursor-pointer rounded-full bg-white/30 transition-all hover:h-2"
+          className="group relative mb-3 h-3 sm:h-1.5 cursor-pointer rounded-full bg-white/30 transition-all hover:h-3"
           onClick={handleSeek}
         >
           <div
@@ -466,13 +466,13 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         </div>
 
         {/* Controls row */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={togglePlay}
             className="text-white hover:text-blue-400 transition-colors"
             aria-label={playing ? "Pause" : "Play"}
           >
-            {playing ? <Pause className="h-5 w-5" fill="white" /> : <Play className="h-5 w-5" fill="white" />}
+            {playing ? <Pause className="h-6 w-6 sm:h-5 sm:w-5" fill="white" /> : <Play className="h-6 w-6 sm:h-5 sm:w-5" fill="white" />}
           </button>
 
           <button
@@ -480,7 +480,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
             className="text-white/80 hover:text-white transition-colors"
             aria-label="Skip 10s back"
           >
-            <SkipBack className="h-4 w-4" />
+            <SkipBack className="h-5 w-5 sm:h-4 sm:w-4" />
           </button>
 
           <button
@@ -488,11 +488,11 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
             className="text-white/80 hover:text-white transition-colors"
             aria-label="Skip 10s forward"
           >
-            <SkipForward className="h-4 w-4" />
+            <SkipForward className="h-5 w-5 sm:h-4 sm:w-4" />
           </button>
 
-          {/* Volume */}
-          <div className="flex items-center gap-1.5 group/vol">
+          {/* Volume - hide on mobile to save space */}
+          <div className="hidden sm:flex items-center gap-1.5 group/vol">
             <button
               onClick={toggleMute}
               className="text-white/80 hover:text-white transition-colors"
@@ -516,12 +516,12 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
           </div>
 
           {/* Time display */}
-          <span className="ml-auto text-xs text-white/80">
+          <span className="ml-auto text-[11px] sm:text-xs text-white/80">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
 
           {/* Current quality label */}
-          <span className="text-[11px] text-white/60 font-medium hidden sm:inline">
+          <span className="text-[10px] sm:text-[11px] text-white/60 font-medium">
             {currentQualityLabel}
           </span>
 
@@ -535,7 +535,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
               className={`text-white/80 hover:text-white transition-colors ${showSettings ? "text-blue-400" : ""}`}
               aria-label="Settings"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-5 w-5 sm:h-4 sm:w-4" />
             </button>
             {showSettings && (
               <>

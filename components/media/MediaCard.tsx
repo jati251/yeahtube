@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Film, Image, Clock } from "lucide-react";
 import { clsx } from "clsx";
@@ -48,6 +48,50 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const [menuOpen, setMenuOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [previewTriggered, setPreviewTriggered] = useState(false);
+  const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Listen for global "stop-all-previews" event to stop playback
+  useEffect(() => {
+    const handleStopAll = () => {
+      if (isPlaying) {
+        setIsPlaying(false);
+        setPreviewTriggered(false);
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+        }
+      }
+    };
+    window.addEventListener("stop-all-previews", handleStopAll);
+    return () => window.removeEventListener("stop-all-previews", handleStopAll);
+  }, [isPlaying]);
+
+  // Auto-stop mobile preview after 3 seconds
+  useEffect(() => {
+    if (isPlaying) {
+      // Dispatch event to stop other previews
+      window.dispatchEvent(new CustomEvent("stop-all-previews"));
+      
+      // Auto-stop after 3s on mobile
+      if (window.matchMedia("(pointer: coarse)").matches) {
+        previewTimerRef.current = setTimeout(() => {
+          setIsPlaying(false);
+          setPreviewTriggered(false);
+          if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.currentTime = 0;
+          }
+        }, 3000);
+      }
+    }
+    return () => {
+      if (previewTimerRef.current) {
+        clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = null;
+      }
+    };
+  }, [isPlaying]);
 
   const CardContent = (
     <>
@@ -55,6 +99,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
       <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-none">
         {post.previewUrl && (
           <video
+            ref={videoRef}
             src={post.previewUrl}
             className={clsx(
               "absolute inset-0 z-20 h-full w-full object-contain transition-opacity duration-500",
@@ -70,11 +115,12 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             }}
             onMouseLeave={(e) => {
               setIsPlaying(false);
+              setPreviewTriggered(false);
               e.currentTarget.pause();
               e.currentTarget.currentTime = 0;
             }}
             onTouchStart={(e) => {
-              // Mobile: first tap plays preview, second tap navigates
+              // Mobile: first tap plays preview (auto-stops after 3s), second tap navigates
               if (!previewTriggered) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -84,12 +130,11 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
               }
             }}
             onTouchEnd={(e) => {
-              // Don't pause — keep preview visible until navigation or tap elsewhere
+              // Don't pause on touch end
             }}
             onTouchCancel={() => {
               setIsPlaying(false);
               setPreviewTriggered(false);
-              // pause handled by browser
             }}
           />
         )}
