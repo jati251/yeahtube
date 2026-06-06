@@ -70,9 +70,13 @@ async function generateVideoAssets(
   ext: string,
 ): Promise<{ thumbnailBuffer: Buffer; previewBuffer: Buffer | null; duration: number }> {
   const tmpDir = os.tmpdir();
-  const tmpInput = path.join(tmpDir, `yt-${uuidv4()}${ext}`);
-  const tmpOutput = path.join(tmpDir, `yt-thumb-${uuidv4()}.webp`);
-  const tmpPreview = path.join(tmpDir, `yt-preview-${uuidv4()}.mp4`);
+  const uniqueId = uuidv4();
+  const tmpInput = path.join(tmpDir, `yt-${uniqueId}${ext}`);
+  // ffmpeg .screenshots() outputs PNG with its own naming — we use a known prefix
+  const thumbBasename = `yt-thumb-${uniqueId}`;
+  const tmpThumbPng = path.join(tmpDir, `${thumbBasename}.png`);
+  const tmpThumbWebp = path.join(tmpDir, `${thumbBasename}.webp`);
+  const tmpPreview = path.join(tmpDir, `yt-preview-${uniqueId}.mp4`);
 
   try {
     await fs.writeFile(tmpInput, buffer);
@@ -86,21 +90,29 @@ async function generateVideoAssets(
         if (err) return reject(err);
 
         actualDuration = metadata.format.duration || 0;
-        // Use 10% into video, but clamp to 0..duration-0.5 so we never seek past end
-        const seekTime = Math.max(0, Math.min(actualDuration * 0.1, Math.max(0, actualDuration - 0.5), 10));
+        // Use 10% into video, clamped so we never seek past end
+        const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
 
         const generatePreview = (onDone: () => void) => {
+          if (actualDuration < 0.5) {
+            // Video too short for a meaningful preview
+            onDone();
+            return;
+          }
+
+          const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
+
           ffmpeg(tmpInput)
             .setStartTime(seekTime)
-            .setDuration(Math.min(3, Math.max(0.5, actualDuration - seekTime)))
+            .setDuration(previewDuration)
+            .videoFilters("scale='min(360,iw)':-2")
+            .noAudio()
+            .videoCodec("libx264")
             .outputOptions([
-              // Ensure dimensions are divisible by 2 (required by libx264)
-              "-vf", "scale='min(480,iw)':'-2',pad='iw:ih:(ow-iw)/2:(oh-ih)/2'",
-              "-an",
-              "-c:v libx264",
               "-preset ultrafast",
-              "-crf 28",
+              "-crf 32",
               "-movflags +faststart",
+              "-pix_fmt yuv420p",
             ])
             .save(tmpPreview)
             .on("end", onDone)
@@ -110,41 +122,55 @@ async function generateVideoAssets(
             });
         };
 
-        // Generate Thumbnail — try at seekTime, fall back to 0 if it fails
-        ffmpeg(tmpInput)
-          .screenshots({
-            count: 1,
-            folder: tmpDir,
-            filename: path.basename(tmpOutput),
-            timemarks: [seekTime > 0 ? seekTime : 0],
-            size: "400x?",
-          })
-          .on("end", () => {
-            generatePreview(() => resolve());
-          })
-          .on("error", (thumbErr: any) => {
-            console.error("Thumbnail at seekTime failed, retrying at 0:", thumbErr.message);
-            // Fallback: try thumbnail at t=0
-            ffmpeg(tmpInput)
-              .screenshots({
-                count: 1,
-                folder: tmpDir,
-                filename: path.basename(tmpOutput),
-                timemarks: [0],
-                size: "400x?",
-              })
-              .on("end", () => {
-                generatePreview(() => resolve());
-              })
-              .on("error", (fallbackErr: any) => {
-                console.error("Fallback thumbnail also failed:", fallbackErr.message);
+        const tryThumbnail = (time: number, onSuccess: () => void, onFail: () => void) => {
+          ffmpeg(tmpInput)
+            .seekInput(time)
+            .frames(1)
+            .videoFilters("scale=400:-2")
+            .output(tmpThumbPng)
+            .outputOptions(["-update", "1"])
+            .on("end", onSuccess)
+            .on("error", (e: any) => {
+              console.error(`Thumbnail at t=${time} failed:`, e.message);
+              onFail();
+            })
+            .run();
+        };
+
+        // Try thumbnail at seekTime, fallback to t=0
+        tryThumbnail(
+          seekTime,
+          () => generatePreview(() => resolve()),
+          () => {
+            tryThumbnail(
+              0,
+              () => generatePreview(() => resolve()),
+              () => {
+                console.error("All thumbnail attempts failed");
                 resolve(); // give up gracefully
-              });
-          });
+              },
+            );
+          },
+        );
       });
     });
 
-    const thumbnailBuffer = await fs.readFile(tmpOutput);
+    // Convert PNG thumbnail to WebP using sharp for smaller file size
+    let thumbnailBuffer: Buffer;
+    try {
+      const pngBuffer = await fs.readFile(tmpThumbPng);
+      thumbnailBuffer = await sharp(pngBuffer)
+        .webp({ quality: 75 })
+        .toBuffer();
+    } catch (e) {
+      // If PNG doesn't exist, try reading any file matching our thumb pattern
+      console.error("Could not read/convert thumbnail PNG, generating fallback");
+      // Generate a minimal placeholder so we don't crash
+      thumbnailBuffer = await sharp({
+        create: { width: 400, height: 225, channels: 3, background: { r: 30, g: 30, b: 30 } },
+      }).webp({ quality: 50 }).toBuffer();
+    }
+
     let previewBuffer: Buffer | null = null;
     try {
       previewBuffer = await fs.readFile(tmpPreview);
@@ -158,9 +184,9 @@ async function generateVideoAssets(
       duration: actualDuration,
     };
   } finally {
-    try { await fs.unlink(tmpInput); } catch {}
-    try { await fs.unlink(tmpOutput); } catch {}
-    try { await fs.unlink(tmpPreview); } catch {}
+    for (const f of [tmpInput, tmpThumbPng, tmpThumbWebp, tmpPreview]) {
+      try { await fs.unlink(f); } catch {}
+    }
   }
 }
 
