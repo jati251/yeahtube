@@ -443,9 +443,11 @@ export async function POST(request: NextRequest) {
     const categorySlug = formData.get("category") as string | null;
     const tagsRaw = formData.get("tags") as string;
     const quickPost = formData.get("quickPost") === "true";
+    const postIdStr = formData.get("postId") as string | null;
+    const isAppending = !!postIdStr;
 
-    // Validate title (not required for quick post — uses filename)
-    if (!quickPost) {
+    // Validate title (skip if quick post or appending to existing post)
+    if (!quickPost && !isAppending) {
       if (!title || title.trim().length === 0) {
         return NextResponse.json(
           { error: "Title is required" },
@@ -540,7 +542,6 @@ export async function POST(request: NextRequest) {
     // ── Normal Mode: one post, multiple media ────────────
 
     let postId: number;
-    const postIdStr = formData.get("postId") as string | null;
     
     if (postIdStr) {
       postId = parseInt(postIdStr, 10);
