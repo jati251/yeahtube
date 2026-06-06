@@ -31,8 +31,10 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [tagInput, setTagInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [dragOver, setDragOver] = useState(false);
   const [acceptType, setAcceptType] = useState("image/*,video/*");
+  const [instantUpload, setInstantUpload] = useState(false);
+  const [windowDragOver, setWindowDragOver] = useState(false);
+  const dragCounter = useRef(0);
 
   // Google Drive-like upload resume states
   const [activePostId, setActivePostId] = useState<string | null>(null);
@@ -48,6 +50,12 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       // Use */* on Android to bypass picker multi-select bugs
       setAcceptType("*/*");
     }
+
+    // Load instant upload state
+    const saved = localStorage.getItem("yeahtube_instant_upload");
+    if (saved === "true") {
+      setInstantUpload(true);
+    }
   }, []);
 
   const isVideoFile = useCallback((file: File) => {
@@ -55,6 +63,65 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
     return ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"].includes(ext);
   }, []);
+
+  const executeQuickPost = async (filesToUpload: SelectedFile[]) => {
+    if (filesToUpload.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    const csrfToken = getCsrfToken();
+    const totalFiles = filesToUpload.length;
+    let completedCount = 0;
+
+    try {
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const sf = filesToUpload[i];
+        setStatusText(`Uploaded ${completedCount} of ${totalFiles} file(s)`);
+        setUploadProgress(Math.floor((completedCount / totalFiles) * 100));
+
+        const formData = new FormData();
+        formData.append("files", sf.file);
+        formData.append("quickPost", "true");
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+          },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || `Quick Post failed for ${sf.file.name}`);
+        }
+
+        // Remove successful file from state immediately (GDrive style)
+        setSelectedFiles((prev) => {
+          const filtered = prev.filter((item) => item.id !== sf.id);
+          URL.revokeObjectURL(sf.preview);
+          return filtered;
+        });
+
+        completedCount++;
+      }
+
+      setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
+      setUploadProgress(100);
+      finalizeUpload("Quick post completed!");
+    } catch (error) {
+      console.error("Quick post error:", error);
+      addToast(
+        "error",
+        `${error instanceof Error ? error.message : "Quick post failed"}. Successfully uploaded ${completedCount} of ${totalFiles} files.`
+      );
+      setUploading(false);
+      setStatusText(`Failed at file ${completedCount + 1}. ${completedCount} of ${totalFiles} completed.`);
+    }
+  };
+
+  const handleQuickPost = () => executeQuickPost(selectedFiles);
 
   const addFiles = useCallback(
     (filesArray: File[]) => {
@@ -109,6 +176,14 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
       if (newFiles.length > 0) {
         setSelectedFiles((prev) => [...prev, ...newFiles]);
+        
+        // Instant upload check
+        const isInstant = localStorage.getItem("yeahtube_instant_upload") === "true";
+        if (isInstant) {
+          setTimeout(() => {
+            executeQuickPost(newFiles);
+          }, 100);
+        }
       }
     },
     [isVideoFile, addToast]
@@ -131,28 +206,78 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     [addFiles]
   );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+  // Paste from clipboard support
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+        // Allow text pasting inside fields
+        if (activeEl.getAttribute("name") === "title" || activeEl.getAttribute("placeholder")?.includes("tag")) {
+          return;
+        }
+      }
+
+      if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+        e.preventDefault();
+        const filesArray = Array.from(e.clipboardData.files);
+        addFiles(filesArray);
+        addToast("success", `Pasted ${filesArray.length} file(s) from clipboard!`);
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [addFiles, addToast]);
+
+  // Window drag & drop overlay handlers
+  useEffect(() => {
+    const handleDragEnter = (e: DragEvent) => {
       e.preventDefault();
-      setDragOver(false);
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        setActivePostId(null); // Reset resume state on new selection
+      dragCounter.current++;
+      if (e.dataTransfer && e.dataTransfer.items.length > 0) {
+        setWindowDragOver(true);
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter.current--;
+      if (dragCounter.current === 0) {
+        setWindowDragOver(false);
+      }
+    };
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      dragCounter.current = 0;
+      setWindowDragOver(false);
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const filesArray = Array.from(e.dataTransfer.files);
         addFiles(filesArray);
       }
-    },
-    [addFiles]
-  );
+    };
 
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(true);
-  }, []);
+    window.addEventListener("dragenter", handleDragEnter);
+    window.addEventListener("dragleave", handleDragLeave);
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("drop", handleDrop);
 
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(false);
-  }, []);
+    return () => {
+      window.removeEventListener("dragenter", handleDragEnter);
+      window.removeEventListener("dragleave", handleDragLeave);
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, [addFiles]);
+
+  const handleInstantUploadChange = (checked: boolean) => {
+    setInstantUpload(checked);
+    localStorage.setItem("yeahtube_instant_upload", checked ? "true" : "false");
+  };
 
   const removeFile = useCallback((id: string) => {
     setSelectedFiles((prev) => {
@@ -325,69 +450,18 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     }
   };
 
-  const handleQuickPost = async () => {
-    if (selectedFiles.length === 0) {
-      addToast("error", "Please select at least one file");
-      return;
-    }
-
-    setUploading(true);
-    setUploadProgress(0);
-
-    const csrfToken = getCsrfToken();
-    const filesToUpload = [...selectedFiles];
-    const totalFiles = filesToUpload.length;
-    let completedCount = 0;
-
-    try {
-      for (let i = 0; i < filesToUpload.length; i++) {
-        const sf = filesToUpload[i];
-        setStatusText(`Uploaded ${completedCount} of ${totalFiles} file(s)`);
-        setUploadProgress(Math.floor((completedCount / totalFiles) * 100));
-
-        const formData = new FormData();
-        formData.append("files", sf.file);
-        formData.append("quickPost", "true");
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: {
-            ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-          },
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || `Quick Post failed for ${sf.file.name}`);
-        }
-
-        // Remove successful file from state immediately (GDrive style)
-        setSelectedFiles((prev) => {
-          const filtered = prev.filter((item) => item.id !== sf.id);
-          URL.revokeObjectURL(sf.preview);
-          return filtered;
-        });
-
-        completedCount++;
-      }
-
-      setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
-      setUploadProgress(100);
-      finalizeUpload("Quick post completed!");
-    } catch (error) {
-      console.error("Quick post error:", error);
-      addToast(
-        "error",
-        `${error instanceof Error ? error.message : "Quick post failed"}. Successfully uploaded ${completedCount} of ${totalFiles} files.`
-      );
-      setUploading(false);
-      setStatusText(`Failed at file ${completedCount + 1}. ${completedCount} of ${totalFiles} completed.`);
-    }
-  };
-
   return (
-    <form onSubmit={handlePublish} className="space-y-6">
+    <form onSubmit={handlePublish} className="relative space-y-6">
+      {/* Whole-window drag & drop overlay */}
+      {windowDragOver && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl bg-blue-500/15 backdrop-blur-md border-2 border-dashed border-blue-500 animate-pulse pointer-events-none">
+          <Upload className="h-12 w-12 text-blue-600 dark:text-blue-400 animate-bounce" />
+          <p className="mt-4 text-base font-semibold text-blue-700 dark:text-blue-300">
+            Drop files anywhere to upload!
+          </p>
+        </div>
+      )}
+
       <input
         ref={fileInputRef}
         type="file"
@@ -399,24 +473,17 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       
       {/* Drop zone */}
       <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
-          dragOver
-            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-            : "border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
-        }`}
+        className="cursor-pointer rounded-xl border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
       >
         <Upload className="mx-auto mb-3 h-10 w-10 text-gray-400" />
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Drop files here or click to browse
+          Drop files anywhere or click to browse
         </p>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Images up to 20MB, Videos up to 500MB
           <br />
-          Select multiple files for batch upload
+          Select multiple files for batch upload, paste with Cmd+V
         </p>
       </div>
 
@@ -529,9 +596,35 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         </div>
       </div>
 
+      {/* Instant upload mode toggle */}
+      <div className="flex items-center justify-between rounded-xl border border-yellow-200 bg-yellow-50/40 p-4 dark:border-yellow-900/30 dark:bg-yellow-950/10">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+            <Zap className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-400">
+              Instant Upload Mode
+            </p>
+            <p className="text-[10px] text-yellow-600/95 dark:text-yellow-500/90">
+              Upload immediately as Quick Post when files are selected, dropped, or pasted.
+            </p>
+          </div>
+        </div>
+        <label className="relative inline-flex cursor-pointer items-center">
+          <input
+            type="checkbox"
+            checked={instantUpload}
+            onChange={(e) => handleInstantUploadChange(e.target.checked)}
+            className="peer sr-only"
+          />
+          <div className="peer h-5 w-9 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-yellow-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
+        </label>
+      </div>
+
       {/* Submit buttons */}
       <div className="flex flex-col gap-3 sm:flex-row">
-        {selectedFiles.length > 0 && (
+        {selectedFiles.length > 0 && !instantUpload && (
           <Button
             type="button"
             onClick={handleQuickPost}
