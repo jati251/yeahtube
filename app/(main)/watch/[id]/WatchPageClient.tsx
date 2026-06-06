@@ -196,46 +196,6 @@ export function WatchPageClient({
             )}
           </div>
 
-          {/* Multiple videos: thumbnails */}
-          {videos.length > 1 && (
-            <div className="mt-6">
-              <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
-                Videos ({videos.length})
-              </h2>
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {videos.map((video, index) => (
-                  <button
-                    key={video.id}
-                    onClick={() => setCurrentVideoIndex(index)}
-                    className={`flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                      index === currentVideoIndex
-                        ? "border-blue-500 ring-2 ring-blue-500/50"
-                        : "border-transparent hover:border-gray-400"
-                    }`}
-                  >
-                    <div className="relative aspect-video w-40 bg-gray-100 dark:bg-gray-700">
-                      {video.thumbnailUrl ? (
-                        <img
-                          src={video.thumbnailUrl}
-                          alt={video.filename}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-gray-400 text-xs">
-                          No thumb
-                        </div>
-                      )}
-                      {video.duration && (
-                        <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
-                          {formatDuration(video.duration)}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Images gallery */}
           {images.length > 0 && (

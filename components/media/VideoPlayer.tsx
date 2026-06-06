@@ -20,9 +20,8 @@ import {
 function getQualityLabelFromHeight(height: number | null | undefined): string {
   const h = height ?? 0;
   if (h >= 2160) return "4K";
-  if (h >= 1080) return "1080p";
-  if (h >= 720) return "720p";
-  if (h >= 480) return "480p";
+  if (h >= 1080) return "Full HD";
+  if (h >= 720) return "HD";
   if (h > 0) return "SD";
   return "Auto";
 }

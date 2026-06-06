@@ -8,10 +8,8 @@ import { clsx } from "clsx";
 function getQualityLabel(width: number | null | undefined, height: number | null | undefined): { label: string; color: string } | null {
   const h = height ?? 0;
   if (h >= 2160) return { label: "4K", color: "bg-red-600" };
-  if (h >= 1080) return { label: "HD", color: "bg-blue-600" };
-  if (h >= 720) return { label: "HD", color: "bg-blue-600" };
-  if (h >= 480) return { label: "SD", color: "bg-gray-600" };
-  if (h > 0) return { label: "SD", color: "bg-gray-600" };
+  if (h >= 1080) return { label: "Full HD", color: "bg-blue-600" };
+  if (h >= 720) return { label: "HD", color: "bg-emerald-600" };
   return null;
 }
 
@@ -171,22 +169,16 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
 
         {/* Badges */}
         <div className="absolute bottom-2 left-2 z-10 flex gap-2">
-          <span
-            className={clsx(
-              "rounded-none px-2 py-0.5 text-xs font-medium text-white",
-              post.mediaType === "video"
-                ? "bg-purple-600"
-                : post.mediaType === "mixed"
-                  ? "bg-blue-600"
-                  : "bg-green-600",
-            )}
-          >
-            {post.mediaType === "video"
-              ? "Video"
-              : post.mediaType === "mixed"
-                ? "Mixed"
-                : "Photo"}
-          </span>
+          {/* Quality badge for videos; photo badge for images */}
+          {quality && post.mediaType !== "image" ? (
+            <span className={`rounded-none px-2 py-0.5 text-xs font-medium text-white ${quality.color}`}>
+              {quality.label}
+            </span>
+          ) : (
+            <span className="rounded-none px-2 py-0.5 text-xs font-medium text-white bg-green-600">
+              Photo
+            </span>
+          )}
 
           {post.duration && (
             <span className="flex items-center gap-1 rounded-none bg-black/70 px-2 py-0.5 text-xs text-white">
