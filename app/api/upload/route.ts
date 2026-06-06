@@ -494,124 +494,63 @@ export async function POST(request: NextRequest) {
       if (cat) categoryId = cat.id;
     }
 
-    // ── Quick Post Mode: one post, all files ──────────
-    if (quickPost) {
-      // Use provided title or auto-generate from first filename
-      const autoTitle = title?.trim() || files[0].name.replace(/\.[^/.]+$/, "") || "Quick Post";
-
-      const postValues = {
-        userId: user.id,
-        title: autoTitle,
-        ...(categoryId !== null ? { categoryId } : {}),
-      } as const;
-      const [newPost] = await db
-        .insert(schema.posts)
-        .values(postValues)
-        .returning();
-      const postId = newPost.id;
-
-      const mediaRecords = [];
-      for (let i = 0; i < files.length; i++) {
-        try {
-          const mediaRecord = await processSingleFile(
-            files[i], i, db, s3, storageConfig, postId,
-          );
-          mediaRecords.push(mediaRecord);
-        } catch (err) {
-          await db.delete(schema.posts).where(eq(schema.posts.id, postId));
-          const message = err instanceof Error ? err.message : "File processing failed";
-          return NextResponse.json(
-            { error: `File "${files[i].name}": ${message}` },
-            { status: 400 },
-          );
-        }
-      }
-
-      processTags(db, postId, tagNames);
-
-      return NextResponse.json(
-        {
-          success: true,
-          quickPost: true,
-          post: { id: postId, title: autoTitle, media: mediaRecords, tags: tagNames },
-        },
-        { status: 201 },
-      );
-    }
-
-    // ── Normal Mode: one post, multiple media ────────────
+    // ── Create or reuse post ────────────────────────────
+    const postTitle = quickPost
+      ? (title?.trim() || files[0].name.replace(/\.[^/.]+$/, "") || "Quick Post")
+      : title!.trim();
 
     let postId: number;
-    
-    if (postIdStr) {
-      postId = parseInt(postIdStr, 10);
+    let isNew = true;
+
+    if (isAppending) {
+      postId = parseInt(postIdStr!, 10);
       const [existingPost] = await db
         .select()
         .from(schema.posts)
         .where(eq(schema.posts.id, postId));
-        
       if (!existingPost || existingPost.userId !== user.id) {
         return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
       }
+      isNew = false;
     } else {
-      const postValues = {
-        userId: user.id,
-        title: title.trim(),
-        ...(categoryId !== null ? { categoryId } : {}),
-      } as const;
       const [newPost] = await db
         .insert(schema.posts)
-        .values(postValues)
+        .values({
+          userId: user.id,
+          title: postTitle,
+          ...(categoryId !== null ? { categoryId } : {}),
+        } as const)
         .returning();
       postId = newPost.id;
     }
 
-    // Process each file
+    // ── Process files ───────────────────────────────────
+    const startIndex = isNew ? 0 : (await db.select().from(schema.media).where(eq(schema.media.postId, postId))).length;
     const mediaRecords = [];
-
-    // Get the current max orderIndex if appending
-    let startIndex = 0;
-    if (postIdStr) {
-      const existingMedia = await db
-        .select()
-        .from(schema.media)
-        .where(eq(schema.media.postId, postId));
-      startIndex = existingMedia.length;
-    }
 
     for (let i = 0; i < files.length; i++) {
       try {
-        const mediaRecord = await processSingleFile(
-          files[i], startIndex + i, db, s3, storageConfig, postId,
-        );
+        const mediaRecord = await processSingleFile(files[i], startIndex + i, db, s3, storageConfig, postId);
         mediaRecords.push(mediaRecord);
       } catch (err) {
-        // If it's a new post, clean it up. If appending, leave the post intact.
-        if (!postIdStr) {
+        if (isNew) {
           await db.delete(schema.posts).where(eq(schema.posts.id, postId));
         }
         const message = err instanceof Error ? err.message : "File processing failed";
-        return NextResponse.json(
-          { error: `File "${files[i].name}": ${message}` },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: `File "${files[i].name}": ${message}` }, { status: 400 });
       }
     }
 
-    // Process tags (will quietly ignore duplicates because processTags handles it or we can just run it)
-    if (!postIdStr) {
+    // ── Tags (only for new posts) ────────────────────────
+    if (isNew) {
       processTags(db, postId, tagNames);
     }
 
     return NextResponse.json(
       {
         success: true,
-        post: {
-          id: postId,
-          title: (title || "").trim(),
-          media: mediaRecords,
-          tags: tagNames,
-        },
+        ...(quickPost ? { quickPost: true } : {}),
+        post: { id: postId, title: postTitle, media: mediaRecords, tags: tagNames },
       },
       { status: 201 },
     );
