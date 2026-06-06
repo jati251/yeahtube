@@ -54,7 +54,7 @@ export default async function WatchPage({ params }: PageProps) {
 
   const videosWithUrls = await Promise.all(videos.map(async (v) => ({
     id: v.id,
-    streamUrl: await getPresignedUrl(v.storageKey),
+    streamUrl: await getPresignedUrl(v.storageKey, 3600, false),
     filename: v.filename,
     mimeType: v.mimeType,
     duration: v.duration,
