@@ -47,6 +47,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const timeAgo = getTimeAgo(post.createdAt);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [previewTriggered, setPreviewTriggered] = useState(false);
 
   const CardContent = (
     <>
@@ -73,18 +74,22 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
               e.currentTarget.currentTime = 0;
             }}
             onTouchStart={(e) => {
-              setIsPlaying(true);
-              e.currentTarget.play().catch(() => {});
+              // Mobile: first tap plays preview, second tap navigates
+              if (!previewTriggered) {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsPlaying(true);
+                setPreviewTriggered(true);
+                e.currentTarget.play().catch(() => {});
+              }
             }}
             onTouchEnd={(e) => {
-              setIsPlaying(false);
-              e.currentTarget.pause();
-              e.currentTarget.currentTime = 0;
+              // Don't pause — keep preview visible until navigation or tap elsewhere
             }}
-            onTouchCancel={(e) => {
+            onTouchCancel={() => {
               setIsPlaying(false);
-              e.currentTarget.pause();
-              e.currentTarget.currentTime = 0;
+              setPreviewTriggered(false);
+              // pause handled by browser
             }}
           />
         )}
