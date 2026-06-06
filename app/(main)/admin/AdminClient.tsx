@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Shield, ShieldOff, Check, X, UserPlus, HardDrive, Database, Server, FileText, Users, Film, MessageCircle, Heart, Tag, FolderOpen, ListVideo, Upload, TrendingUp, FileWarning } from "lucide-react";
-
+import { formatBytes } from "@/lib/media-utils";
 import { CategoryManager, CategoryItem } from "@/components/admin/CategoryManager";
 
 interface UserItem {
@@ -39,15 +39,6 @@ interface AdminClientProps {
     largestFiles: { filename: string; fileSize: number; postTitle: string }[];
   };
 }
-
-const formatBytes = (bytes: number, decimals = 2) => {
-  if (!+bytes) return '0 Bytes';
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-};
 
 const colorMap: Record<string, string> = {
   blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400",

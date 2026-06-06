@@ -12,6 +12,7 @@ import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
 import { BookmarkPlus } from "lucide-react";
+import { getQualityLabel } from "@/lib/media-utils";
 
 interface VideoData {
   id: number;
@@ -41,16 +42,6 @@ interface PostData {
   createdAt: string;
 }
 
-function getQualityLabelFromHeight(height: number | null): string {
-  const h = height ?? 0;
-  if (h >= 2160) return "4K";
-  if (h >= 1080) return "1080p";
-  if (h >= 720) return "720p";
-  if (h >= 480) return "480p";
-  if (h > 0) return "SD";
-  return "Auto";
-}
-
 interface WatchPageClientProps {
   post: PostData;
   videos: VideoData[];
@@ -73,7 +64,7 @@ export function WatchPageClient({
 
   // Build quality options from all videos
   const qualityOptions = videos.length > 1 ? videos.map((v, idx) => ({
-    label: getQualityLabelFromHeight(v.height),
+    label: getQualityLabel(undefined, v.height)?.label ?? "Auto",
     src: v.streamUrl,
     type: v.mimeType,
     width: v.width,
@@ -237,10 +228,3 @@ export function WatchPageClient({
   );
 }
 
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}

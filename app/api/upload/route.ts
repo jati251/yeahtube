@@ -69,7 +69,7 @@ async function generateImageThumbnail(
 async function generateVideoAssets(
   buffer: Buffer,
   ext: string,
-): Promise<{ thumbnailBuffer: Buffer; previewBuffer: Buffer | null; duration: number }> {
+): Promise<{ thumbnailBuffer: Buffer; previewBuffer: Buffer | null; duration: number; width: number | null; height: number | null }> {
   const tmpDir = os.tmpdir();
   const uniqueId = uuidv4();
   const tmpInput = path.join(tmpDir, `yt-${uniqueId}${ext}`);
@@ -83,6 +83,8 @@ async function generateVideoAssets(
     await fs.writeFile(tmpInput, buffer);
 
     let actualDuration = 0;
+    let videoWidth: number | null = null;
+    let videoHeight: number | null = null;
 
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = require("fluent-ffmpeg") as any;
@@ -91,6 +93,12 @@ async function generateVideoAssets(
         if (err) return reject(err);
 
         actualDuration = metadata.format.duration || 0;
+        // Extract video dimensions
+        const videoStream = metadata.streams?.find((s: any) => s.codec_type === "video");
+        if (videoStream) {
+          if (videoStream.width) videoWidth = videoStream.width;
+          if (videoStream.height) videoHeight = videoStream.height;
+        }
         // Use 10% into video, clamped so we never seek past end
         const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
 
@@ -183,6 +191,8 @@ async function generateVideoAssets(
       thumbnailBuffer,
       previewBuffer,
       duration: actualDuration,
+      width: videoWidth,
+      height: videoHeight,
     };
   } finally {
     for (const f of [tmpInput, tmpThumbPng, tmpThumbWebp, tmpPreview]) {
@@ -292,9 +302,11 @@ async function processSingleFile(
     }
   } else {
     try {
-      const { thumbnailBuffer, previewBuffer, duration: dur } =
+      const { thumbnailBuffer, previewBuffer, duration: dur, width: vw, height: vh } =
         await generateVideoAssets(fileBuffer, ext);
       duration = dur;
+      if (!width) width = vw;
+      if (!height) height = vh;
 
       thumbnailKey = `thumbnails/${folderPath}/${thumbnailFilename}`;
       await s3.send(
@@ -319,23 +331,6 @@ async function processSingleFile(
       }
     } catch (assetError) {
       console.error("Video asset generation failed:", assetError);
-    }
-
-    // Try ffprobe for duration if thumbnail didn't provide it
-    if (duration === null) {
-      try {
-        const tmpDir = os.tmpdir();
-        const tmpInput = path.join(tmpDir, `yt-${uuidv4()}${ext}`);
-        await fs.writeFile(tmpInput, fileBuffer);
-        const ffmpeg = require("fluent-ffmpeg") as any;
-        duration = await new Promise<number>((resolve, reject) => {
-          ffmpeg.ffprobe(tmpInput, (err: any, metadata: any) => {
-            try { fs.unlink(tmpInput); } catch {}
-            if (err) return resolve(0);
-            resolve(metadata.format.duration || 0);
-          });
-        });
-      } catch {}
     }
   }
 

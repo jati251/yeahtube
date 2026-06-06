@@ -17,14 +17,7 @@ import {
   Monitor,
 } from "lucide-react";
 
-function getQualityLabelFromHeight(height: number | null | undefined): string {
-  const h = height ?? 0;
-  if (h >= 2160) return "4K";
-  if (h >= 1080) return "Full HD";
-  if (h >= 720) return "HD";
-  if (h > 0) return "SD";
-  return "Auto";
-}
+import { getQualityLabel } from "@/lib/media-utils";
 
 interface QualityOption {
   label: string;
@@ -46,7 +39,7 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qualityOptions, onQualityChange }: VideoPlayerProps) {
-  const currentQualityLabel = getQualityLabelFromHeight(height);
+  const currentQualityLabel = getQualityLabel(undefined, height)?.label ?? "Auto";
   const hasQualityOptions = qualityOptions && qualityOptions.length > 1;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

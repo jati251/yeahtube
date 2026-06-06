@@ -4,14 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Film, Image, Clock } from "lucide-react";
 import { clsx } from "clsx";
-
-function getQualityLabel(width: number | null | undefined, height: number | null | undefined): { label: string; color: string } | null {
-  const h = height ?? 0;
-  if (h >= 2160) return { label: "4K", color: "bg-red-600" };
-  if (h >= 1080) return { label: "Full HD", color: "bg-blue-600" };
-  if (h >= 720) return { label: "HD", color: "bg-emerald-600" };
-  return null;
-}
+import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
 
 interface MediaCardProps {
   post: {
@@ -202,11 +195,6 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             </span>
           )}
 
-          {post.mediaCount > 1 && (
-            <span className="rounded-none bg-black/70 px-2 py-0.5 text-xs text-white">
-              +{post.mediaCount}
-            </span>
-          )}
         </div>
       </div>
 
@@ -327,32 +315,3 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   );
 }
 
-function getTimeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffDays > 30) {
-    const diffMonths = Math.floor(diffDays / 30);
-    return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
-  }
-  if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-  if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-  if (diffMins > 0) return `${diffMins} min${diffMins > 1 ? "s" : ""} ago`;
-  return "Just now";
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
