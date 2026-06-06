@@ -53,6 +53,7 @@ pipeline {
                 --name $CONTAINER_NAME \
                 --env-file .env \
                 -p 5207:5207 \
+                --add-host host.docker.internal:host-gateway \
                 $IMAGE_NAME:$TAG
             '
           """
