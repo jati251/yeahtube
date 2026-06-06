@@ -39,7 +39,7 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qualityOptions, onQualityChange }: VideoPlayerProps) {
-  const currentQualityLabel = getQualityLabel(undefined, height)?.label ?? "Auto";
+  const currentQualityLabel = getQualityLabel(undefined, height)?.label ?? (height ? "SD" : "Auto");
   const hasQualityOptions = qualityOptions && qualityOptions.length > 1;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,6 +58,48 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
+
+  // ── Seek drag support ──────────────────────────────
+  const isDragging = useRef(false);
+  
+  const seekToClientX = useCallback((clientX: number) => {
+    if (!progressRef.current || !videoRef.current || !duration) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const time = pos * duration;
+    videoRef.current.currentTime = time;
+    setCurrentTime(time);
+  }, [duration]);
+
+  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    seekToClientX(e.clientX);
+  }, [seekToClientX]);
+
+  const handleSeekStart = useCallback((e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    isDragging.current = true;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    seekToClientX(clientX);
+  }, [seekToClientX]);
+
+  useEffect(() => {
+    if (!isDragging.current) return;
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      seekToClientX(clientX);
+    };
+    const handleUp = () => { isDragging.current = false; };
+    window.addEventListener('mousemove', handleMove, { passive: false });
+    window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleUp);
+    };
+  }, [seekToClientX]);
 
   // Tap-to-skip overlay state
   const [skipOverlay, setSkipOverlay] = useState<"back" | "forward" | null>(null);
@@ -144,14 +186,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     }
   }, [muted]);
 
-  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressRef.current || !videoRef.current || !duration) return;
-    const rect = progressRef.current.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    const time = pos * duration;
-    videoRef.current.currentTime = time;
-    setCurrentTime(time);
-  }, [duration]);
 
   const toggleFullscreen = useCallback(async () => {
     if (!containerRef.current) return;
@@ -444,6 +478,8 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
           ref={progressRef}
           className="group relative mb-3 h-4 sm:h-1.5 cursor-pointer rounded-full bg-white/30 transition-all hover:h-4 sm:hover:h-3"
           onClick={handleSeek}
+          onMouseDown={handleSeekStart}
+          onTouchStart={handleSeekStart}
         >
           <div
             className="absolute left-0 top-0 h-full rounded-full bg-white/40"
@@ -453,7 +489,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
             className="absolute left-0 top-0 h-full rounded-full bg-blue-500"
             style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
           >
-            <div className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 translate-x-1/2 rounded-full bg-white opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 translate-x-1/2 rounded-full bg-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" />
           </div>
         </div>
 
