@@ -39,9 +39,9 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
     <>
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-none">
-        {(post.previewUrl || post.videoUrl) && (
+        {post.previewUrl && (
           <video
-            src={post.previewUrl || post.videoUrl || undefined}
+            src={post.previewUrl}
             className={clsx(
               "absolute inset-0 z-20 h-full w-full object-contain transition-opacity duration-500",
               isPlaying ? "opacity-100" : "opacity-0"
@@ -81,7 +81,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             <img
               src={post.thumbnailUrl}
               alt=""
-              className="absolute inset-0 z-0 h-full w-full object-cover blur-md scale-105 opacity-55 dark:opacity-35 transition-all duration-300"
+              className="absolute inset-0 z-0 h-full w-full object-cover blur-sm scale-[1.02] opacity-50 dark:opacity-30 transition-all duration-300"
               loading="lazy"
             />
             {/* Full view contain cover */}

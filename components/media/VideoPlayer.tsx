@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   PictureInPicture,
+  Settings,
 } from "lucide-react";
 
 interface VideoPlayerProps {
@@ -37,6 +38,8 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
   const [waiting, setWaiting] = useState(false);
   const [isPip, setIsPip] = useState(false);
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Tap-to-skip overlay state
   const [skipOverlay, setSkipOverlay] = useState<"back" | "forward" | null>(null);
@@ -490,6 +493,56 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
           <span className="ml-auto text-xs text-white/80">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
+
+          {/* Playback speed / Settings */}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSettings((prev) => !prev);
+              }}
+              className={`text-white/80 hover:text-white transition-colors ${showSettings ? "text-blue-400" : ""}`}
+              aria-label="Settings"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+            {showSettings && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowSettings(false)}
+                />
+                <div className="absolute bottom-8 right-0 z-50 w-44 rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm">
+                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
+                    Playback Speed
+                  </div>
+                  {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
+                    <button
+                      key={speed}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPlaybackSpeed(speed);
+                        if (videoRef.current) {
+                          videoRef.current.playbackRate = speed;
+                        }
+                        setShowSettings(false);
+                      }}
+                      className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
+                        playbackSpeed === speed
+                          ? "bg-blue-500/20 text-blue-400 font-medium"
+                          : "text-white/80 hover:bg-white/10"
+                      }`}
+                    >
+                      <span>{speed === 1 ? "Normal" : `${speed}x`}</span>
+                      {playbackSpeed === speed && (
+                        <span className="text-blue-400">✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Picture in Picture */}
           {typeof document !== "undefined" && "pictureInPictureEnabled" in document && (
