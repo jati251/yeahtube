@@ -130,6 +130,7 @@ export function WatchPageClient({
         <div className="lg:col-span-8">
           {/* Video player */}
           <VideoPlayer
+            key={currentVideo.id}
             src={currentVideo.streamUrl}
             poster={currentVideo.thumbnailUrl || undefined}
             type={currentVideo.mimeType}
