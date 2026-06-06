@@ -608,7 +608,7 @@ export async function POST(request: NextRequest) {
         success: true,
         post: {
           id: postId,
-          title: title.trim(),
+          title: (title || "").trim(),
           media: mediaRecords,
           tags: tagNames,
         },
