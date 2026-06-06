@@ -77,45 +77,70 @@ async function generateVideoAssets(
   try {
     await fs.writeFile(tmpInput, buffer);
 
+    let actualDuration = 0;
+
     await new Promise<void>((resolve, reject) => {
       const ffmpeg = require("fluent-ffmpeg") as any;
 
       ffmpeg.ffprobe(tmpInput, (err: any, metadata: any) => {
         if (err) return reject(err);
 
-        const durationSecs = metadata.format.duration || 0;
-        const seekTime = Math.min(durationSecs * 0.1, 10);
+        actualDuration = metadata.format.duration || 0;
+        // Use 10% into video, but clamp to 0..duration-0.5 so we never seek past end
+        const seekTime = Math.max(0, Math.min(actualDuration * 0.1, Math.max(0, actualDuration - 0.5), 10));
 
-        // Generate Thumbnail
+        const generatePreview = (onDone: () => void) => {
+          ffmpeg(tmpInput)
+            .setStartTime(seekTime)
+            .setDuration(Math.min(3, Math.max(0.5, actualDuration - seekTime)))
+            .outputOptions([
+              // Ensure dimensions are divisible by 2 (required by libx264)
+              "-vf", "scale='min(480,iw)':'-2',pad='iw:ih:(ow-iw)/2:(oh-ih)/2'",
+              "-an",
+              "-c:v libx264",
+              "-preset ultrafast",
+              "-crf 28",
+              "-movflags +faststart",
+            ])
+            .save(tmpPreview)
+            .on("end", onDone)
+            .on("error", (previewErr: any) => {
+              console.error("Preview generation failed:", previewErr.message);
+              onDone(); // still resolve so thumbnail is saved
+            });
+        };
+
+        // Generate Thumbnail — try at seekTime, fall back to 0 if it fails
         ffmpeg(tmpInput)
           .screenshots({
             count: 1,
             folder: tmpDir,
             filename: path.basename(tmpOutput),
-            timemarks: [seekTime],
+            timemarks: [seekTime > 0 ? seekTime : 0],
             size: "400x?",
           })
           .on("end", () => {
-            // After thumbnail, generate 3s preview video
-            ffmpeg(tmpInput)
-              .setStartTime(seekTime)
-              .setDuration(3)
-              .outputOptions([
-                "-vf scale=-2:360",
-                "-an",
-                "-c:v libx264",
-                "-preset ultrafast",
-                "-crf 28",
-                "-movflags +faststart"
-              ])
-              .save(tmpPreview)
-              .on("end", () => resolve())
-              .on("error", (err: any) => {
-                console.error("Preview generation failed:", err);
-                resolve(); // Resolve anyway so we at least have thumbnail
-              });
+            generatePreview(() => resolve());
           })
-          .on("error", reject);
+          .on("error", (thumbErr: any) => {
+            console.error("Thumbnail at seekTime failed, retrying at 0:", thumbErr.message);
+            // Fallback: try thumbnail at t=0
+            ffmpeg(tmpInput)
+              .screenshots({
+                count: 1,
+                folder: tmpDir,
+                filename: path.basename(tmpOutput),
+                timemarks: [0],
+                size: "400x?",
+              })
+              .on("end", () => {
+                generatePreview(() => resolve());
+              })
+              .on("error", (fallbackErr: any) => {
+                console.error("Fallback thumbnail also failed:", fallbackErr.message);
+                resolve(); // give up gracefully
+              });
+          });
       });
     });
 
@@ -124,13 +149,13 @@ async function generateVideoAssets(
     try {
       previewBuffer = await fs.readFile(tmpPreview);
     } catch (e) {
-      console.error("Could not read preview buffer");
+      console.error("Could not read preview buffer (preview may not have been generated)");
     }
 
     return {
       thumbnailBuffer,
       previewBuffer,
-      duration: 0,
+      duration: actualDuration,
     };
   } finally {
     try { await fs.unlink(tmpInput); } catch {}

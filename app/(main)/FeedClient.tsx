@@ -280,7 +280,7 @@ export function FeedClient({
           </div>
           
           {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 animate-slide-up">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 animate-slide-up">
               {posts.map((post) => (
                 <MediaCard
                   key={post.id}
@@ -314,7 +314,7 @@ export function FeedClient({
           {/* Infinite Scroll Loader */}
           {hasMore && (
             <div ref={ref} className="mt-8 flex justify-center py-6">
-              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid w-full grid-cols-2 gap-2 lg:grid-cols-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={`skeleton-${i}`}

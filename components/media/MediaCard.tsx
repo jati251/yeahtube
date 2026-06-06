@@ -43,7 +43,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
           <video
             src={post.previewUrl || post.videoUrl || undefined}
             className={clsx(
-              "absolute inset-0 z-20 h-full w-full object-cover transition-opacity duration-500",
+              "absolute inset-0 z-20 h-full w-full object-contain transition-opacity duration-500",
               isPlaying ? "opacity-100" : "opacity-0"
             )}
             muted
@@ -81,10 +81,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             <img
               src={post.thumbnailUrl}
               alt=""
-              className={clsx(
-                "absolute inset-0 z-0 h-full w-full object-cover blur-xl scale-110 opacity-60 dark:opacity-40 transition-all duration-300",
-                isPlaying && "opacity-0"
-              )}
+              className="absolute inset-0 z-0 h-full w-full object-cover blur-md scale-105 opacity-55 dark:opacity-35 transition-all duration-300"
               loading="lazy"
             />
             {/* Full view contain cover */}

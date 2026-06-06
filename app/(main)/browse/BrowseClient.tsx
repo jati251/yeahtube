@@ -353,7 +353,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
 
           {loading && posts.length === 0 ? (
             viewMode === "grid" ? (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="animate-pulse overflow-hidden rounded-none border border-slate-100 bg-white/50 dark:border-slate-800/60 dark:bg-slate-800/30">
                     <div className="aspect-video bg-slate-200/70 dark:bg-slate-700/50" />
@@ -394,7 +394,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               </p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 animate-slide-up">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 animate-slide-up">
                {posts.map((post) => (
                  <MediaCard
                    key={post.id}
