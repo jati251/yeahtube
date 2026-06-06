@@ -81,7 +81,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             <img
               src={post.thumbnailUrl}
               alt=""
-              className="absolute inset-0 z-0 h-full w-full object-cover blur-sm scale-[1.02] opacity-50 dark:opacity-30 transition-all duration-300"
+              className="absolute inset-0 z-0 h-full w-full object-cover blur-[2px] scale-[1.02] opacity-50 dark:opacity-30 transition-all duration-300"
               loading="lazy"
             />
             {/* Full view contain cover */}
