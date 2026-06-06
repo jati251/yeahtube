@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Film, Image, Clock, Layers } from "lucide-react";
 import { clsx } from "clsx";
