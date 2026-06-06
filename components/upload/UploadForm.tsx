@@ -62,6 +62,29 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     return ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"].includes(ext);
   }, []);
 
+  const getCsrfToken = () => {
+    return document.cookie.match(/(?:^|;\s*)yeahtube_csrf=([^;]*)/)?.[1];
+  };
+
+  const finalizeUpload = (message: string) => {
+    setUploadProgress(100);
+    addToast("success", message);
+    setTimeout(() => {
+      setSelectedFiles([]);
+      setTitle("");
+      setCategory("");
+      setTags([]);
+      setUploading(false);
+      setUploadProgress(0);
+      setStatusText("");
+      router.refresh();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("post-created"));
+      }
+      onSuccess?.();
+    }, 500);
+  };
+
   // Unified batch upload helper — sends all files in one request
   const doUpload = async (filesToUpload: SelectedFile[], quick: boolean) => {
     if (filesToUpload.length === 0) return;
@@ -187,7 +210,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files.length > 0) {
-        setActivePostId(null); // Reset resume state on new selection
         const filesArray = Array.from(e.target.files);
         addFiles(filesArray);
       }
@@ -277,9 +299,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const removeFile = useCallback((id: string) => {
     setSelectedFiles((prev) => {
       const filtered = prev.filter((sf) => sf.id !== id);
-      if (filtered.length === 0) {
-        setActivePostId(null); // Reset resume state if all files cleared
-      }
       // Revoke URL to avoid memory leaks
       const removed = prev.find((sf) => sf.id === id);
       if (removed) {
@@ -336,29 +355,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
-
-  const getCsrfToken = () => {
-    return document.cookie.match(/(?:^|;\s*)yeahtube_csrf=([^;]*)/)?.[1];
-  };
-
-  const finalizeUpload = (message: string) => {
-    setUploadProgress(100);
-    addToast("success", message);
-    setTimeout(() => {
-      setSelectedFiles([]);
-      setTitle("");
-      setCategory("");
-      setTags([]);
-      setUploading(false);
-      setUploadProgress(0);
-      setStatusText("");
-      router.refresh();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("post-created"));
-      }
-      onSuccess?.();
-    }, 500);
   };
 
   const handlePublish = async (e: React.FormEvent) => {
