@@ -158,7 +158,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
           if (error.name !== "AbortError") {
-            console.error("Playback failed:", error);
+            console.error("Playback failed:", error.message, error.name, `src: ${src?.slice(0,60)}...`);
           }
         });
       }
