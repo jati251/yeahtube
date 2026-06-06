@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
@@ -147,12 +148,14 @@ export function ViewPageClient({
                     href={`/watch/${post.id}`}
                     className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 min-w-0"
                   >
-                    <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
+                    <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
                       {video.thumbnailUrl ? (
-                        <img
+                        <NextImage
                           src={video.thumbnailUrl}
                           alt=""
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="64px"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-gray-400 text-[10px]">
