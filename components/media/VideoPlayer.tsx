@@ -442,14 +442,14 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
 
       {/* Controls overlay */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent p-4 pt-12 transition-opacity ${
+        className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent p-3 sm:p-4 pt-10 sm:pt-12 transition-opacity ${
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
         {/* Progress bar */}
         <div
           ref={progressRef}
-          className="group relative mb-3 h-3 sm:h-1.5 cursor-pointer rounded-full bg-white/30 transition-all hover:h-3"
+          className="group relative mb-3 h-4 sm:h-1.5 cursor-pointer rounded-full bg-white/30 transition-all hover:h-4 sm:hover:h-3"
           onClick={handleSeek}
         >
           <div
@@ -465,13 +465,13 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         </div>
 
         {/* Controls row */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-3 sm:gap-3">
           <button
             onClick={togglePlay}
             className="text-white hover:text-blue-400 transition-colors"
             aria-label={playing ? "Pause" : "Play"}
           >
-            {playing ? <Pause className="h-6 w-6 sm:h-5 sm:w-5" fill="white" /> : <Play className="h-6 w-6 sm:h-5 sm:w-5" fill="white" />}
+            {playing ? <Pause className="h-7 w-7 sm:h-5 sm:w-5" fill="white" /> : <Play className="h-7 w-7 sm:h-5 sm:w-5" fill="white" />}
           </button>
 
           <button
@@ -479,7 +479,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
             className="text-white/80 hover:text-white transition-colors"
             aria-label="Skip 10s back"
           >
-            <SkipBack className="h-5 w-5 sm:h-4 sm:w-4" />
+            <SkipBack className="h-6 w-6 sm:h-4 sm:w-4" />
           </button>
 
           <button
@@ -487,7 +487,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
             className="text-white/80 hover:text-white transition-colors"
             aria-label="Skip 10s forward"
           >
-            <SkipForward className="h-5 w-5 sm:h-4 sm:w-4" />
+            <SkipForward className="h-6 w-6 sm:h-4 sm:w-4" />
           </button>
 
           {/* Volume - hide on mobile to save space */}
@@ -534,7 +534,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
               className={`text-white/80 hover:text-white transition-colors ${showSettings ? "text-blue-400" : ""}`}
               aria-label="Settings"
             >
-              <Settings className="h-5 w-5 sm:h-4 sm:w-4" />
+              <Settings className="h-6 w-6 sm:h-4 sm:w-4" />
             </button>
             {showSettings && (
               <>
@@ -542,7 +542,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
                   className="fixed inset-0 z-40"
                   onClick={() => setShowSettings(false)}
                 />
-                <div className="absolute bottom-8 right-0 z-50 w-44 rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm">
+                <div className="absolute bottom-full right-0 z-50 mb-2 w-44 rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm">
                   {/* Quality section */}
                   {hasQualityOptions && (
                     <>

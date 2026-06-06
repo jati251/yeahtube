@@ -67,25 +67,19 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         )}
 
         {/* Quality/Photo badge */}
-        {quality && post.mediaType !== "image" ? (
+        {quality ? (
           <span className={`absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white ${quality.color}`}>
             {quality.label}
           </span>
-        ) : (
+        ) : post.mediaType === "image" ? (
           <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-green-600">
             Photo
           </span>
-        )}
+        ) : null}
 
         {post.duration && (
           <span className="absolute bottom-1 right-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
             {formatDuration(post.duration)}
-          </span>
-        )}
-
-        {quality && post.mediaType === "video" && (
-          <span className={`absolute top-1 right-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white ${quality.color}`}>
-            {quality.label}
           </span>
         )}
       </div>

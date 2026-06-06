@@ -176,27 +176,21 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
 
         {/* Badges */}
         <div className="absolute bottom-2 left-2 z-10 flex gap-2">
-          {/* Quality badge for videos; photo badge for images */}
-          {quality && post.mediaType !== "image" ? (
+          {/* Quality badge for video/mixed; nothing for images without quality */}
+          {quality ? (
             <span className={`rounded-none px-2 py-0.5 text-xs font-medium text-white ${quality.color}`}>
               {quality.label}
             </span>
-          ) : (
+          ) : post.mediaType === "image" ? (
             <span className="rounded-none px-2 py-0.5 text-xs font-medium text-white bg-green-600">
               Photo
             </span>
-          )}
+          ) : null}
 
           {post.duration && (
             <span className="flex items-center gap-1 rounded-none bg-black/70 px-2 py-0.5 text-xs text-white">
               <Clock className="h-3 w-3" />
               {formatDuration(post.duration)}
-            </span>
-          )}
-
-          {quality && post.mediaType === "video" && (
-            <span className={`rounded-none px-2 py-0.5 text-xs font-medium text-white ${quality.color}`}>
-              {quality.label}
             </span>
           )}
 
