@@ -235,14 +235,14 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
 
       {/* Admin actions dropdown */}
       {isAdmin && !selectMode && (
-        <div className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute right-2 top-2 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
               setMenuOpen(!menuOpen);
             }}
-            className="rounded-lg bg-black/50 p-1 text-white hover:bg-black/70"
+            className="rounded-lg bg-black/50 p-1.5 text-white hover:bg-black/70 sm:p-1"
             aria-label="More actions"
           >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">

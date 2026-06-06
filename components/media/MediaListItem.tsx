@@ -201,7 +201,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
 
       {/* Admin actions dropdown */}
       {isAdmin && !selectMode && (
-        <div className="relative flex items-start">
+        <div className="relative z-30 flex items-start">
           <button
             onClick={(e) => {
               e.stopPropagation();
