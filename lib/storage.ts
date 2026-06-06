@@ -124,7 +124,7 @@ export function getStorageUrl(key: string): string {
  * Builds a pre-signed URL for an object in the bucket.
  * This URL allows direct download from MinIO without proxying through Next.js.
  */
-export async function getPresignedUrl(key: string, expiresInSeconds: number = 3600, proxy: boolean = true): Promise<string> {
+export async function getPresignedUrl(key: string, expiresInSeconds: number = 3600): Promise<string> {
   const s3 = getS3Client();
   const { bucket } = getStorageConfig();
   
@@ -136,9 +136,8 @@ export async function getPresignedUrl(key: string, expiresInSeconds: number = 36
   const url = await getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
 
   // Proxy through Next.js to avoid Local Network Access prompt on iOS/macOS
-  // Skip proxy for video streams (browser <video> doesn't handle redirects well)
   const { endpoint } = getStorageConfig();
-  if (proxy && endpoint.includes("192.168.")) {
+  if (endpoint.includes("192.168.")) {
     return url.replace(endpoint, "/storage");
   }
 
