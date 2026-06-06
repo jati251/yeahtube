@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import NextImage from "next/image";
 import { Film, Image, Clock } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
@@ -147,16 +146,15 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
               loading="lazy"
             />
             {/* Full view contain cover */}
-            <NextImage
+            <img
               src={post.thumbnailUrl}
               alt={post.title}
-              fill
               className={clsx(
-                "z-10 object-contain transition-all duration-300",
+                "relative z-10 mx-auto h-full w-full object-contain transition-all duration-300",
                 isPlaying ? "scale-105 opacity-0" : "scale-100 opacity-100"
               )}
-              sizes="(max-width: 768px) 50vw, 33vw"
-              unoptimized
+              loading="lazy"
+              decoding="async"
             />
           </>
         ) : (

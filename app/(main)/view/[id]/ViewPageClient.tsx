@@ -2,7 +2,6 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
-import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
@@ -150,13 +149,10 @@ export function ViewPageClient({
                   >
                     <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
                       {video.thumbnailUrl ? (
-                        <NextImage
+                        <img
                           src={video.thumbnailUrl}
                           alt=""
-                          fill
-                          className="object-cover"
-                          sizes="64px"
-                          unoptimized
+                          className="h-full w-full object-cover"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-gray-400 text-[10px]">

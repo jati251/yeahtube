@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import NextImage from "next/image";
 import { Film, Image, Clock, Layers } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
@@ -43,13 +42,12 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
       {/* Thumbnail */}
       <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:h-24 sm:w-36">
         {post.thumbnailUrl ? (
-          <NextImage
+          <img
             src={post.thumbnailUrl}
             alt={post.title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="180px"
-            unoptimized
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full items-center justify-center">
