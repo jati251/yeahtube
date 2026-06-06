@@ -72,52 +72,46 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
     const csrfToken = getCsrfToken();
     const totalFiles = filesToUpload.length;
-    let completedCount = 0;
 
     try {
-      for (let i = 0; i < filesToUpload.length; i++) {
-        const sf = filesToUpload[i];
-        setStatusText(`Uploaded ${completedCount} of ${totalFiles} file(s)`);
-        setUploadProgress(Math.floor((completedCount / totalFiles) * 100));
-
-        const formData = new FormData();
+      // Batch all files into one request → one post
+      const formData = new FormData();
+      formData.append("quickPost", "true");
+      // Auto-title from first file's name
+      const firstName = filesToUpload[0].file.name.replace(/\.[^/.]+$/, "");
+      formData.append("title", totalFiles === 1 ? firstName : `Batch upload (${totalFiles} files)`);
+      for (const sf of filesToUpload) {
         formData.append("files", sf.file);
-        formData.append("quickPost", "true");
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: {
-            ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-          },
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || `Quick Post failed for ${sf.file.name}`);
-        }
-
-        // Remove successful file from state immediately (GDrive style)
-        setSelectedFiles((prev) => {
-          const filtered = prev.filter((item) => item.id !== sf.id);
-          URL.revokeObjectURL(sf.preview);
-          return filtered;
-        });
-
-        completedCount++;
       }
 
-      setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
+      setStatusText(`Uploading ${totalFiles} file(s)...`);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Quick Post failed");
+      }
+
+      // Remove all files from state
+      setSelectedFiles((prev) => {
+        prev.forEach((sf) => URL.revokeObjectURL(sf.preview));
+        return [];
+      });
+
       setUploadProgress(100);
+      setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
       finalizeUpload("Quick post completed!");
     } catch (error) {
       console.error("Quick post error:", error);
-      addToast(
-        "error",
-        `${error instanceof Error ? error.message : "Quick post failed"}. Successfully uploaded ${completedCount} of ${totalFiles} files.`
-      );
+      addToast("error", error instanceof Error ? error.message : "Quick post failed");
       setUploading(false);
-      setStatusText(`Failed at file ${completedCount + 1}. ${completedCount} of ${totalFiles} completed.`);
     }
   };
 

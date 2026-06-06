@@ -492,58 +492,46 @@ export async function POST(request: NextRequest) {
       if (cat) categoryId = cat.id;
     }
 
-    // ── Quick Post Mode: individual post per file ─────────
-    // Uses filename (without extension) as title, no tags/category sent
+    // ── Quick Post Mode: one post, all files ──────────
     if (quickPost) {
-      const createdPosts = [];
+      // Use provided title or auto-generate from first filename
+      const autoTitle = title?.trim() || files[0].name.replace(/\.[^/.]+$/, "") || "Quick Post";
 
+      const postValues = {
+        userId: user.id,
+        title: autoTitle,
+        ...(categoryId !== null ? { categoryId } : {}),
+      } as const;
+      const [newPost] = await db
+        .insert(schema.posts)
+        .values(postValues)
+        .returning();
+      const postId = newPost.id;
+
+      const mediaRecords = [];
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const filenameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-        const fileTitle = files.length > 1
-          ? `${filenameWithoutExt}`
-          : filenameWithoutExt;
-
-        // Create post (omit categoryId for quick post — no form fields used)
-        const [newPost] = await db
-          .insert(schema.posts)
-          .values({
-            userId: user.id,
-            title: fileTitle,
-          })
-          .returning();
-
-        const postId = newPost.id;
-
         try {
           const mediaRecord = await processSingleFile(
-            file, 0, db, s3, storageConfig, postId,
+            files[i], i, db, s3, storageConfig, postId,
           );
-          processTags(db, postId, tagNames);
-
-          createdPosts.push({
-            id: postId,
-            title: fileTitle,
-            media: [mediaRecord],
-            tags: tagNames,
-          });
+          mediaRecords.push(mediaRecord);
         } catch (err) {
-          // Clean up the post if file processing failed
           await db.delete(schema.posts).where(eq(schema.posts.id, postId));
           const message = err instanceof Error ? err.message : "File processing failed";
           return NextResponse.json(
-            { error: `File "${file.name}": ${message}` },
+            { error: `File "${files[i].name}": ${message}` },
             { status: 400 },
           );
         }
       }
 
+      processTags(db, postId, tagNames);
+
       return NextResponse.json(
         {
           success: true,
           quickPost: true,
-          posts: createdPosts,
-          count: createdPosts.length,
+          post: { id: postId, title: autoTitle, media: mediaRecords, tags: tagNames },
         },
         { status: 201 },
       );
