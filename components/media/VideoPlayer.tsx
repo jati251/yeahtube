@@ -45,6 +45,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
 
+  const [pipSupported, setPipSupported] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -112,6 +113,10 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     skipOverlayTimeout.current = setTimeout(() => {
       setSkipOverlay(null);
     }, 600);
+  }, []);
+
+  useEffect(() => {
+    setPipSupported(typeof document !== "undefined" && "pictureInPictureEnabled" in document);
   }, []);
 
   // Reset state when src changes
@@ -634,13 +639,13 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
           </div>
 
           {/* Picture in Picture */}
-          {typeof document !== "undefined" && "pictureInPictureEnabled" in document && (
+          {pipSupported && (
             <button
               onClick={togglePiP}
               className={`text-white/80 hover:text-white transition-colors ${isPip ? "text-blue-400" : ""}`}
               aria-label={isPip ? "Exit Picture-in-Picture" : "Picture-in-Picture"}
             >
-              <PictureInPicture className="h-4 w-4" />
+              <PictureInPicture className="h-6 w-6 sm:h-4 sm:w-4" />
             </button>
           )}
 
