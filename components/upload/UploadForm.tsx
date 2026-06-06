@@ -409,20 +409,9 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         });
 
         if (!res.ok) {
-          let errorMsg = `Upload failed for ${sf.file.name}`;
-          try {
-            const text = await res.text();
-            console.error(`[Upload] Error response (${res.status}):`, text);
-            try {
-              const data = JSON.parse(text);
-              errorMsg = data.error || data.message || `${res.status} ${res.statusText}`;
-            } catch {
-              errorMsg = `${res.status} ${text.slice(0, 100)}`;
-            }
-          } catch {
-            errorMsg = `${res.status} ${res.statusText}`;
-          }
-          throw new Error(errorMsg);
+          const text = await res.text();
+          console.error(`[Upload] Error (${res.status}):`, text);
+          throw new Error(text ? `Upload failed: ${text.slice(0, 150)}` : `Upload failed (${res.status})`);
         }
 
         const data = await res.json();
