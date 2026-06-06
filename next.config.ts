@@ -26,6 +26,15 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  async rewrites() {
+    return [
+      {
+        source: "/storage/:path*",
+        destination: "http://192.168.1.206:9000/:path*", // Proxy to MinIO
+      },
+    ];
+  },
+
   async headers() {
     // In development, be permissive for HMR and dev tools
     if (isDev) {

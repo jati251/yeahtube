@@ -8,6 +8,10 @@ import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaListItem } from "@/components/media/MediaListItem";
 import { RecommendedPost } from "@/lib/recommendations";
+import { LikeDislike } from "@/components/interactions/LikeDislike";
+import { Comments } from "@/components/interactions/Comments";
+import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
+import { BookmarkPlus } from "lucide-react";
 
 interface VideoData {
   id: number;
@@ -52,6 +56,7 @@ export function WatchPageClient({
 }: WatchPageClientProps) {
   const router = useRouter();
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const currentVideo = videos[currentVideoIndex];
 
   // Force scroll to top on mount — Next.js App Router overrides with scroll restoration,
@@ -67,6 +72,13 @@ export function WatchPageClient({
       history.scrollRestoration = prev;
     };
   }, []);
+
+  // Track History
+  useEffect(() => {
+    fetch(`/api/posts/${post.id}/history`, {
+      method: "POST",
+    }).catch(console.error);
+  }, [post.id]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
@@ -109,9 +121,21 @@ export function WatchPageClient({
               {post.title}
             </h1>
 
-            <div className="mt-2 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <Calendar className="h-4 w-4" />
-              {formatDate(post.createdAt)}
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <Calendar className="h-4 w-4" />
+                {formatDate(post.createdAt)}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowSaveModal(true)}
+                  className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  <BookmarkPlus className="h-4 w-4" />
+                  Save
+                </button>
+                <LikeDislike postId={post.id} />
+              </div>
             </div>
 
             {/* Tags */}
@@ -189,6 +213,9 @@ export function WatchPageClient({
               <PhotoGallery photos={images} />
             </div>
           )}
+
+          {/* Comments Section */}
+          <Comments postId={post.id} />
         </div>
 
         {/* Right column (Recommendations Sidebar) */}
@@ -209,6 +236,10 @@ export function WatchPageClient({
           </div>
         </div>
       </div>
+
+      {showSaveModal && (
+        <SaveToPlaylist postId={post.id} onClose={() => setShowSaveModal(false)} />
+      )}
     </div>
   );
 }

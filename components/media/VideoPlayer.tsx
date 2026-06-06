@@ -12,6 +12,7 @@ import {
   SkipForward,
   ChevronLeft,
   ChevronRight,
+  PictureInPicture,
 } from "lucide-react";
 
 interface VideoPlayerProps {
@@ -34,6 +35,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
   const [showControls, setShowControls] = useState(true);
   const [buffered, setBuffered] = useState(0);
   const [waiting, setWaiting] = useState(false);
+  const [isPip, setIsPip] = useState(false);
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Tap-to-skip overlay state
@@ -139,6 +141,19 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     }
   }, [fullscreen]);
 
+  const togglePiP = useCallback(async () => {
+    if (!videoRef.current) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (error) {
+      console.error("PiP failed", error);
+    }
+  }, []);
+
   const skipForward = useCallback(() => {
     if (!videoRef.current || !duration) return;
     const newTime = Math.min(videoRef.current.currentTime + 10, duration);
@@ -242,13 +257,29 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [togglePlay, toggleMute, toggleFullscreen, skipBackward, skipForward]);
 
-  // Fullscreen change handler
+  // Fullscreen & PiP change handler
   useEffect(() => {
     const handleFsChange = () => {
       setFullscreen(!!document.fullscreenElement);
     };
+    const handlePipChange = () => {
+      setIsPip(!!document.pictureInPictureElement);
+    };
     document.addEventListener("fullscreenchange", handleFsChange);
-    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+    
+    const videoElement = videoRef.current;
+    if (videoElement) {
+      videoElement.addEventListener("enterpictureinpicture", handlePipChange);
+      videoElement.addEventListener("leavepictureinpicture", handlePipChange);
+    }
+    
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      if (videoElement) {
+        videoElement.removeEventListener("enterpictureinpicture", handlePipChange);
+        videoElement.removeEventListener("leavepictureinpicture", handlePipChange);
+      }
+    };
   }, []);
 
   // Cleanup timeout
@@ -459,6 +490,17 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
           <span className="ml-auto text-xs text-white/80">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
+
+          {/* Picture in Picture */}
+          {typeof document !== "undefined" && "pictureInPictureEnabled" in document && (
+            <button
+              onClick={togglePiP}
+              className={`text-white/80 hover:text-white transition-colors ${isPip ? "text-blue-400" : ""}`}
+              aria-label={isPip ? "Exit Picture-in-Picture" : "Picture-in-Picture"}
+            >
+              <PictureInPicture className="h-4 w-4" />
+            </button>
+          )}
 
           {/* Fullscreen */}
           <button

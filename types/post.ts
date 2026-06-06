@@ -7,6 +7,8 @@ export interface PostItem {
   mediaCount: number;
   mediaType: "image" | "video" | "mixed";
   thumbnailUrl: string | null;
+  videoUrl: string | null;
+  previewUrl?: string | null;
   duration: number | null;
   category?: string | null;
 }

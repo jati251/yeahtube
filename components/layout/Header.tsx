@@ -14,6 +14,9 @@ import {
   Home,
   Compass,
   Shield,
+  Clock,
+  ListVideo,
+  TrendingUp,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { Button } from "@/components/ui/Button";
@@ -38,7 +41,28 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{id: number, title: string}[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const timeoutId = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data.results || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   const handleLogout = async () => {
     // Read CSRF token from cookie (set by proxy.ts)
@@ -94,10 +118,34 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 placeholder="Search media..."
                 className="w-full rounded-full border border-gray-300 bg-gray-50 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
               />
+              {showDropdown && searchResults.length > 0 && (
+                <div className="absolute top-full mt-2 w-full rounded-xl border border-gray-200 bg-white py-2 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                  {searchResults.map((result) => (
+                    <button
+                      key={result.id}
+                      type="button"
+                      onClick={() => {
+                        router.push(`/watch/${result.id}`);
+                        setShowDropdown(false);
+                        setSearchQuery("");
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Search className="h-4 w-4 text-gray-400" />
+                      <span className="truncate text-gray-700 dark:text-gray-200">{result.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </form>
 
@@ -262,6 +310,45 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
           >
             <Upload className="h-5 w-5" />
             Upload
+          </Link>
+          <Link
+            href="/history"
+            className={clsx(
+              "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+              pathname === "/history"
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <Clock className="h-5 w-5" />
+            History
+          </Link>
+          <Link
+            href="/playlists"
+            className={clsx(
+              "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+              pathname?.startsWith("/playlists")
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <ListVideo className="h-5 w-5" />
+            Library
+          </Link>
+          <Link
+            href="/trending"
+            className={clsx(
+              "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+              pathname === "/trending"
+                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+            )}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <TrendingUp className="h-5 w-5" />
+            Trending
           </Link>
           {isAdmin && (
             <Link

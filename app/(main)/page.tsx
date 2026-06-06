@@ -73,6 +73,12 @@ async function getInitialPosts(page: number, sort: string) {
         thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
       }
 
+      let videoUrl = null;
+      const firstVideo = postMedia.find((m) => m.mediaType === "video");
+      if (firstVideo?.storageKey) {
+        videoUrl = await getPresignedUrl(firstVideo.storageKey);
+      }
+
       return {
         id: post.id,
         title: post.title,
@@ -82,6 +88,7 @@ async function getInitialPosts(page: number, sort: string) {
         mediaCount: postMedia.length,
         mediaType: (hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image") as "image" | "video" | "mixed",
         thumbnailUrl,
+        videoUrl,
         duration: firstMedia?.duration || null,
         category: null as string | null,
       };

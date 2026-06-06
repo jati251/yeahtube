@@ -65,13 +65,14 @@ async function generateImageThumbnail(
   };
 }
 
-async function generateVideoThumbnail(
+async function generateVideoAssets(
   buffer: Buffer,
   ext: string,
-): Promise<{ thumbnailBuffer: Buffer; duration: number }> {
+): Promise<{ thumbnailBuffer: Buffer; previewBuffer: Buffer | null; duration: number }> {
   const tmpDir = os.tmpdir();
   const tmpInput = path.join(tmpDir, `yt-${uuidv4()}${ext}`);
   const tmpOutput = path.join(tmpDir, `yt-thumb-${uuidv4()}.webp`);
+  const tmpPreview = path.join(tmpDir, `yt-preview-${uuidv4()}.mp4`);
 
   try {
     await fs.writeFile(tmpInput, buffer);
@@ -85,6 +86,7 @@ async function generateVideoThumbnail(
         const durationSecs = metadata.format.duration || 0;
         const seekTime = Math.min(durationSecs * 0.1, 10);
 
+        // Generate Thumbnail
         ffmpeg(tmpInput)
           .screenshots({
             count: 1,
@@ -93,20 +95,47 @@ async function generateVideoThumbnail(
             timemarks: [seekTime],
             size: "400x?",
           })
-          .on("end", () => resolve())
+          .on("end", () => {
+            // After thumbnail, generate 3s preview video
+            ffmpeg(tmpInput)
+              .setStartTime(seekTime)
+              .setDuration(3)
+              .outputOptions([
+                "-vf scale=-2:360",
+                "-an",
+                "-c:v libx264",
+                "-preset ultrafast",
+                "-crf 28",
+                "-movflags +faststart"
+              ])
+              .save(tmpPreview)
+              .on("end", () => resolve())
+              .on("error", (err: any) => {
+                console.error("Preview generation failed:", err);
+                resolve(); // Resolve anyway so we at least have thumbnail
+              });
+          })
           .on("error", reject);
       });
     });
 
     const thumbnailBuffer = await fs.readFile(tmpOutput);
+    let previewBuffer: Buffer | null = null;
+    try {
+      previewBuffer = await fs.readFile(tmpPreview);
+    } catch (e) {
+      console.error("Could not read preview buffer");
+    }
 
     return {
       thumbnailBuffer,
+      previewBuffer,
       duration: 0,
     };
   } finally {
     try { await fs.unlink(tmpInput); } catch {}
     try { await fs.unlink(tmpOutput); } catch {}
+    try { await fs.unlink(tmpPreview); } catch {}
   }
 }
 
@@ -130,6 +159,7 @@ async function processSingleFile(
   height: number | null;
   duration: number | null;
   thumbnailKey: string | null;
+  previewKey: string | null;
   orderIndex: number;
 }> {
   const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -167,6 +197,7 @@ async function processSingleFile(
 
   let storageKey: string;
   let thumbnailKey: string | null = null;
+  let previewKey: string | null = null;
   let width: number | null = null;
   let height: number | null = null;
   let duration: number | null = null;
@@ -209,8 +240,8 @@ async function processSingleFile(
     }
   } else {
     try {
-      const { thumbnailBuffer, duration: dur } =
-        await generateVideoThumbnail(fileBuffer, ext);
+      const { thumbnailBuffer, previewBuffer, duration: dur } =
+        await generateVideoAssets(fileBuffer, ext);
       duration = dur;
 
       thumbnailKey = `thumbnails/${folderPath}/${thumbnailFilename}`;
@@ -222,8 +253,20 @@ async function processSingleFile(
           ContentType: "image/webp",
         }),
       );
-    } catch (thumbError) {
-      console.error("Video thumbnail generation failed:", thumbError);
+
+      if (previewBuffer) {
+        previewKey = `previews/${folderPath}/${storageId}_preview.mp4`;
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: storageConfig.bucket,
+            Key: previewKey,
+            Body: previewBuffer,
+            ContentType: "video/mp4",
+          }),
+        );
+      }
+    } catch (assetError) {
+      console.error("Video asset generation failed:", assetError);
     }
 
     // Try ffprobe for duration if thumbnail didn't provide it
@@ -258,6 +301,7 @@ async function processSingleFile(
       height,
       duration,
       thumbnailKey,
+      previewKey,
       orderIndex: index,
     })
     .returning();
@@ -273,6 +317,7 @@ async function processSingleFile(
     height,
     duration,
     thumbnailKey,
+    previewKey,
     orderIndex: index,
   };
 }

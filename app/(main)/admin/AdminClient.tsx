@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Shield, ShieldOff, Check, X, UserPlus } from "lucide-react";
+import { Shield, ShieldOff, Check, X, UserPlus, HardDrive, Database, Server } from "lucide-react";
 
 import { CategoryManager, CategoryItem } from "@/components/admin/CategoryManager";
 
@@ -22,13 +22,27 @@ interface AdminClientProps {
   currentUserId: number;
   users: UserItem[];
   categories?: CategoryItem[];
+  stats?: {
+    totalMediaSize: number;
+    vmFreeStorage: number;
+    vmTotalStorage: number;
+  };
 }
 
-export function AdminClient({ currentUserId, users, categories = [] }: AdminClientProps) {
+const formatBytes = (bytes: number, decimals = 2) => {
+  if (!+bytes) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+};
+
+export function AdminClient({ currentUserId, users, categories = [], stats }: AdminClientProps) {
   const router = useRouter();
   const { addToast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<"users" | "categories">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "categories" | "system">("users");
   
   const [userList, setUserList] = useState(users);
   const [newUsername, setNewUsername] = useState("");
@@ -163,6 +177,16 @@ export function AdminClient({ currentUserId, users, categories = [] }: AdminClie
             }`}
           >
             Categories
+          </button>
+          <button
+            onClick={() => setActiveTab("system")}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "system"
+                ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
+          >
+            System Stats
           </button>
         </div>
       </div>
@@ -300,9 +324,68 @@ export function AdminClient({ currentUserId, users, categories = [] }: AdminClie
             </table>
           </div>
         </>
-      ) : (
+      ) : activeTab === "categories" ? (
         <CategoryManager initialCategories={categories} />
-      )}
+      ) : activeTab === "system" && stats ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+                <Database className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Media Size</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {formatBytes(stats.totalMediaSize)}
+                </p>
+              </div>
+            </div>
+            <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+              Total space consumed by uploaded videos and images in the database.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+                <HardDrive className="h-6 w-6" />
+              </div>
+              <div className="w-full">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">VM Storage Available</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {formatBytes(stats.vmFreeStorage)} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">/ {formatBytes(stats.vmTotalStorage)}</span>
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+              <div 
+                className={`h-full ${stats.vmFreeStorage / stats.vmTotalStorage < 0.1 ? 'bg-red-500' : 'bg-green-500'}`} 
+                style={{ width: `${Math.max(0, Math.min(100, 100 - (stats.vmFreeStorage / stats.vmTotalStorage * 100)))}%` }} 
+              />
+            </div>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Current project disk usage.
+            </p>
+          </div>
+          
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400">
+                <Server className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Environment</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white break-all">
+                  Node {process.version}
+                </p>
+              </div>
+            </div>
+            <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+              Running on Process Platform: {process.platform}
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

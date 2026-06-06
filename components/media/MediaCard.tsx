@@ -14,6 +14,8 @@ interface MediaCardProps {
     tags: { id: number; name: string; slug: string }[];
     mediaCount: number;
     thumbnailUrl: string | null;
+    videoUrl?: string | null;
+    previewUrl?: string | null;
     mediaType: "image" | "video" | "mixed";
     duration?: number | null;
   };
@@ -36,11 +38,33 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
     <>
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+        {(post.previewUrl || post.videoUrl) && (
+          <video
+            src={post.previewUrl || post.videoUrl || undefined}
+            className="absolute inset-0 z-10 h-full w-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+            muted
+            loop
+            playsInline
+            preload="none"
+            onMouseEnter={(e) => {
+              e.currentTarget.play().catch(() => {
+                // Ignore auto-play errors
+              });
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.pause();
+              e.currentTarget.currentTime = 0;
+            }}
+          />
+        )}
         {post.thumbnailUrl ? (
           <img
             src={post.thumbnailUrl}
             alt={post.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className={clsx(
+              "h-full w-full object-cover transition-transform duration-300 group-hover:scale-105",
+              (post.previewUrl || post.videoUrl) && "group-hover:opacity-0 transition-opacity duration-500"
+            )}
             loading="lazy"
             decoding="async"
           />

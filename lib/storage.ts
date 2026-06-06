@@ -98,6 +98,11 @@ export const StoragePaths = {
     return `thumbnails/${filename}`;
   },
 
+  /** Generated video previews (short mp4) */
+  preview(filename: string): string {
+    return `previews/${filename}`;
+  },
+
   /** Processed/transcoded files */
   processed(filename: string): string {
     return `processed/${filename}`;
@@ -128,5 +133,13 @@ export async function getPresignedUrl(key: string, expiresInSeconds: number = 36
     Key: key,
   });
 
-  return getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
+  const url = await getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
+
+  // Proxy through Next.js to avoid Local Network Access prompt on iOS/macOS
+  const { endpoint } = getStorageConfig();
+  if (endpoint.includes("192.168.")) {
+    return url.replace(endpoint, "/storage");
+  }
+
+  return url;
 }

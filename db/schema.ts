@@ -68,6 +68,7 @@ export const media = pgTable("media", {
   height: integer("height"),
   duration: real("duration"),
   thumbnailKey: text("thumbnail_key"),
+  previewKey: text("preview_key"),
   orderIndex: integer("order_index").notNull().default(0),
   createdAt: text("created_at")
     .notNull()
@@ -114,3 +115,92 @@ export type MediaFile = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
+
+// ── Likes ──────────────────────────────────────────────
+
+export const likes = pgTable("likes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  postId: integer("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  isLike: integer("is_like").notNull(), // 1 for like, 0 for dislike
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type Like = typeof likes.$inferSelect;
+export type NewLike = typeof likes.$inferInsert;
+
+// ── Comments ───────────────────────────────────────────
+
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  postId: integer("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type Comment = typeof comments.$inferSelect;
+export type NewComment = typeof comments.$inferInsert;
+
+// ── Watch History ──────────────────────────────────────
+
+export const watchHistory = pgTable("watch_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  postId: integer("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  watchedAt: text("watched_at")
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type WatchHistory = typeof watchHistory.$inferSelect;
+export type NewWatchHistory = typeof watchHistory.$inferInsert;
+
+// ── Playlists ──────────────────────────────────────────
+
+export const playlists = pgTable("playlists", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  isPublic: integer("is_public").notNull().default(0),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type Playlist = typeof playlists.$inferSelect;
+export type NewPlaylist = typeof playlists.$inferInsert;
+
+export const playlistItems = pgTable("playlist_items", {
+  id: serial("id").primaryKey(),
+  playlistId: integer("playlist_id")
+    .notNull()
+    .references(() => playlists.id, { onDelete: "cascade" }),
+  postId: integer("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  addedAt: text("added_at")
+    .notNull()
+    .default(sql`now()`),
+});
+
+export type PlaylistItem = typeof playlistItems.$inferSelect;
+export type NewPlaylistItem = typeof playlistItems.$inferInsert;

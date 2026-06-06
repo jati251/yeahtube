@@ -3,12 +3,14 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Upload, User } from "lucide-react";
+import { Home, Compass, Upload, Clock, TrendingUp, ListVideo } from "lucide-react";
 import { clsx } from "clsx";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/browse", label: "Browse", icon: Compass },
+  { href: "/trending", label: "Trending", icon: TrendingUp },
+  { href: "/playlists", label: "Library", icon: ListVideo },
   { href: "/upload", label: "Upload", icon: Upload },
 ];
 

@@ -260,6 +260,16 @@ export async function GET(request: NextRequest) {
         thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
       }
 
+      let videoUrl = null;
+      let previewUrl = null;
+      const firstVideo = postMedia.find((m) => m.mediaType === "video");
+      if (firstVideo?.storageKey) {
+        videoUrl = await getPresignedUrl(firstVideo.storageKey);
+      }
+      if (firstVideo?.previewKey) {
+        previewUrl = await getPresignedUrl(firstVideo.previewKey);
+      }
+
       return {
         id: post.id,
         title: post.title,
@@ -269,6 +279,8 @@ export async function GET(request: NextRequest) {
         mediaCount: post.mediaCount,
         mediaType: hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image",
         thumbnailUrl,
+        videoUrl,
+        previewUrl,
         duration: firstMedia?.duration || null,
         category: post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null,
       };
