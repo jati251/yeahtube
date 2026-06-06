@@ -66,7 +66,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
           </div>
         )}
 
-        {/* Quality/Photo badge */}
+        {/* Quality/Type badge */}
         {quality ? (
           <span className={`absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white ${quality.color}`}>
             {quality.label}
@@ -74,6 +74,14 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         ) : post.mediaType === "image" ? (
           <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-green-600">
             Photo
+          </span>
+        ) : post.mediaType === "video" ? (
+          <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-gray-600">
+            Video
+          </span>
+        ) : post.mediaType === "mixed" ? (
+          <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-blue-600">
+            Mixed
           </span>
         ) : null}
 
