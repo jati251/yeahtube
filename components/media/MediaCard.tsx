@@ -94,7 +94,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const CardContent = (
     <>
       {/* Thumbnail */}
-      <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-none">
+      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-none">
         {post.previewUrl && (
           <video
             ref={videoRef}
