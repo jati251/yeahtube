@@ -571,7 +571,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
                   className="fixed inset-0 z-40"
                   onClick={() => setShowSettings(false)}
                 />
-                <div className="absolute bottom-full right-0 z-50 mb-2 w-44 rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm">
+                <div className="absolute bottom-full left-0 right-auto z-50 mb-2 w-44 rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm sm:left-auto sm:right-0">
                   {/* Quality section */}
                   {hasQualityOptions && (
                     <>
