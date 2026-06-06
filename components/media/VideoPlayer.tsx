@@ -62,6 +62,18 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
     }
   }, [src]);
 
+  // Cleanup video resources on unmount to prevent memory/decoder leaks
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    return () => {
+      if (videoElement) {
+        videoElement.pause();
+        videoElement.removeAttribute("src");
+        videoElement.load();
+      }
+    };
+  }, []);
+
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (playing) {
