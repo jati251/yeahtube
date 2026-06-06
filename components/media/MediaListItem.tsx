@@ -34,8 +34,10 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
-  const timeAgo = getTimeAgo(post.createdAt);
+  const [timeAgo, setTimeAgo] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => { setTimeAgo(getTimeAgo(post.createdAt)); }, [post.createdAt]);
 
   const ItemContent = (
     <>

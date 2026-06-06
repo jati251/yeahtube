@@ -35,9 +35,11 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
-  const timeAgo = getTimeAgo(post.createdAt);
+  const [timeAgo, setTimeAgo] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => { setTimeAgo(getTimeAgo(post.createdAt)); }, [post.createdAt]);
   const [previewTriggered, setPreviewTriggered] = useState(false);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
