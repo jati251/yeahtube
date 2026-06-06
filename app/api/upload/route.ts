@@ -6,6 +6,7 @@ import { getS3Client, getStorageConfig, StoragePaths } from "@/lib/storage";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { validateMagicBytes, validateExtension } from "@/lib/magic-bytes";
 import { requireCsrf } from "@/lib/csrf";
+import { enqueueTranscode } from "@/lib/transcode-queue";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import sharp from "sharp";
@@ -356,6 +357,25 @@ async function processSingleFile(
       orderIndex: index,
     })
     .returning();
+
+  // Enqueue transcode job for video files (fire-and-forget, don't block response)
+  if (mediaType === "video" && storageConfig.bucket) {
+    enqueueTranscode({
+      mediaId: mediaResult.id,
+      postId,
+      storageKey,
+      filename: file.name,
+      mimeType: file.type,
+      bucket: storageConfig.bucket,
+      endpoint: storageConfig.endpoint,
+      region: storageConfig.region,
+      accessKey: storageConfig.accessKey,
+      secretKey: storageConfig.secretKey,
+      forcePathStyle: storageConfig.forcePathStyle ?? false,
+    }).catch((err) => {
+      console.error("[Upload] Failed to enqueue transcode:", err.message);
+    });
+  }
 
   return {
     id: mediaResult.id,
