@@ -9,7 +9,6 @@ import { PaginationControls } from "@/components/ui/PaginationControls";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import { LayoutGrid, List } from "lucide-react";
-import { useInView } from "react-intersection-observer";
 import { PostItem, TagItem } from "@/types/post";
 import { usePostSelection } from "@/hooks/usePostSelection";
 import { useAppStore } from "@/stores/appStore";
@@ -55,65 +54,11 @@ export function FeedClient({
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [total, setTotal] = useState(initialTotal);
 
-  // Infinite Scroll state
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialPosts.length === PAGE_SIZE);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-
-  const { ref, inView } = useInView({
-    rootMargin: "400px",
-  });
-
   // Sync posts/total when props change (URL navigation)
   useEffect(() => {
     setPosts(initialPosts);
     setTotal(initialTotal);
-    setHasMore(initialPosts.length === PAGE_SIZE);
-    setNextCursor(null);
   }, [initialPosts, initialTotal]);
-
-  const fetchMorePosts = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
-    try {
-      const url = new URL("/api/posts", window.location.origin);
-      url.searchParams.set("limit", String(PAGE_SIZE));
-      url.searchParams.set("sort", sort);
-      if (nextCursor) {
-        url.searchParams.set("cursor", nextCursor);
-      } else {
-        url.searchParams.set("offset", String(posts.length));
-      }
-      
-      searchParams.forEach((val, key) => {
-        if (key !== 'page' && key !== 'limit' && key !== 'cursor' && key !== 'offset') {
-          url.searchParams.set(key, val);
-        }
-      });
-
-      const res = await fetch(url.toString());
-      const data = await res.json();
-      if (data.posts) {
-        setPosts((prev) => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const newPosts = data.posts.filter((p: any) => !existingIds.has(p.id));
-          return [...prev, ...newPosts];
-        });
-        setHasMore(data.hasMore);
-        setNextCursor(data.nextCursor);
-      }
-    } catch (error) {
-      console.error("Failed to fetch more posts", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [isLoadingMore, hasMore, nextCursor, sort, posts.length, searchParams]);
-
-  useEffect(() => {
-    if (inView) {
-      fetchMorePosts();
-    }
-  }, [inView, fetchMorePosts]);
 
   // Scroll to top on page change (pagination navigation)
   const prevPageRef = useRef(page);
@@ -266,19 +211,6 @@ export function FeedClient({
         </div>
       ) : (
         <>
-          <div className="mb-4">
-            <PaginationControls
-              page={page}
-              totalPages={totalPages}
-              total={total}
-              onNext={() => navigateToPage(page + 1)}
-              onPrev={() => navigateToPage(page - 1)}
-              onFirst={() => navigateToPage(1)}
-              onLast={() => navigateToPage(totalPages)}
-              onPage={navigateToPage}
-            />
-          </div>
-          
           {viewMode === "grid" ? (
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 animate-slide-up">
               {posts.map((post) => (
@@ -311,34 +243,17 @@ export function FeedClient({
             </div>
           )}
 
-          {/* Infinite Scroll Loader */}
-          {hasMore && (
-            <div ref={ref} className="mt-8 flex justify-center py-6">
-              <div className="grid w-full grid-cols-2 gap-2 lg:grid-cols-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={`skeleton-${i}`}
-                    className="animate-pulse overflow-hidden rounded-none border border-slate-100 bg-white/50 dark:border-slate-800/60 dark:bg-slate-800/30"
-                  >
-                    <div className="aspect-video bg-slate-200/70 dark:bg-slate-700/50" />
-                    <div className="space-y-3 p-4">
-                      <div className="h-5 w-3/4 rounded-none bg-slate-200/70 dark:bg-slate-700/50" />
-                      <div className="space-y-2">
-                        <div className="h-3 w-full rounded-none bg-slate-200/50 dark:bg-slate-700/30" />
-                        <div className="h-3 w-4/6 rounded-none bg-slate-200/50 dark:bg-slate-700/30" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {!hasMore && posts.length > 0 && (
-            <div className="mt-8 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-              You've reached the end
-            </div>
-          )}
+          {/* Pagination controls in footer */}
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onNext={() => navigateToPage(page + 1)}
+            onPrev={() => navigateToPage(page - 1)}
+            onFirst={() => navigateToPage(1)}
+            onLast={() => navigateToPage(totalPages)}
+            onPage={navigateToPage}
+          />
         </>
       )}
 

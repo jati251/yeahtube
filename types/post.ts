@@ -11,6 +11,8 @@ export interface PostItem {
   previewUrl?: string | null;
   duration: number | null;
   category?: string | null;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface TagItem {

@@ -14,15 +14,41 @@ import {
   ChevronRight,
   PictureInPicture,
   Settings,
+  Monitor,
 } from "lucide-react";
+
+function getQualityLabelFromHeight(height: number | null | undefined): string {
+  const h = height ?? 0;
+  if (h >= 2160) return "4K";
+  if (h >= 1080) return "1080p";
+  if (h >= 720) return "720p";
+  if (h >= 480) return "480p";
+  if (h > 0) return "SD";
+  return "Auto";
+}
+
+interface QualityOption {
+  label: string;
+  src: string;
+  type?: string;
+  width?: number | null;
+  height?: number | null;
+  isCurrent?: boolean;
+}
 
 interface VideoPlayerProps {
   src: string;
   poster?: string;
   type?: string;
+  width?: number | null;
+  height?: number | null;
+  qualityOptions?: QualityOption[];
+  onQualityChange?: (option: QualityOption) => void;
 }
 
-export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProps) {
+export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qualityOptions, onQualityChange }: VideoPlayerProps) {
+  const currentQualityLabel = getQualityLabelFromHeight(height);
+  const hasQualityOptions = qualityOptions && qualityOptions.length > 1;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -494,6 +520,11 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
 
+          {/* Current quality label */}
+          <span className="text-[11px] text-white/60 font-medium hidden sm:inline">
+            {currentQualityLabel}
+          </span>
+
           {/* Playback speed / Settings */}
           <div className="relative">
             <button
@@ -513,6 +544,36 @@ export function VideoPlayer({ src, poster, type = "video/mp4" }: VideoPlayerProp
                   onClick={() => setShowSettings(false)}
                 />
                 <div className="absolute bottom-8 right-0 z-50 w-44 rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm">
+                  {/* Quality section */}
+                  {hasQualityOptions && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
+                        Quality
+                      </div>
+                      {qualityOptions.map((opt) => (
+                        <button
+                          key={opt.label}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onQualityChange?.(opt);
+                            setShowSettings(false);
+                          }}
+                          className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
+                            opt.isCurrent
+                              ? "bg-blue-500/20 text-blue-400 font-medium"
+                              : "text-white/80 hover:bg-white/10"
+                          }`}
+                        >
+                          <span>{opt.label}</span>
+                          {opt.isCurrent && (
+                            <span className="text-blue-400">✓</span>
+                          )}
+                        </button>
+                      ))}
+                      <div className="mx-2 my-1 border-t border-white/10" />
+                    </>
+                  )}
+
                   <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
                     Playback Speed
                   </div>

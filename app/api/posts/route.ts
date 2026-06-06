@@ -283,6 +283,8 @@ export async function GET(request: NextRequest) {
         previewUrl,
         duration: firstMedia?.duration || null,
         category: post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null,
+        width: firstMedia?.width || null,
+        height: firstMedia?.height || null,
       };
     }));
 

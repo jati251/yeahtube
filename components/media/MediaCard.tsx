@@ -5,6 +5,16 @@ import Link from "next/link";
 import { Film, Image, Clock } from "lucide-react";
 import { clsx } from "clsx";
 
+function getQualityLabel(width: number | null | undefined, height: number | null | undefined): { label: string; color: string } | null {
+  const h = height ?? 0;
+  if (h >= 2160) return { label: "4K", color: "bg-red-600" };
+  if (h >= 1080) return { label: "HD", color: "bg-blue-600" };
+  if (h >= 720) return { label: "HD", color: "bg-blue-600" };
+  if (h >= 480) return { label: "SD", color: "bg-gray-600" };
+  if (h > 0) return { label: "SD", color: "bg-gray-600" };
+  return null;
+}
+
 interface MediaCardProps {
   post: {
     id: number;
@@ -18,6 +28,8 @@ interface MediaCardProps {
     previewUrl?: string | null;
     mediaType: "image" | "video" | "mixed";
     duration?: number | null;
+    width?: number | null;
+    height?: number | null;
   };
   isAdmin?: boolean;
   selectMode?: boolean;
@@ -28,6 +40,7 @@ interface MediaCardProps {
 }
 
 export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, deleting }: MediaCardProps) {
+  const quality = getQualityLabel(post.width, post.height);
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
@@ -129,6 +142,12 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             <span className="flex items-center gap-1 rounded-none bg-black/70 px-2 py-0.5 text-xs text-white">
               <Clock className="h-3 w-3" />
               {formatDuration(post.duration)}
+            </span>
+          )}
+
+          {quality && post.mediaType === "video" && (
+            <span className={`rounded-none px-2 py-0.5 text-xs font-medium text-white ${quality.color}`}>
+              {quality.label}
             </span>
           )}
 

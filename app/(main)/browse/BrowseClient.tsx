@@ -148,12 +148,15 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
 
   const navigateToPage = useCallback(
     (newPage: number) => {
+      // Fetch the actual page data via the hook
+      goToPage(newPage);
+      // Also update URL to keep it in sync
       const sp = new URLSearchParams(searchParams.toString());
       if (newPage > 1) sp.set("page", String(newPage));
       else sp.delete("page");
       router.push(`/browse?${sp.toString()}`, { scroll: false });
     },
-    [router, searchParams],
+    [router, searchParams, goToPage],
   );
 
   const handleMediaTypeChange = (type: string | null) => updateUrl({ type });

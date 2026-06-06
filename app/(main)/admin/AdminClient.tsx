@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Shield, ShieldOff, Check, X, UserPlus, HardDrive, Database, Server } from "lucide-react";
+import { Shield, ShieldOff, Check, X, UserPlus, HardDrive, Database, Server, FileText, Users, Film, MessageCircle, Heart, Tag, FolderOpen, ListVideo, Upload, TrendingUp, FileWarning } from "lucide-react";
 
 import { CategoryManager, CategoryItem } from "@/components/admin/CategoryManager";
 
@@ -26,6 +26,17 @@ interface AdminClientProps {
     totalMediaSize: number;
     vmFreeStorage: number;
     vmTotalStorage: number;
+    totalPosts: number;
+    totalUsers: number;
+    totalMediaFiles: number;
+    totalComments: number;
+    totalLikes: number;
+    totalTags: number;
+    totalCategories: number;
+    totalPlaylists: number;
+    recentUploads: number;
+    mostActiveUser: { username: string; postCount: number } | null;
+    largestFiles: { filename: string; fileSize: number; postTitle: string }[];
   };
 }
 
@@ -37,6 +48,35 @@ const formatBytes = (bytes: number, decimals = 2) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 };
+
+const colorMap: Record<string, string> = {
+  blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400",
+  indigo: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400",
+  green: "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400",
+  amber: "bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400",
+  cyan: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/50 dark:text-cyan-400",
+  red: "bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400",
+  violet: "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-400",
+  teal: "bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-400",
+  orange: "bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400",
+};
+
+function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
+  const colorClass = colorMap[color] || colorMap.blue;
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorClass}`}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{label}</p>
+          <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function AdminClient({ currentUserId, users, categories = [], stats }: AdminClientProps) {
   const router = useRouter();
@@ -327,62 +367,147 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
       ) : activeTab === "categories" ? (
         <CategoryManager initialCategories={categories} />
       ) : activeTab === "system" && stats ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
-                <Database className="h-6 w-6" />
+        <div className="space-y-6">
+          {/* Storage Stats */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Storage
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+                    <Database className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total Media Size</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {formatBytes(stats.totalMediaSize)}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Media Size</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatBytes(stats.totalMediaSize)}
-                </p>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+                    <HardDrive className="h-5 w-5" />
+                  </div>
+                  <div className="w-full">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">VM Storage Available</p>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                      {formatBytes(stats.vmFreeStorage)} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">/ {formatBytes(stats.vmTotalStorage)}</span>
+                    </p>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        className={`h-full ${stats.vmFreeStorage / stats.vmTotalStorage < 0.1 ? 'bg-red-500' : 'bg-green-500'}`}
+                        style={{ width: `${Math.max(0, Math.min(100, 100 - (stats.vmFreeStorage / stats.vmTotalStorage * 100)))}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400">
+                    <Server className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Environment</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white break-all">
+                      Node {process.version}
+                    </p>
+                    <p className="text-[10px] text-gray-400">{process.platform}</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-              Total space consumed by uploaded videos and images in the database.
-            </p>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
-                <HardDrive className="h-6 w-6" />
-              </div>
-              <div className="w-full">
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">VM Storage Available</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatBytes(stats.vmFreeStorage)} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">/ {formatBytes(stats.vmTotalStorage)}</span>
-                </p>
-              </div>
+          {/* Content Overview */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Content Overview
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard icon={<FileText className="h-5 w-5" />} label="Total Posts" value={String(stats.totalPosts)} color="blue" />
+              <StatCard icon={<Film className="h-5 w-5" />} label="Media Files" value={String(stats.totalMediaFiles)} color="indigo" />
+              <StatCard icon={<MessageCircle className="h-5 w-5" />} label="Comments" value={String(stats.totalComments)} color="green" />
+              <StatCard icon={<Upload className="h-5 w-5" />} label="Recent (7d)" value={String(stats.recentUploads)} color="amber" />
             </div>
-            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-              <div 
-                className={`h-full ${stats.vmFreeStorage / stats.vmTotalStorage < 0.1 ? 'bg-red-500' : 'bg-green-500'}`} 
-                style={{ width: `${Math.max(0, Math.min(100, 100 - (stats.vmFreeStorage / stats.vmTotalStorage * 100)))}%` }} 
-              />
-            </div>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Current project disk usage.
-            </p>
           </div>
-          
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400">
-                <Server className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Environment</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white break-all">
-                  Node {process.version}
-                </p>
-              </div>
+
+          {/* Community Stats */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Community
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard icon={<Users className="h-5 w-5" />} label="Total Users" value={String(stats.totalUsers)} color="cyan" />
+              <StatCard icon={<Heart className="h-5 w-5" />} label="Likes" value={String(stats.totalLikes)} color="red" />
+              <StatCard icon={<ListVideo className="h-5 w-5" />} label="Playlists" value={String(stats.totalPlaylists)} color="violet" />
+              <StatCard icon={<Tag className="h-5 w-5" />} label="Tags" value={String(stats.totalTags)} color="teal" />
+              <StatCard icon={<FolderOpen className="h-5 w-5" />} label="Categories" value={String(stats.totalCategories)} color="orange" />
             </div>
-            <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-              Running on Process Platform: {process.platform}
-            </p>
+          </div>
+
+          {/* Top Stats */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Highlights
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {stats.mostActiveUser && (
+                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Most Active User</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        {stats.mostActiveUser.username}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {stats.mostActiveUser.postCount} post{stats.mostActiveUser.postCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {stats.largestFiles.length > 0 && (
+                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
+                      <FileWarning className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Largest Files</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">Top {stats.largestFiles.length}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {stats.largestFiles.map((f, i) => (
+                      <div key={i} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700/50">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-300" title={f.postTitle}>
+                            {f.postTitle}
+                          </p>
+                          <p className="truncate text-[10px] text-gray-400" title={f.filename}>
+                            {f.filename}
+                          </p>
+                        </div>
+                        <span className="ml-2 shrink-0 text-xs font-mono text-gray-500 dark:text-gray-400">
+                          {formatBytes(f.fileSize)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : null}

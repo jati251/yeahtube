@@ -91,6 +91,8 @@ async function getInitialPosts(page: number, sort: string) {
         videoUrl,
         duration: firstMedia?.duration || null,
         category: null as string | null,
+        width: firstMedia?.width || null,
+        height: firstMedia?.height || null,
       };
     })
   );

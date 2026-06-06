@@ -20,6 +20,8 @@ interface VideoData {
   mimeType: string;
   duration: number | null;
   thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
 }
 
 interface ImageData {
@@ -37,6 +39,16 @@ interface PostData {
   title: string;
   description: string | null;
   createdAt: string;
+}
+
+function getQualityLabelFromHeight(height: number | null): string {
+  const h = height ?? 0;
+  if (h >= 2160) return "4K";
+  if (h >= 1080) return "1080p";
+  if (h >= 720) return "720p";
+  if (h >= 480) return "480p";
+  if (h > 0) return "SD";
+  return "Auto";
 }
 
 interface WatchPageClientProps {
@@ -58,6 +70,23 @@ export function WatchPageClient({
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const currentVideo = videos[currentVideoIndex];
+
+  // Build quality options from all videos
+  const qualityOptions = videos.length > 1 ? videos.map((v, idx) => ({
+    label: getQualityLabelFromHeight(v.height),
+    src: v.streamUrl,
+    type: v.mimeType,
+    width: v.width,
+    height: v.height,
+    isCurrent: idx === currentVideoIndex,
+  })) : undefined;
+
+  const handleQualityChange = (option: { label: string; src: string; type?: string }) => {
+    const idx = videos.findIndex((v) => v.streamUrl === option.src);
+    if (idx >= 0) {
+      setCurrentVideoIndex(idx);
+    }
+  };
 
   // Force scroll to top on mount — Next.js App Router overrides with scroll restoration,
   // so we disable it temporarily and scroll with rAF to ensure it sticks.
@@ -113,6 +142,10 @@ export function WatchPageClient({
             src={currentVideo.streamUrl}
             poster={currentVideo.thumbnailUrl || undefined}
             type={currentVideo.mimeType}
+            width={currentVideo.width}
+            height={currentVideo.height}
+            qualityOptions={qualityOptions}
+            onQualityChange={handleQualityChange}
           />
 
           {/* Video info */}

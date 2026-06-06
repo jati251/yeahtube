@@ -5,6 +5,16 @@ import Link from "next/link";
 import { Film, Image, Clock, Layers } from "lucide-react";
 import { clsx } from "clsx";
 
+function getQualityLabel(width: number | null | undefined, height: number | null | undefined): { label: string; color: string } | null {
+  const h = height ?? 0;
+  if (h >= 2160) return { label: "4K", color: "bg-red-600" };
+  if (h >= 1080) return { label: "HD", color: "bg-blue-600" };
+  if (h >= 720) return { label: "HD", color: "bg-blue-600" };
+  if (h >= 480) return { label: "SD", color: "bg-gray-600" };
+  if (h > 0) return { label: "SD", color: "bg-gray-600" };
+  return null;
+}
+
 interface MediaListItemProps {
   post: {
     id: number;
@@ -17,6 +27,8 @@ interface MediaListItemProps {
     mediaType: "image" | "video" | "mixed";
     duration?: number | null;
     category?: string | null;
+    width?: number | null;
+    height?: number | null;
   };
   isAdmin?: boolean;
   selectMode?: boolean;
@@ -27,6 +39,7 @@ interface MediaListItemProps {
 }
 
 export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, deleting }: MediaListItemProps) {
+  const quality = getQualityLabel(post.width, post.height);
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
@@ -76,6 +89,12 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         {post.duration && (
           <span className="absolute bottom-1 right-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
             {formatDuration(post.duration)}
+          </span>
+        )}
+
+        {quality && post.mediaType === "video" && (
+          <span className={`absolute top-1 right-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white ${quality.color}`}>
+            {quality.label}
           </span>
         )}
       </div>
