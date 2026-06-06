@@ -280,7 +280,7 @@ export function FeedClient({
           </div>
           
           {viewMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 animate-slide-up">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 animate-slide-up">
               {posts.map((post) => (
                 <MediaCard
                   key={post.id}
@@ -314,18 +314,18 @@ export function FeedClient({
           {/* Infinite Scroll Loader */}
           {hasMore && (
             <div ref={ref} className="mt-8 flex justify-center py-6">
-              <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, i) => (
+              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, i) => (
                   <div
                     key={`skeleton-${i}`}
-                    className="animate-pulse overflow-hidden rounded-xl border border-slate-100 bg-white/50 dark:border-slate-800/60 dark:bg-slate-800/30"
+                    className="animate-pulse overflow-hidden rounded-none border border-slate-100 bg-white/50 dark:border-slate-800/60 dark:bg-slate-800/30"
                   >
                     <div className="aspect-video bg-slate-200/70 dark:bg-slate-700/50" />
                     <div className="space-y-3 p-4">
-                      <div className="h-5 w-3/4 rounded-md bg-slate-200/70 dark:bg-slate-700/50" />
+                      <div className="h-5 w-3/4 rounded-none bg-slate-200/70 dark:bg-slate-700/50" />
                       <div className="space-y-2">
-                        <div className="h-3 w-full rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
-                        <div className="h-3 w-4/6 rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+                        <div className="h-3 w-full rounded-none bg-slate-200/50 dark:bg-slate-700/30" />
+                        <div className="h-3 w-4/6 rounded-none bg-slate-200/50 dark:bg-slate-700/30" />
                       </div>
                     </div>
                   </div>

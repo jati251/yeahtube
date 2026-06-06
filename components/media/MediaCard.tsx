@@ -38,12 +38,12 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const CardContent = (
     <>
       {/* Thumbnail */}
-      <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+      <div className="relative aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-none">
         {(post.previewUrl || post.videoUrl) && (
           <video
             src={post.previewUrl || post.videoUrl || undefined}
             className={clsx(
-              "absolute inset-0 z-10 h-full w-full object-cover transition-opacity duration-500",
+              "absolute inset-0 z-20 h-full w-full object-cover transition-opacity duration-500",
               isPlaying ? "opacity-100" : "opacity-0"
             )}
             muted
@@ -76,16 +76,29 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
           />
         )}
         {post.thumbnailUrl ? (
-          <img
-            src={post.thumbnailUrl}
-            alt={post.title}
-            className={clsx(
-              "h-full w-full object-cover transition-all duration-300",
-              isPlaying ? "scale-105 opacity-0" : "scale-100 opacity-100"
-            )}
-            loading="lazy"
-            decoding="async"
-          />
+          <>
+            {/* Blurred background cover */}
+            <img
+              src={post.thumbnailUrl}
+              alt=""
+              className={clsx(
+                "absolute inset-0 z-0 h-full w-full object-cover blur-xl scale-110 opacity-60 dark:opacity-40 transition-all duration-300",
+                isPlaying && "opacity-0"
+              )}
+              loading="lazy"
+            />
+            {/* Full view contain cover */}
+            <img
+              src={post.thumbnailUrl}
+              alt={post.title}
+              className={clsx(
+                "relative z-10 mx-auto h-full w-full object-contain transition-all duration-300",
+                isPlaying ? "scale-105 opacity-0" : "scale-100 opacity-100"
+              )}
+              loading="lazy"
+              decoding="async"
+            />
+          </>
         ) : (
           <div className="flex h-full items-center justify-center">
             {post.mediaType === "video" ? (
@@ -97,10 +110,10 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         )}
 
         {/* Badges */}
-        <div className="absolute bottom-2 left-2 flex gap-2">
+        <div className="absolute bottom-2 left-2 z-10 flex gap-2">
           <span
             className={clsx(
-              "rounded-md px-2 py-0.5 text-xs font-medium text-white",
+              "rounded-none px-2 py-0.5 text-xs font-medium text-white",
               post.mediaType === "video"
                 ? "bg-purple-600"
                 : post.mediaType === "mixed"
@@ -116,14 +129,14 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
           </span>
 
           {post.duration && (
-            <span className="flex items-center gap-1 rounded-md bg-black/70 px-2 py-0.5 text-xs text-white">
+            <span className="flex items-center gap-1 rounded-none bg-black/70 px-2 py-0.5 text-xs text-white">
               <Clock className="h-3 w-3" />
               {formatDuration(post.duration)}
             </span>
           )}
 
           {post.mediaCount > 1 && (
-            <span className="rounded-md bg-black/70 px-2 py-0.5 text-xs text-white">
+            <span className="rounded-none bg-black/70 px-2 py-0.5 text-xs text-white">
               +{post.mediaCount}
             </span>
           )}
@@ -147,7 +160,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag.id}
-                className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                className="rounded-none bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
               >
                 #{tag.name}
               </span>
@@ -176,7 +189,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         }
       }}
       className={clsx(
-        "group relative block min-w-0 overflow-hidden rounded-xl glass-card premium-hover cursor-pointer transition-all duration-200",
+        "group relative block min-w-0 overflow-hidden rounded-none glass-card premium-hover cursor-pointer transition-all duration-200",
         selectMode && "select-none",
         selectMode && selected && "ring-2 ring-blue-500 bg-blue-50/10 dark:bg-blue-900/20"
       )}

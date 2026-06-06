@@ -353,15 +353,15 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
 
           {loading && posts.length === 0 ? (
             viewMode === "grid" ? (
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="animate-pulse overflow-hidden rounded-xl border border-slate-100 bg-white/50 dark:border-slate-800/60 dark:bg-slate-800/30">
-                    <div className="aspect-video rounded-t-xl bg-slate-200/70 dark:bg-slate-700/50" />
+                  <div key={i} className="animate-pulse overflow-hidden rounded-none border border-slate-100 bg-white/50 dark:border-slate-800/60 dark:bg-slate-800/30">
+                    <div className="aspect-video bg-slate-200/70 dark:bg-slate-700/50" />
                     <div className="space-y-3 p-4">
-                      <div className="h-5 w-3/4 rounded-md bg-slate-200/70 dark:bg-slate-700/50" />
+                      <div className="h-5 w-3/4 rounded-none bg-slate-200/70 dark:bg-slate-700/50" />
                       <div className="space-y-2">
-                        <div className="h-3 w-full rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
-                        <div className="h-3 w-4/6 rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+                        <div className="h-3 w-full rounded-none bg-slate-200/50 dark:bg-slate-700/30" />
+                        <div className="h-3 w-4/6 rounded-none bg-slate-200/50 dark:bg-slate-700/30" />
                       </div>
                     </div>
                   </div>
@@ -370,13 +370,13 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             ) : (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex animate-pulse gap-4 rounded-xl border border-slate-100 bg-white/50 p-4 dark:border-slate-800/60 dark:bg-slate-800/30">
-                    <div className="h-20 w-28 rounded-lg bg-slate-200/70 dark:bg-slate-700/50 sm:h-24 sm:w-36" />
+                  <div key={i} className="flex animate-pulse gap-2 rounded-none border border-slate-100 bg-white/50 p-4 dark:border-slate-800/60 dark:bg-slate-800/30">
+                    <div className="h-20 w-28 rounded-none bg-slate-200/70 dark:bg-slate-700/50 sm:h-24 sm:w-36" />
                     <div className="flex-1 space-y-3 pt-1">
-                      <div className="h-5 w-3/4 rounded-md bg-slate-200/70 dark:bg-slate-700/50" />
+                      <div className="h-5 w-3/4 rounded-none bg-slate-200/70 dark:bg-slate-700/50" />
                       <div className="space-y-2">
-                        <div className="h-3 w-full rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
-                        <div className="h-3 w-1/2 rounded-md bg-slate-200/50 dark:bg-slate-700/30" />
+                        <div className="h-3 w-full rounded-none bg-slate-200/50 dark:bg-slate-700/30" />
+                        <div className="h-3 w-1/2 rounded-none bg-slate-200/50 dark:bg-slate-700/30" />
                       </div>
                     </div>
                   </div>
@@ -394,7 +394,7 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
               </p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 animate-slide-up">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 animate-slide-up">
                {posts.map((post) => (
                  <MediaCard
                    key={post.id}

@@ -110,7 +110,7 @@ export default async function TrendingPage() {
       </div>
 
       {trendingPosts.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {trendingPosts.map((post: any, index: number) => (
             <div key={post.id} className="relative">
               <div className="absolute -left-3 -top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-red-500 font-bold text-white shadow-md dark:border-gray-900">
@@ -121,7 +121,7 @@ export default async function TrendingPage() {
           ))}
         </div>
       ) : (
-        <div className="flex h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-800">
+        <div className="flex h-64 flex-col items-center justify-center rounded-none border-2 border-dashed border-gray-200 dark:border-gray-800">
           <TrendingUp className="mb-4 h-12 w-12 text-gray-300 dark:text-gray-600" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">No trending posts yet</h3>
           <p className="text-gray-500">Wait for users to start liking some content.</p>
