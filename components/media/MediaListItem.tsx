@@ -59,8 +59,8 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
           </div>
         )}
 
-        {/* Quality/Type badge */}
-        {quality ? (
+        {/* Quality/Type badge — only for video/mixed */}
+        {quality && post.mediaType !== "image" ? (
           <span className={`absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white ${quality.color}`}>
             {quality.label}
           </span>

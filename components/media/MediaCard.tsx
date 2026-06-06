@@ -170,7 +170,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         {/* Badges */}
         <div className="absolute bottom-2 left-2 z-10 flex gap-2">
           {/* Quality badge for video/mixed; fallback label for posts without resolution data */}
-          {quality ? (
+          {quality && post.mediaType !== "image" ? (
             <span className={`rounded-none px-2 py-0.5 text-xs font-medium text-white ${quality.color}`}>
               {quality.label}
             </span>
