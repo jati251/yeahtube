@@ -41,9 +41,13 @@ export function FeedClient({
   const searchParams = useSearchParams();
   const { addToast } = useToast();
 
-  // Zustand: scroll only
+  // Zustand: scroll + cached feed
   const feedScrollY = useAppStore((s) => s.feedScrollY);
   const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
+  const cachedFeedPage = useAppStore((s) => s.cachedFeedPage);
+  const cachedFeedPosts = useAppStore((s) => s.cachedFeedPosts);
+  const cachedFeedTotal = useAppStore((s) => s.cachedFeedTotal);
+  const setCachedFeed = useAppStore((s) => s.setCachedFeed);
 
   // Filters from URL for initial state
   const initialMediaType = searchParams.get("type");
@@ -58,6 +62,13 @@ export function FeedClient({
     parseInt(searchParams.get("page") || String(initialPage), 10) || 1,
   );
 
+  // Use cached feed data when navigating back from a detail page
+  // This prevents the flash of page 1 content before the correct page loads
+  const hasCachedFeed = cachedFeedPage > 0 && cachedFeedPosts.length > 0;
+  const effectiveInitialPosts = hasCachedFeed ? cachedFeedPosts : initialPosts;
+  const effectiveInitialTotal = hasCachedFeed ? cachedFeedTotal : initialTotal;
+  const effectiveInitialPage = hasCachedFeed ? cachedFeedPage : initialUrlPage;
+
   // Local state for seamless client-side filtering & pagination
   const [activeMediaType, setActiveMediaType] = useState<string | null>(
     initialMediaType,
@@ -70,7 +81,7 @@ export function FeedClient({
     initialCategory,
   );
   const [activeYear, setActiveYear] = useState<string | null>(initialYear);
-  const [activePage, setActivePage] = useState(initialUrlPage);
+  const [activePage, setActivePage] = useState(effectiveInitialPage);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -86,9 +97,9 @@ export function FeedClient({
 
   const { posts, setPosts, loading, page, total, totalPages, goToPage } =
     usePaginatedPosts({
-      initialPosts,
-      initialTotal,
-      initialPage: activePage,
+      initialPosts: effectiveInitialPosts,
+      initialTotal: effectiveInitialTotal,
+      initialPage: effectiveInitialPage,
       fetchParams: {
         type: activeMediaType,
         tags: activeTags.join(",") || null,
@@ -97,8 +108,15 @@ export function FeedClient({
         category: activeCategory,
         year: activeYear,
       },
-      autoFetch: false, // Rely on initial posts on mount, fetch client-side thereafter
+      autoFetch: false,
     });
+
+  // Cache feed state whenever posts/page/total change
+  useEffect(() => {
+    if (posts.length > 0 && page > 0) {
+      setCachedFeed(page, posts, total);
+    }
+  }, [posts, page, total, setCachedFeed]);
 
   // Sync back hook page changes to activePage state
   useEffect(() => {
