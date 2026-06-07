@@ -20,8 +20,6 @@ interface UsePaginatedPostsOptions {
   initialPage?: number;
   fetchParams?: FetchParams;
   autoFetch?: boolean;
-  /** Called after fetch completes — perfect place for scroll-to-top */
-  onPageChange?: (pageNum: number) => void;
 }
 
 const DEFAULT_POSTS: PostItem[] = [];
@@ -32,7 +30,6 @@ export function usePaginatedPosts({
   initialPage = 1,
   fetchParams = {},
   autoFetch = false,
-  onPageChange,
 }: UsePaginatedPostsOptions) {
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [page, setPage] = useState(initialPage);
@@ -42,25 +39,19 @@ export function usePaginatedPosts({
   const limitVal = fetchParams.limit || DEFAULT_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(total / limitVal));
 
-  const mountedRef = useRef(false);
+  const initialFetchDone = useRef(false);
+  const skipFetchRef = useRef(false);
 
-  const fpRef = useRef(fetchParams);
+  const fetchParamsRef = useRef(fetchParams);
   useEffect(() => {
-    fpRef.current = fetchParams;
+    fetchParamsRef.current = fetchParams;
   }, [fetchParams]);
-
-  const onPageChangeRef = useRef(onPageChange);
-  useEffect(() => {
-    onPageChangeRef.current = onPageChange;
-  }, [onPageChange]);
 
   const fetchPage = useCallback(
     async (pageNum: number) => {
-      if (posts.length === 0) {
-        setLoading(true);
-      }
+      setLoading(true);
       try {
-        const fp = fpRef.current;
+        const fp = fetchParamsRef.current;
         const params = new URLSearchParams();
         params.set("offset", String((pageNum - 1) * limitVal));
         params.set("limit", String(limitVal));
@@ -78,14 +69,13 @@ export function usePaginatedPosts({
         setPosts(data.posts || []);
         setTotal(data.total || 0);
         setPage(pageNum);
-        setLoading(false);
-        onPageChangeRef.current?.(pageNum);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
+      } finally {
         setLoading(false);
       }
     },
-    [limitVal, posts.length],
+    [limitVal],
   );
 
   const fetchPageRef = useRef(fetchPage);
@@ -96,16 +86,15 @@ export function usePaginatedPosts({
   const goToPage = useCallback(
     (pageNum: number) => {
       const safe = Math.max(1, pageNum);
-      // Don't setPage — fetchPage sets page+posts+total together.
-      // This keeps cards + pagination perfectly in sync, zero flicker.
-      fetchPageRef.current(safe);
+      setPage(safe);
     },
     [],
   );
 
   const restoreFromCache = useCallback(
     (cachedPosts: PostItem[], cachedPage: number, cachedTotal: number) => {
-      mountedRef.current = true;
+      skipFetchRef.current = true;
+      initialFetchDone.current = true;
       setPosts(cachedPosts);
       setPage(cachedPage);
       setTotal(cachedTotal);
@@ -113,21 +102,23 @@ export function usePaginatedPosts({
     [],
   );
 
-  const prevInitialPageRef = useRef(initialPage);
-  const prevInitialTotalRef = useRef(initialTotal);
+  const prevInitialPosts = useRef(initialPosts);
   useEffect(() => {
-    if (
-      initialPage !== prevInitialPageRef.current ||
-      initialTotal !== prevInitialTotalRef.current
-    ) {
+    const postsChanged =
+      initialPosts !== prevInitialPosts.current &&
+      (initialPosts.length > 0 || prevInitialPosts.current.length > 0);
+    if (postsChanged) {
       setPosts(initialPosts);
       setTotal(initialTotal);
       setPage(initialPage);
-      prevInitialPageRef.current = initialPage;
-      prevInitialTotalRef.current = initialTotal;
-      mountedRef.current = false;
+      prevInitialPosts.current = initialPosts;
+      initialFetchDone.current = false;
     }
   }, [initialPosts, initialTotal, initialPage]);
+
+  useEffect(() => {
+    setPage(initialPage);
+  }, [initialPage]);
 
   const sortVal = fetchParams.sort;
   const typeVal = fetchParams.type;
@@ -137,13 +128,25 @@ export function usePaginatedPosts({
   const yearVal = fetchParams.year;
 
   useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      return;
-    }
-    if (autoFetch) {
-      fetchPageRef.current(page);
-    }
+    let active = true;
+    const runFetch = async () => {
+      if (!active) return;
+      if (skipFetchRef.current) {
+        skipFetchRef.current = false;
+        return;
+      }
+      if (autoFetch) {
+        await fetchPageRef.current(page);
+      } else if (!autoFetch && !initialFetchDone.current) {
+        initialFetchDone.current = true;
+      } else if (initialFetchDone.current) {
+        await fetchPageRef.current(page);
+      }
+    };
+    runFetch();
+    return () => {
+      active = false;
+    };
   }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, page, autoFetch]);
 
   useEffect(() => {

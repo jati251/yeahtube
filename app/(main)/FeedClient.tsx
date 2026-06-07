@@ -86,10 +86,6 @@ export function FeedClient({
         year: activeYear,
       },
       autoFetch: false,
-      onPageChange: () => {
-        window.scrollTo(0, 0);
-        setFeedScrollY(0);
-      },
     });
 
   // ---- Restore from Zustand cache on mount (prevents flash of page 1) ----
@@ -139,6 +135,15 @@ export function FeedClient({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [setFeedScrollY]);
 
+  // ---- Scroll to top on page change ----
+  const prevPageRef = useRef(page);
+  useEffect(() => {
+    if (page !== prevPageRef.current && prevPageRef.current !== 0) {
+      window.scrollTo(0, 0);
+      setFeedScrollY(0);
+    }
+    prevPageRef.current = page;
+  }, [page, setFeedScrollY]);
 
   // ---- URL sync: replaceState (not pushState) to avoid history pollution ----
   useEffect(() => {
