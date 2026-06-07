@@ -44,10 +44,24 @@ export function FeedClient({
   // Zustand: scroll + cached feed
   const feedScrollY = useAppStore((s) => s.feedScrollY);
   const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
-  const cachedFeedPage = useAppStore((s) => s.cachedFeedPage);
-  const cachedFeedPosts = useAppStore((s) => s.cachedFeedPosts);
-  const cachedFeedTotal = useAppStore((s) => s.cachedFeedTotal);
   const setCachedFeed = useAppStore((s) => s.setCachedFeed);
+
+  // Snapshot the cached feed state ONCE on mount to avoid reactive loops.
+  // The cache updates every time posts/page/total change — if we read it
+  // reactively, usePaginatedPosts' sync effects would constantly fire and
+  // reset initialFetchDone, breaking subsequent page navigations.
+  const mountCacheRef = React.useRef<{
+    page: number;
+    posts: PostItem[];
+    total: number;
+  } | null>(null);
+  if (mountCacheRef.current === null) {
+    const store = useAppStore.getState();
+    const hasCached = store.cachedFeedPage > 0 && store.cachedFeedPosts.length > 0;
+    mountCacheRef.current = hasCached
+      ? { page: store.cachedFeedPage, posts: store.cachedFeedPosts, total: store.cachedFeedTotal }
+      : { page: 0, posts: [], total: 0 };
+  }
 
   // Filters from URL for initial state
   const initialMediaType = searchParams.get("type");
@@ -63,11 +77,11 @@ export function FeedClient({
   );
 
   // Use cached feed data when navigating back from a detail page
-  // This prevents the flash of page 1 content before the correct page loads
-  const hasCachedFeed = cachedFeedPage > 0 && cachedFeedPosts.length > 0;
-  const effectiveInitialPosts = hasCachedFeed ? cachedFeedPosts : initialPosts;
-  const effectiveInitialTotal = hasCachedFeed ? cachedFeedTotal : initialTotal;
-  const effectiveInitialPage = hasCachedFeed ? cachedFeedPage : initialUrlPage;
+  const cache = mountCacheRef.current;
+  const hasCachedFeed = cache.page > 0 && cache.posts.length > 0;
+  const effectiveInitialPosts = hasCachedFeed ? cache.posts : initialPosts;
+  const effectiveInitialTotal = hasCachedFeed ? cache.total : initialTotal;
+  const effectiveInitialPage = hasCachedFeed ? cache.page : initialUrlPage;
 
   // Local state for seamless client-side filtering & pagination
   const [activeMediaType, setActiveMediaType] = useState<string | null>(
