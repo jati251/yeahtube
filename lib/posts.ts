@@ -1,4 +1,4 @@
-import { getPresignedUrl } from "./storage";
+import { getPresignedUrl, getStreamUrl } from "./storage";
 
 export interface PostDbItem {
   id: number;
@@ -51,10 +51,10 @@ export async function formatPostItem(
   let previewUrl = null;
   const firstVideo = postMedia.find((m) => m.mediaType === "video");
   if (firstVideo?.storageKey) {
-    videoUrl = await getPresignedUrl(firstVideo.storageKey);
+    videoUrl = getStreamUrl(firstVideo.storageKey);
   }
   if (firstVideo?.previewKey) {
-    previewUrl = await getPresignedUrl(firstVideo.previewKey);
+    previewUrl = getStreamUrl(firstVideo.previewKey);
   }
 
   const videosOnly = postMedia.filter((m) => m.mediaType === "video");

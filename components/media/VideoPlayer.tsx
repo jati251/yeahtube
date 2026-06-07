@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { getQualityLabel } from "@/lib/media-utils";
+import { useAppStore } from "@/stores/appStore";
 
 interface QualityOption {
   label: string;
@@ -39,6 +40,7 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qualityOptions, onQualityChange }: VideoPlayerProps) {
+  const { globalPiP, deactivateGlobalPiP } = useAppStore();
   const currentQualityLabel = getQualityLabel(width, height)?.label ?? (height ? "SD" : "Auto");
   const hasQualityOptions = qualityOptions && qualityOptions.length > 1;
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -51,6 +53,11 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   const savedPlayingRef = useRef(false);
   const prevSrc = useRef(src);
 
+  // Track global PiP state transitions for auto-resume on close
+  const prevPipActiveRef = useRef(false);
+  const prevPipVideoUrlRef = useRef("");
+  const prevPipCurrentTimeRef = useRef(0);
+
   const [pipSupported, setPipSupported] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -62,6 +69,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   const [buffered, setBuffered] = useState(0);
   const [waiting, setWaiting] = useState(false);
   const [isPip, setIsPip] = useState(false);
+  const isPipActive = isPip || (globalPiP.isActive && globalPiP.videoUrl === src);
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
@@ -147,44 +155,31 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     setPipSupported(typeof document !== "undefined" && "pictureInPictureEnabled" in document);
   }, []);
 
-  // Reset state when src changes
+  // Whenever src is set (mount or change), explicitly assign it to the
+  // video element and call load().  This ensures the browser always
+  // initiates loading regardless of how the component was mounted.
   useEffect(() => {
-    if (prevSrc.current !== src) {
-      // Quality transition
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    const isQualitySwitch = prevSrc.current !== src && prevSrc.current !== "";
+    prevSrc.current = src;
+
+    if (isQualitySwitch) {
       isQualityChanging.current = true;
       savedTimeRef.current = currentTime;
       savedPlayingRef.current = playing;
-      prevSrc.current = src;
-
-      setBuffered(0);
-      setWaiting(true);
-
-      if (videoRef.current) {
-        try {
-          videoRef.current.load();
-        } catch (e) {}
-      }
-    } else {
-      // Normal initialization / fresh mount
-      setPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-      setWaiting(false);
-      setBuffered(0);
-
-      if (videoRef.current) {
-        try {
-          videoRef.current.pause();
-        } catch (e) {}
-        try {
-          videoRef.current.load();
-        } catch (e) {}
-      }
-      
-      if (videoRef.current && videoRef.current.readyState >= 1) {
-        setDuration(videoRef.current.duration);
-      }
     }
+
+    // Reset local state
+    setCurrentTime(0);
+    setDuration(0);
+    setBuffered(0);
+    setWaiting(true);
+
+    // Assign src + force load
+    video.src = src;
+    video.load();
   }, [src]);
 
   // Cleanup video resources on unmount to prevent memory/decoder leaks
@@ -201,6 +196,13 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
 
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
+
+    // If global PiP is active for this video, close PiP first so page takes over
+    const { globalPiP, deactivateGlobalPiP } = useAppStore.getState();
+    if (globalPiP.isActive && globalPiP.videoUrl === src) {
+      deactivateGlobalPiP();
+    }
+
     if (playing) {
       videoRef.current.pause();
     } else {
@@ -213,7 +215,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         });
       }
     }
-  }, [playing]);
+  }, [playing, src]);
 
   const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
@@ -246,18 +248,71 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     }
   }, [fullscreen]);
 
+  /**
+   * Toggle global PiP.
+   *
+   * - If PiP is already active for this same video → deactivate it & resume
+   *   page playback.
+   * - If PiP is active for a different video → switch to the new video.
+   * - Otherwise → activate global PiP and pause the page player.
+   */
   const togglePiP = useCallback(async () => {
-    if (!videoRef.current) return;
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      } else {
-        await videoRef.current.requestPictureInPicture();
+    const video = videoRef.current;
+    if (!video) return;
+
+    const { globalPiP, activateGlobalPiP, deactivateGlobalPiP } =
+      useAppStore.getState();
+
+    // ── Already active ──────────────────────────────
+    if (globalPiP.isActive) {
+      if (globalPiP.videoUrl === src) {
+        // Same video → exit PiP and resume page player
+        deactivateGlobalPiP();
+        video.currentTime = globalPiP.currentTime;
+        video.play().catch(() => {});
+        return;
       }
-    } catch (error) {
-      console.error("PiP failed", error);
+      // Different video → fall through to switch (no early return)
     }
-  }, []);
+
+    // ── Stale PiP window (non-global, edge case) ────
+    if (document.pictureInPictureElement) {
+      try {
+        await document.exitPictureInPicture();
+      } catch (e) {
+        console.error("PiP exit failed", e);
+      }
+    }
+
+    // ── Metadata not loaded yet → wait & retry ──────
+    if (video.readyState < 1) {
+      console.warn("PiP: video metadata not loaded yet");
+      const onLoadedMetadata = () => {
+        video.removeEventListener("loadedmetadata", onLoadedMetadata);
+        video.pause(); // pause page player — PiP takes over
+        activateGlobalPiP({
+          videoUrl: src,
+          poster,
+          currentTime: video.currentTime,
+          isPlaying: !video.paused,
+        });
+      };
+      video.addEventListener("loadedmetadata", onLoadedMetadata);
+      if (!video.preload || video.preload === "none") {
+        video.load();
+      }
+      return;
+    }
+
+    // ── Normal: pause page player, activate PiP ─────
+    video.pause();
+    activateGlobalPiP({
+      videoUrl: src,
+      poster,
+      currentTime: video.currentTime,
+      isPlaying: !video.paused,
+    });
+  }, [src, poster]);
 
   const skipForward = useCallback(() => {
     if (!videoRef.current || !duration) return;
@@ -410,6 +465,30 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     };
   }, []);
 
+  // ── Track previous PiP videoUrl & currentTime for deactivation detection ──
+  useEffect(() => {
+    if (globalPiP.isActive) {
+      prevPipVideoUrlRef.current = globalPiP.videoUrl;
+      prevPipCurrentTimeRef.current = globalPiP.currentTime;
+    }
+  }, [globalPiP.videoUrl, globalPiP.isActive, globalPiP.currentTime]);
+
+  // ── When global PiP deactivates (browser close), resume page player ──
+  useEffect(() => {
+    const isActive = globalPiP.isActive;
+    const wasActive = prevPipActiveRef.current;
+    prevPipActiveRef.current = isActive;
+
+    if (wasActive && !isActive && prevPipVideoUrlRef.current === src) {
+      // PiP was for this video and just closed → resume page playback
+      const video = videoRef.current;
+      if (video && video.paused && video.readyState >= 1) {
+        video.currentTime = prevPipCurrentTimeRef.current;
+        video.play().catch(() => {});
+      }
+    }
+  }, [globalPiP.isActive, globalPiP.currentTime, src]);
+
   const formatTime = (t: number) => {
     if (isNaN(t) || !isFinite(t)) return "0:00";
     const h = Math.floor(t / 3600);
@@ -489,8 +568,35 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         onClick={handleTapZone}
       />
 
+      {/* PiP Active Overlay — matches existing video player design */}
+      {isPipActive && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-black/40 backdrop-blur-[2px] rounded-xl">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+            <PictureInPicture className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-sm font-medium text-white/70">
+            Playing in Picture-in-Picture
+          </p>
+          <button
+            onClick={async () => {
+              const video = videoRef.current;
+              const pipTime = prevPipCurrentTimeRef.current;
+              deactivateGlobalPiP();
+              if (video) {
+                video.currentTime = pipTime;
+                video.play().catch(() => {});
+              }
+            }}
+            className="flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+          >
+            <Play className="h-3.5 w-3.5" fill="white" />
+            Resume on Page
+          </button>
+        </div>
+      )}
+
       {/* Loading Spinner */}
-      {waiting && (
+      {waiting && !isPipActive && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-blue-500" />
         </div>
@@ -657,8 +763,8 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
           {pipSupported && (
             <button
               onClick={togglePiP}
-              className={`text-white/80 hover:text-white transition-colors ${isPip ? "text-blue-400" : ""}`}
-              aria-label={isPip ? "Exit Picture-in-Picture" : "Picture-in-Picture"}
+              className={`text-white/80 hover:text-white transition-colors ${isPipActive ? "text-blue-400" : ""}`}
+              aria-label={isPipActive ? "Exit Picture-in-Picture" : "Picture-in-Picture"}
             >
               <PictureInPicture className="h-6 w-6 sm:h-4 sm:w-4" />
             </button>

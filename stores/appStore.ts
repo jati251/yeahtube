@@ -4,6 +4,16 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { PostItem } from "@/types/post";
 
+// ── Global PiP (persistent Picture-in-Picture across routes) ──
+
+interface GlobalPiPState {
+  isActive: boolean;
+  videoUrl: string;
+  poster?: string;
+  currentTime: number;
+  isPlaying: boolean;
+}
+
 interface AppState {
   feedScrollY: number;
   browseScrollY: number;
@@ -15,7 +25,19 @@ interface AppState {
   cachedFeedPosts: PostItem[];
   cachedFeedTotal: number;
   setCachedFeed: (page: number, posts: PostItem[], total: number) => void;
+
+  // Global PiP — persists across route changes via layout-level <GlobalPlayer>
+  globalPiP: GlobalPiPState;
+  activateGlobalPiP: (state: Omit<GlobalPiPState, "isActive">) => void;
+  deactivateGlobalPiP: () => void;
 }
+
+const defaultGlobalPiP: GlobalPiPState = {
+  isActive: false,
+  videoUrl: "",
+  currentTime: 0,
+  isPlaying: false,
+};
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -30,6 +52,13 @@ export const useAppStore = create<AppState>()(
       setBrowseScrollY: (browseScrollY) => set({ browseScrollY }),
       setCachedFeed: (cachedFeedPage, cachedFeedPosts, cachedFeedTotal) =>
         set({ cachedFeedPage, cachedFeedPosts, cachedFeedTotal }),
+
+      // Global PiP
+      globalPiP: { ...defaultGlobalPiP },
+      activateGlobalPiP: (state) =>
+        set({ globalPiP: { ...state, isActive: true } }),
+      deactivateGlobalPiP: () =>
+        set({ globalPiP: { ...defaultGlobalPiP } }),
     }),
     {
       name: "yeahtube-app",
@@ -49,6 +78,11 @@ export const useAppStore = create<AppState>()(
             sessionStorage.removeItem(name);
           }
         },
+      },
+      // Don't persist global PiP across page sessions
+      partialize: (state: AppState) => {
+        const { globalPiP: _gp, ...rest } = state;
+        return rest;
       },
     },
   ),

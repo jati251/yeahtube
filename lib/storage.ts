@@ -123,6 +123,9 @@ export function getStorageUrl(key: string): string {
 /**
  * Builds a pre-signed URL for an object in the bucket.
  * This URL allows direct download from MinIO without proxying through Next.js.
+ *
+ * Use for images and thumbnails — they don't need HTTP Range request support.
+ * For video streaming, use getStreamUrl() instead.
  */
 export async function getPresignedUrl(key: string, expiresInSeconds: number = 3600): Promise<string> {
   const s3 = getS3Client();
@@ -142,4 +145,17 @@ export async function getPresignedUrl(key: string, expiresInSeconds: number = 36
   }
 
   return url;
+}
+
+/**
+ * Returns a streaming URL for a media object via the /api/media/stream route.
+ *
+ * This route handles HTTP Range requests (206 Partial Content), enabling video
+ * seeking and scrubbing. Use this for video files instead of getPresignedUrl().
+ *
+ * Images and thumbnails should continue using getPresignedUrl() since they
+ * don't need range request support.
+ */
+export function getStreamUrl(key: string): string {
+  return `/api/media/stream?key=${encodeURIComponent(key)}`;
 }

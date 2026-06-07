@@ -4,7 +4,7 @@ import { getDb, schema } from "@/db";
 import { eq } from "drizzle-orm";
 import { WatchPageClient } from "./WatchPageClient";
 import { getRecommendations } from "@/lib/recommendations";
-import { getPresignedUrl } from "@/lib/storage";
+import { getPresignedUrl, getStreamUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +54,7 @@ export default async function WatchPage({ params }: PageProps) {
 
   const videosWithUrls = await Promise.all(videos.map(async (v) => ({
     id: v.id,
-    streamUrl: await getPresignedUrl(v.storageKey),
+    streamUrl: getStreamUrl(v.storageKey),
     filename: v.filename,
     mimeType: v.mimeType,
     duration: v.duration,

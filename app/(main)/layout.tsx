@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb, schema } from "@/db";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { GlobalPlayer } from "@/components/media/GlobalPlayer";
 
 async function getCategories() {
   try {
@@ -32,6 +33,7 @@ export default async function MainLayout({
       />
       <main className="pb-20 lg:pb-0">{children}</main>
       <MobileNav />
+      <GlobalPlayer />
     </div>
   );
 }
