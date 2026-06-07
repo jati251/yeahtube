@@ -270,6 +270,20 @@ export async function GET(request: NextRequest) {
         previewUrl = await getPresignedUrl(firstVideo.previewKey);
       }
 
+      const videosOnly = postMedia.filter((m) => m.mediaType === "video");
+      let resolutionMedia = firstMedia;
+      if (videosOnly.length > 0) {
+        let maxVideo = videosOnly[0];
+        for (const v of videosOnly) {
+          const vRes = v.height || v.width || 0;
+          const maxRes = maxVideo.height || maxVideo.width || 0;
+          if (vRes > maxRes) {
+            maxVideo = v;
+          }
+        }
+        resolutionMedia = maxVideo;
+      }
+
       return {
         id: post.id,
         title: post.title,
@@ -281,10 +295,10 @@ export async function GET(request: NextRequest) {
         thumbnailUrl,
         videoUrl,
         previewUrl,
-        duration: firstMedia?.duration || null,
+        duration: firstVideo?.duration || firstMedia?.duration || null,
         category: post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null,
-        width: firstMedia?.width || null,
-        height: firstMedia?.height || null,
+        width: resolutionMedia?.width || null,
+        height: resolutionMedia?.height || null,
       };
     }));
 

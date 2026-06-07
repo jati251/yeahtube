@@ -29,7 +29,7 @@ export default async function HistoryPage() {
   if (historyEntries.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 text-center">
-        <h1 className="text-3xl font-bold mb-4">Watch History</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4">Watch History</h1>
         <p className="text-gray-500">No videos watched yet.</p>
       </div>
     );
@@ -89,7 +89,7 @@ export default async function HistoryPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Watch History</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-900 dark:text-white">Watch History</h1>
       <FeedClient
         isAdmin={user.isAdmin}
         initialPosts={finalPosts}

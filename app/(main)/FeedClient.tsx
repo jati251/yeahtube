@@ -206,6 +206,20 @@ export function FeedClient({
         </div>
       </div>
 
+      {/* Top Pagination controls */}
+      {posts.length > 0 && (
+        <PaginationControls
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          onNext={() => navigateToPage(page + 1)}
+          onPrev={() => navigateToPage(page - 1)}
+          onFirst={() => navigateToPage(1)}
+          onLast={() => navigateToPage(totalPages)}
+          onPage={navigateToPage}
+        />
+      )}
+
       {/* Posts */}
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

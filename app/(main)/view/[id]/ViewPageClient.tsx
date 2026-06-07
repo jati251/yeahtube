@@ -105,7 +105,7 @@ export function ViewPageClient({
 
         {/* Sidebar info */}
         <div className="mt-6 lg:mt-0 lg:w-72 lg:flex-shrink-0">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white break-words">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white break-words">
             {post.title}
           </h1>
 

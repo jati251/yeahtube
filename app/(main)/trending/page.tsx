@@ -74,6 +74,20 @@ export default async function TrendingPage() {
           previewUrl = await getPresignedUrl(firstVideo.previewKey);
         }
 
+        const videosOnly = postMedia.filter((m) => m.mediaType === "video");
+        let resolutionMedia = firstMedia;
+        if (videosOnly.length > 0) {
+          let maxVideo = videosOnly[0];
+          for (const v of videosOnly) {
+            const vRes = v.height || v.width || 0;
+            const maxRes = maxVideo.height || maxVideo.width || 0;
+            if (vRes > maxRes) {
+              maxVideo = v;
+            }
+          }
+          resolutionMedia = maxVideo;
+        }
+
         return {
           id: post.id,
           title: post.title,
@@ -85,9 +99,11 @@ export default async function TrendingPage() {
           thumbnailUrl,
           videoUrl,
           previewUrl,
-          duration: firstMedia?.duration || null,
+          duration: firstVideo?.duration || firstMedia?.duration || null,
           category: post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null,
           likeCount: t.likeCount,
+          width: resolutionMedia?.width || null,
+          height: resolutionMedia?.height || null,
         };
       })
     );
@@ -102,7 +118,7 @@ export default async function TrendingPage() {
           <TrendingUp className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
             Trending
           </h1>
           <p className="text-gray-500 dark:text-gray-400">Most liked videos right now</p>

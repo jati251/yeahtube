@@ -6,11 +6,9 @@
 // ── Quality Label ─────────────────────────────────────
 
 export function getQualityLabel(width?: number | null, height?: number | null): { label: string; color: string } | null {
-  const w = width ?? 0;
-  const h = height ?? 0;
-  if (w === 0 && h === 0) return null;
-  // Use the smaller dimension (min) — correct for both landscape & portrait
-  const resolution = Math.min(w || h, h || w); // handle one-dim cases
+  // Use height primarily as standard vertical resolution lines define video quality class
+  const resolution = height ?? width ?? 0;
+  if (resolution === 0) return null;
   if (resolution >= 2160) return { label: "4K", color: "bg-red-600" };
   if (resolution >= 1080) return { label: "Full HD", color: "bg-blue-600" };
   if (resolution >= 720) return { label: "HD", color: "bg-emerald-600" };

@@ -340,6 +340,21 @@ export function BrowseClient({ isAdmin, tags, categories }: BrowseClientProps) {
             {loading ? "Loading..." : `${total} result${total !== 1 ? "s" : ""}`}
           </p>
 
+          {/* Top Pagination controls */}
+          {!loading && posts.length > 0 && (
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              loading={loading}
+              onNext={() => navigateToPage(page + 1)}
+              onPrev={() => navigateToPage(page - 1)}
+              onFirst={() => navigateToPage(1)}
+              onLast={() => navigateToPage(totalPages)}
+              onPage={navigateToPage}
+            />
+          )}
+
           {loading && posts.length === 0 ? (
             viewMode === "grid" ? (
               <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">

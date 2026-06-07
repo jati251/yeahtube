@@ -39,11 +39,17 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qualityOptions, onQualityChange }: VideoPlayerProps) {
-  const currentQualityLabel = getQualityLabel(undefined, height)?.label ?? (height ? "SD" : "Auto");
+  const currentQualityLabel = getQualityLabel(width, height)?.label ?? (height ? "SD" : "Auto");
   const hasQualityOptions = qualityOptions && qualityOptions.length > 1;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+
+  // Quality change transition tracking
+  const isQualityChanging = useRef(false);
+  const savedTimeRef = useRef(0);
+  const savedPlayingRef = useRef(false);
+  const prevSrc = useRef(src);
 
   const [pipSupported, setPipSupported] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -62,38 +68,60 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
 
   // ── Seek drag support ──────────────────────────────
   const isDragging = useRef(false);
+  const [isDraggingState, setIsDraggingState] = useState(false);
+  const currentTimeRef = useRef(0);
+
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+  }, [currentTime]);
   
-  const seekToClientX = useCallback((clientX: number) => {
+  const seekToClientX = useCallback((clientX: number, isCommit = false) => {
     if (!progressRef.current || !videoRef.current || !duration) return;
     const rect = progressRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const time = pos * duration;
-    videoRef.current.currentTime = time;
     setCurrentTime(time);
+    if (isCommit) {
+      videoRef.current.currentTime = time;
+    }
   }, [duration]);
 
   const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    seekToClientX(e.clientX);
+    seekToClientX(e.clientX, true);
   }, [seekToClientX]);
 
   const handleSeekStart = useCallback((e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     isDragging.current = true;
+    setIsDraggingState(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    seekToClientX(clientX);
+    seekToClientX(clientX, false);
   }, [seekToClientX]);
 
   useEffect(() => {
-    if (!isDragging.current) return;
     const handleMove = (e: MouseEvent | TouchEvent) => {
-      e.preventDefault();
+      if (!isDragging.current) return;
+      if (e.cancelable) {
+        e.preventDefault();
+      }
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      seekToClientX(clientX);
+      seekToClientX(clientX, false);
     };
-    const handleUp = () => { isDragging.current = false; };
+
+    const handleUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        setIsDraggingState(false);
+        if (videoRef.current) {
+          videoRef.current.currentTime = currentTimeRef.current;
+        }
+      }
+    };
+
     window.addEventListener('mousemove', handleMove, { passive: false });
     window.addEventListener('mouseup', handleUp);
     window.addEventListener('touchmove', handleMove, { passive: false });
     window.addEventListener('touchend', handleUp);
+
     return () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
@@ -121,24 +149,41 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
 
   // Reset state when src changes
   useEffect(() => {
-    setPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setWaiting(false);
+    if (prevSrc.current !== src) {
+      // Quality transition
+      isQualityChanging.current = true;
+      savedTimeRef.current = currentTime;
+      savedPlayingRef.current = playing;
+      prevSrc.current = src;
 
-    if (videoRef.current) {
-      try {
-        videoRef.current.pause();
-      } catch (e) {}
-      // load() aborts any active streams/downloads for the previous source
-      try {
-        videoRef.current.load();
-      } catch (e) {}
-    }
-    
-    // Sometimes the browser caches metadata and fires onLoadedMetadata before React attaches the listener.
-    if (videoRef.current && videoRef.current.readyState >= 1) {
-      setDuration(videoRef.current.duration);
+      setBuffered(0);
+      setWaiting(true);
+
+      if (videoRef.current) {
+        try {
+          videoRef.current.load();
+        } catch (e) {}
+      }
+    } else {
+      // Normal initialization / fresh mount
+      setPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setWaiting(false);
+      setBuffered(0);
+
+      if (videoRef.current) {
+        try {
+          videoRef.current.pause();
+        } catch (e) {}
+        try {
+          videoRef.current.load();
+        } catch (e) {}
+      }
+      
+      if (videoRef.current && videoRef.current.readyState >= 1) {
+        setDuration(videoRef.current.duration);
+      }
     }
   }, [src]);
 
@@ -235,10 +280,20 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     setShowControls(true);
     if (controlsTimeout) clearTimeout(controlsTimeout);
     const timeout = setTimeout(() => {
-      if (playing) setShowControls(false);
+      if (playing && !showSettings) setShowControls(false);
     }, 3000);
     setControlsTimeout(timeout);
-  }, [playing, controlsTimeout]);
+  }, [playing, controlsTimeout, showSettings]);
+
+  useEffect(() => {
+    if (showSettings) {
+      setShowControls(true);
+      if (controlsTimeout) {
+        clearTimeout(controlsTimeout);
+        setControlsTimeout(null);
+      }
+    }
+  }, [showSettings, controlsTimeout]);
 
   // Mobile tap zones: double click/tap on left/right to skip 10s, single click/tap to toggle controls
   const handleTapZone = useCallback(
@@ -387,6 +442,15 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         onLoadedMetadata={() => {
           if (videoRef.current) {
             setDuration(videoRef.current.duration);
+            if (isQualityChanging.current) {
+              isQualityChanging.current = false;
+              videoRef.current.currentTime = savedTimeRef.current;
+              setCurrentTime(savedTimeRef.current);
+              if (savedPlayingRef.current) {
+                videoRef.current.play().catch(() => {});
+                setPlaying(true);
+              }
+            }
           }
         }}
         onProgress={() => {
@@ -488,7 +552,11 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         {/* Progress bar */}
         <div
           ref={progressRef}
-          className="group relative mb-3 h-4 sm:h-1.5 cursor-pointer rounded-full bg-white/30 transition-all hover:h-4 sm:hover:h-3"
+          className={`group relative mb-3 cursor-pointer rounded-full bg-white/30 transition-all ${
+            isDraggingState
+              ? "h-4 sm:h-3"
+              : "h-4 sm:h-1.5 hover:h-4 sm:hover:h-3"
+          }`}
           onClick={handleSeek}
           onMouseDown={handleSeekStart}
           onTouchStart={handleSeekStart}
@@ -501,7 +569,13 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
             className="absolute left-0 top-0 h-full rounded-full bg-blue-500"
             style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
           >
-            <div className="absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 translate-x-1/2 rounded-full bg-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" />
+            <div
+              className={`absolute right-0 top-1/2 h-3 w-3 -translate-y-1/2 translate-x-1/2 rounded-full bg-white transition-all ${
+                isDraggingState
+                  ? "scale-125 opacity-100"
+                  : "opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+              }`}
+            />
           </div>
         </div>
 
@@ -577,72 +651,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
             >
               <Settings className="h-6 w-6 sm:h-4 sm:w-4" />
             </button>
-            {showSettings && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowSettings(false)}
-                />
-                <div className="absolute bottom-full left-0 right-auto z-50 mb-2 w-44 max-h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm sm:left-auto sm:right-0">
-                  {/* Quality section */}
-                  {hasQualityOptions && (
-                    <>
-                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
-                        Quality
-                      </div>
-                      {qualityOptions.map((opt) => (
-                        <button
-                          key={opt.label}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onQualityChange?.(opt);
-                            setShowSettings(false);
-                          }}
-                          className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
-                            opt.isCurrent
-                              ? "bg-blue-500/20 text-blue-400 font-medium"
-                              : "text-white/80 hover:bg-white/10"
-                          }`}
-                        >
-                          <span>{opt.label}</span>
-                          {opt.isCurrent && (
-                            <span className="text-blue-400">✓</span>
-                          )}
-                        </button>
-                      ))}
-                      <div className="mx-2 my-1 border-t border-white/10" />
-                    </>
-                  )}
-
-                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
-                    Playback Speed
-                  </div>
-                  {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
-                    <button
-                      key={speed}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPlaybackSpeed(speed);
-                        if (videoRef.current) {
-                          videoRef.current.playbackRate = speed;
-                        }
-                        setShowSettings(false);
-                      }}
-                      className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
-                        playbackSpeed === speed
-                          ? "bg-blue-500/20 text-blue-400 font-medium"
-                          : "text-white/80 hover:bg-white/10"
-                      }`}
-                    >
-                      <span>{speed === 1 ? "Normal" : `${speed}x`}</span>
-                      {playbackSpeed === speed && (
-                        <span className="text-blue-400">✓</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
 
           {/* Picture in Picture */}
@@ -666,6 +674,73 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
           </button>
         </div>
       </div>
+
+      {showSettings && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowSettings(false)}
+          />
+          <div className="absolute bottom-20 right-4 z-50 w-44 max-h-[calc(100%-96px)] overflow-y-auto rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm">
+            {/* Quality section */}
+            {hasQualityOptions && (
+              <>
+                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
+                  Quality
+                </div>
+                {qualityOptions.map((opt) => (
+                  <button
+                    key={opt.src}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onQualityChange?.(opt);
+                      setShowSettings(false);
+                    }}
+                    className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
+                      opt.isCurrent
+                        ? "bg-blue-500/20 text-blue-400 font-medium"
+                        : "text-white/80 hover:bg-white/10"
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                    {opt.isCurrent && (
+                      <span className="text-blue-400">✓</span>
+                    )}
+                  </button>
+                ))}
+                <div className="mx-2 my-1 border-t border-white/10" />
+              </>
+            )}
+
+            <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/50">
+              Playback Speed
+            </div>
+            {[0.25, 0.75, 1, 1.25, 1.75, 2].map((speed) => (
+              <button
+                key={speed}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlaybackSpeed(speed);
+                  if (videoRef.current) {
+                    videoRef.current.playbackRate = speed;
+                  }
+                  setShowSettings(false);
+                }}
+                className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors ${
+                  playbackSpeed === speed
+                    ? "bg-blue-500/20 text-blue-400 font-medium"
+                    : "text-white/80 hover:bg-white/10"
+                }`}
+              >
+                <span>{speed === 1 ? "Normal" : `${speed}x`}</span>
+                {playbackSpeed === speed && (
+                  <span className="text-blue-400">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

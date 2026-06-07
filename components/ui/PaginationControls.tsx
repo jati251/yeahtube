@@ -34,42 +34,53 @@ export function PaginationControls({
 
   // Build page numbers to show for desktop
   const pages: (number | "ellipsis")[] = [];
-  const maxVisible = 7;
+  const maxVisible = 25;
 
-  if (totalPages <= maxVisible + 2) {
+  if (totalPages <= maxVisible) {
     for (let i = 1; i <= totalPages; i++) pages.push(i);
   } else {
     pages.push(1);
-    if (page > 4) pages.push("ellipsis");
+    
+    const half = Math.floor((maxVisible - 2) / 2);
+    let start = Math.max(2, page - half);
+    let end = Math.min(totalPages - 1, page + half);
 
-    const start = Math.max(2, page - 2);
-    const end = Math.min(totalPages - 1, page + 2);
+    if (page <= half + 1) {
+      end = maxVisible - 1;
+    } else if (page >= totalPages - half) {
+      start = totalPages - maxVisible + 2;
+    }
 
+    if (start > 2) pages.push("ellipsis");
     for (let i = start; i <= end; i++) pages.push(i);
-
-    if (page < totalPages - 3) pages.push("ellipsis");
+    if (end < totalPages - 1) pages.push("ellipsis");
+    
     pages.push(totalPages);
   }
 
-  // Build page numbers to show for mobile (max 5 buttons to prevent overflow)
+  // Build page numbers to show for mobile
   const mobilePages: (number | "ellipsis")[] = [];
-  if (totalPages <= 5) {
+  const maxVisibleMobile = 13;
+
+  if (totalPages <= maxVisibleMobile) {
     for (let i = 1; i <= totalPages; i++) mobilePages.push(i);
   } else {
     mobilePages.push(1);
-    if (page <= 3) {
-      mobilePages.push(2);
-      mobilePages.push(3);
-      mobilePages.push("ellipsis");
-    } else if (page >= totalPages - 2) {
-      mobilePages.push("ellipsis");
-      mobilePages.push(totalPages - 2);
-      mobilePages.push(totalPages - 1);
-    } else {
-      mobilePages.push("ellipsis");
-      mobilePages.push(page);
-      mobilePages.push("ellipsis");
+    
+    const half = Math.floor((maxVisibleMobile - 2) / 2);
+    let start = Math.max(2, page - half);
+    let end = Math.min(totalPages - 1, page + half);
+
+    if (page <= half + 1) {
+      end = maxVisibleMobile - 1;
+    } else if (page >= totalPages - half) {
+      start = totalPages - maxVisibleMobile + 2;
     }
+
+    if (start > 2) mobilePages.push("ellipsis");
+    for (let i = start; i <= end; i++) mobilePages.push(i);
+    if (end < totalPages - 1) mobilePages.push("ellipsis");
+    
     mobilePages.push(totalPages);
   }
 
@@ -79,19 +90,23 @@ export function PaginationControls({
   const btnDisabled = "cursor-not-allowed border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600";
 
   return (
-    <div className="mt-8 flex flex-col items-center gap-3">
-      {/* Page info (Desktop) */}
-      <p className="hidden text-sm text-gray-500 sm:block dark:text-gray-400">
-        Page {page} of {totalPages} ({total} total)
+    <div className="my-6 flex flex-col items-center gap-2">
+      {/* Page info (visible on both mobile and desktop) */}
+      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">
+        Page {page} of {totalPages} <span className="opacity-75">({total} total)</span>
       </p>
 
-      {/* Controls */}
-      <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-1.5">
+      {/* Controls: a single flex-wrap row containing all items inline */}
+      <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-1.5 max-w-full sm:max-w-3xl px-4">
         {/* First */}
         <button
           onClick={onFirst}
           disabled={isFirst || loading}
-          className={clsx(btnBase, "hidden sm:inline-flex h-9 w-9", isFirst || loading ? btnDisabled : btnInactive)}
+          className={clsx(
+            btnBase,
+            "h-8 w-8 sm:h-9 sm:w-9",
+            isFirst || loading ? btnDisabled : btnInactive
+          )}
           aria-label="First page"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -101,26 +116,30 @@ export function PaginationControls({
         <button
           onClick={onPrev}
           disabled={isFirst || loading}
-          className={clsx(btnBase, "h-8 w-8 sm:h-9 sm:w-auto sm:px-3 gap-1", isFirst || loading ? btnDisabled : btnInactive)}
+          className={clsx(
+            btnBase,
+            "h-8 w-8 sm:h-9 sm:w-auto sm:px-3 gap-1",
+            isFirst || loading ? btnDisabled : btnInactive
+          )}
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Prev</span>
         </button>
 
-        {/* Page numbers (Mobile only) */}
-        <div className="flex items-center gap-1 sm:hidden">
+        {/* Mobile Page numbers */}
+        <div className="contents sm:hidden">
           {mobilePages.map((p, i) =>
             p === "ellipsis" ? (
               <span
-                key={`e-${i}`}
+                key={`mob-e-${i}`}
                 className="w-6 text-center text-xs text-gray-400 dark:text-gray-500"
               >
                 …
               </span>
             ) : (
               <button
-                key={p}
+                key={`mob-${p}`}
                 onClick={() => onPage?.(p)}
                 disabled={loading}
                 className={clsx(
@@ -136,19 +155,19 @@ export function PaginationControls({
           )}
         </div>
 
-        {/* Page numbers (Desktop only) */}
-        <div className="hidden items-center gap-1 sm:flex">
+        {/* Desktop Page numbers */}
+        <div className="hidden sm:contents">
           {pages.map((p, i) =>
             p === "ellipsis" ? (
               <span
-                key={`e-${i}`}
+                key={`desk-e-${i}`}
                 className="w-9 text-center text-sm text-gray-400 dark:text-gray-500"
               >
                 …
               </span>
             ) : (
               <button
-                key={p}
+                key={`desk-${p}`}
                 onClick={() => onPage?.(p)}
                 disabled={loading}
                 className={clsx(
@@ -160,7 +179,7 @@ export function PaginationControls({
               >
                 {p}
               </button>
-            ),
+            )
           )}
         </div>
 
@@ -168,7 +187,11 @@ export function PaginationControls({
         <button
           onClick={onNext}
           disabled={isLast || loading}
-          className={clsx(btnBase, "h-8 w-8 sm:h-9 sm:w-auto sm:px-3 gap-1", isLast || loading ? btnDisabled : btnInactive)}
+          className={clsx(
+            btnBase,
+            "h-8 w-8 sm:h-9 sm:w-auto sm:px-3 gap-1",
+            isLast || loading ? btnDisabled : btnInactive
+          )}
           aria-label="Next page"
         >
           <span className="hidden sm:inline">Next</span>
@@ -179,7 +202,11 @@ export function PaginationControls({
         <button
           onClick={onLast}
           disabled={isLast || loading}
-          className={clsx(btnBase, "hidden sm:inline-flex h-9 w-9", isLast || loading ? btnDisabled : btnInactive)}
+          className={clsx(
+            btnBase,
+            "h-8 w-8 sm:h-9 sm:w-9",
+            isLast || loading ? btnDisabled : btnInactive
+          )}
           aria-label="Last page"
         >
           <ChevronsRight className="h-4 w-4" />

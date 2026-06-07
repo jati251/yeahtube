@@ -20,6 +20,7 @@ interface MediaListItemProps {
     category?: string | null;
     width?: number | null;
     height?: number | null;
+    views?: number;
   };
   isAdmin?: boolean;
   selectMode?: boolean;

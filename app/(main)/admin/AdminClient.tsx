@@ -179,7 +179,7 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             Admin Panel
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">

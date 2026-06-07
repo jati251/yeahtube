@@ -13,6 +13,8 @@ export interface RecommendedPost {
   thumbnailUrl: string | null;
   duration: number | null;
   category: string | null;
+  width: number | null;
+  height: number | null;
 }
 
 export async function getRecommendations(
@@ -22,7 +24,7 @@ export async function getRecommendations(
 ): Promise<RecommendedPost[]> {
   const db = getDb();
 
-  let recommendedPosts: { id: number; title: string; description: string | null; createdAt: string }[] = [];
+  let recommendedPosts: { id: number; title: string; description: string | null; createdAt: string; views: number }[] = [];
 
   // 1. Try to fetch posts sharing the same category or sharing any tag
   const matches = [];
@@ -48,6 +50,7 @@ export async function getRecommendations(
         title: schema.posts.title,
         description: schema.posts.description,
         createdAt: schema.posts.createdAt,
+        views: schema.posts.views,
       })
       .from(schema.posts)
       .where(
@@ -71,6 +74,7 @@ export async function getRecommendations(
         title: schema.posts.title,
         description: schema.posts.description,
         createdAt: schema.posts.createdAt,
+        views: schema.posts.views,
       })
       .from(schema.posts)
       .where(notInArray(schema.posts.id, excludeIds))
@@ -118,6 +122,22 @@ export async function getRecommendations(
       thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
     }
 
+    const firstVideo = postMedia.find((m) => m.mediaType === "video");
+
+    const videosOnly = postMedia.filter((m) => m.mediaType === "video");
+    let resolutionMedia = firstMedia;
+    if (videosOnly.length > 0) {
+      let maxVideo = videosOnly[0];
+      for (const v of videosOnly) {
+        const vRes = v.height || v.width || 0;
+        const maxRes = maxVideo.height || maxVideo.width || 0;
+        if (vRes > maxRes) {
+          maxVideo = v;
+        }
+      }
+      resolutionMedia = maxVideo;
+    }
+
     return {
       id: post.id,
       title: post.title,
@@ -127,8 +147,11 @@ export async function getRecommendations(
       mediaCount: postMedia.length,
       mediaType: (hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image") as "image" | "video" | "mixed",
       thumbnailUrl,
-      duration: firstMedia?.duration || null,
+      duration: firstVideo?.duration || firstMedia?.duration || null,
       category: null,
+      width: resolutionMedia?.width || null,
+      height: resolutionMedia?.height || null,
+      views: post.views,
     };
   }));
 }

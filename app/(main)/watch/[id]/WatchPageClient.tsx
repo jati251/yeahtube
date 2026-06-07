@@ -64,7 +64,7 @@ export function WatchPageClient({
 
   // Build quality options from all videos
   const qualityOptions = videos.length > 1 ? videos.map((v, idx) => ({
-    label: getQualityLabel(undefined, v.height)?.label ?? "Auto",
+    label: getQualityLabel(v.width, v.height)?.label ?? "Auto",
     src: v.streamUrl,
     type: v.mimeType,
     width: v.width,
@@ -134,7 +134,7 @@ export function WatchPageClient({
         <div className="lg:col-span-8">
           {/* Video player */}
           <VideoPlayer
-            key={currentVideo.id}
+            key={post.id}
             src={currentVideo.streamUrl}
             poster={currentVideo.thumbnailUrl || undefined}
             type={currentVideo.mimeType}
@@ -146,7 +146,7 @@ export function WatchPageClient({
 
           {/* Video info */}
           <div className="mt-4">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white break-words">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white break-words">
               {post.title}
             </h1>
 

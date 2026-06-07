@@ -51,6 +51,7 @@ export default async function PlaylistPage({
       title: schema.posts.title,
       description: schema.posts.description,
       createdAt: schema.posts.createdAt,
+      views: schema.posts.views,
     })
     .from(schema.playlistItems)
     .innerJoin(schema.posts, eq(schema.playlistItems.postId, schema.posts.id))
@@ -84,6 +85,20 @@ export default async function PlaylistPage({
       previewUrl = await getPresignedUrl(firstVideo.previewKey);
     }
 
+    const videosOnly = postMedia.filter((m) => m.mediaType === "video");
+    let resolutionMedia = firstMedia;
+    if (videosOnly.length > 0) {
+      let maxVideo = videosOnly[0];
+      for (const v of videosOnly) {
+        const vRes = v.height || v.width || 0;
+        const maxRes = maxVideo.height || maxVideo.width || 0;
+        if (vRes > maxRes) {
+          maxVideo = v;
+        }
+      }
+      resolutionMedia = maxVideo;
+    }
+
     return {
       ...post,
       tags: [],
@@ -92,14 +107,17 @@ export default async function PlaylistPage({
       thumbnailUrl,
       videoUrl,
       previewUrl,
-      duration: firstMedia?.duration || null,
+      duration: firstVideo?.duration || firstMedia?.duration || null,
+      width: resolutionMedia?.width || null,
+      height: resolutionMedia?.height || null,
+      views: post.views,
     };
   }));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
           {playlist.name}
         </h1>
         <p className="mt-2 text-sm text-gray-500">
