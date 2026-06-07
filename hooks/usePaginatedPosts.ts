@@ -96,7 +96,8 @@ export function usePaginatedPosts({
   const goToPage = useCallback(
     (pageNum: number) => {
       const safe = Math.max(1, pageNum);
-      setPage(safe);
+      // Don't setPage — fetchPage sets page+posts+total together.
+      // This keeps cards + pagination perfectly in sync, zero flicker.
       fetchPageRef.current(safe);
     },
     [],
