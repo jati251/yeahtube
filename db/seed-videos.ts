@@ -15,6 +15,7 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 import { getDb, schema } from "./index";
 import { getS3Client, getStorageConfig } from "../lib/storage";
+import { enqueueTranscode } from "../lib/transcode-queue";
 
 // Helper to check video mime/type
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
@@ -281,7 +282,7 @@ async function main() {
         })
         .returning();
 
-      await db
+      const [mediaResult] = await db
         .insert(schema.media)
         .values({
           postId: newPost.id,
@@ -296,7 +297,26 @@ async function main() {
           thumbnailKey,
           previewKey: previewBuffer ? previewKey : null,
           orderIndex: 0,
+        })
+        .returning();
+
+      try {
+        await enqueueTranscode({
+          mediaId: mediaResult.id,
+          postId: newPost.id,
+          storageKey,
+          filename,
+          mimeType,
+          bucket: storageConfig.bucket,
+          endpoint: storageConfig.endpoint,
+          region: storageConfig.region,
+          accessKey: storageConfig.accessKey,
+          secretKey: storageConfig.secretKey,
+          forcePathStyle: storageConfig.forcePathStyle ?? false,
         });
+      } catch (queueErr: any) {
+        console.error(`  ⚠️ Failed to enqueue transcode for media ID ${mediaResult.id}:`, queueErr.message);
+      }
 
       console.log(`  ✅ Successfully seeded: "${title}" (Post ID: ${newPost.id})`);
     } catch (err) {
