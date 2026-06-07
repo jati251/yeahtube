@@ -65,7 +65,7 @@ export function PaginationControls({
   const isFirst = page <= 1;
   const isLast = page >= totalPages;
 
-  const mobilePages = buildPages(page, totalPages, 13);
+  const mobilePages = buildPages(page, totalPages, 7);
   const desktopPages = buildPages(page, totalPages, 25);
 
   const btn = "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed";
