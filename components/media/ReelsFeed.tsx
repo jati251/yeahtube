@@ -119,7 +119,7 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
   );
 }
 
-function ReelItem({ 
+const ReelItem = React.memo(function ReelItem({ 
   post, 
   isActive, 
   isNearActive, 
@@ -242,13 +242,16 @@ function ReelItem({
             
             {/* Timeline Progress Bar (Clickable Area) */}
             <div 
-              className="absolute bottom-16 lg:bottom-0 left-0 right-0 h-6 cursor-pointer z-20 flex items-end group"
+              className={clsx(
+                "absolute bottom-16 lg:bottom-0 left-0 right-0 h-6 cursor-pointer z-20 flex items-end group transition-opacity duration-300",
+                isActive ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
               onClick={handleTimelineClick}
             >
               <div className="w-full h-[4px] group-hover:h-[6px] transition-all bg-white/20 relative">
                 <div 
                   ref={progressRef} 
-                  className="absolute top-0 left-0 h-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                  className="absolute top-0 left-0 h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
                   style={{ width: '0%' }} 
                 />
               </div>
@@ -364,4 +367,4 @@ function ReelItem({
       )}
     </div>
   );
-}
+});
