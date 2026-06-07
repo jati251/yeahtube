@@ -22,10 +22,8 @@ interface UsePaginatedPostsOptions {
   autoFetch?: boolean;
 }
 
-const DEFAULT_POSTS: PostItem[] = [];
-
 export function usePaginatedPosts({
-  initialPosts = DEFAULT_POSTS,
+  initialPosts = [],
   initialTotal = 0,
   initialPage = 1,
   fetchParams = {},
@@ -39,33 +37,34 @@ export function usePaginatedPosts({
   const limitVal = fetchParams.limit || DEFAULT_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(total / limitVal));
 
-  const initialFetchDone = useRef(false);
-  const skipFetchRef = useRef(false);
+  // Latest params always available via ref
+  const paramsRef = useRef(fetchParams);
+  useEffect(() => { paramsRef.current = fetchParams; }, [fetchParams]);
 
-  const fetchParamsRef = useRef(fetchParams);
-  useEffect(() => {
-    fetchParamsRef.current = fetchParams;
-  }, [fetchParams]);
+  // Prevent fetch on mount / after cache restore
+  const skipRef = useRef(false);
+  const mountedRef = useRef(false);
+
+  const buildUrl = (pageNum: number) => {
+    const fp = paramsRef.current;
+    const p = new URLSearchParams();
+    p.set("offset", String((pageNum - 1) * limitVal));
+    p.set("limit", String(limitVal));
+    p.set("sort", fp.sort || "newest");
+    if (fp.type) p.set("type", fp.type);
+    if (fp.tags) p.set("tags", fp.tags);
+    if (fp.q) p.set("q", fp.q);
+    if (fp.category) p.set("category", fp.category);
+    if (fp.year) p.set("year", fp.year);
+    return `/api/posts?${p.toString()}`;
+  };
 
   const fetchPage = useCallback(
     async (pageNum: number) => {
       setLoading(true);
       try {
-        const fp = fetchParamsRef.current;
-        const params = new URLSearchParams();
-        params.set("offset", String((pageNum - 1) * limitVal));
-        params.set("limit", String(limitVal));
-        params.set("sort", fp.sort || "newest");
-
-        if (fp.type) params.set("type", fp.type);
-        if (fp.tags) params.set("tags", fp.tags);
-        if (fp.q) params.set("q", fp.q);
-        if (fp.category) params.set("category", fp.category);
-        if (fp.year) params.set("year", fp.year);
-
-        const res = await fetch(`/api/posts?${params.toString()}`);
+        const res = await fetch(buildUrl(pageNum));
         const data = await res.json();
-
         setPosts(data.posts || []);
         setTotal(data.total || 0);
         setPage(pageNum);
@@ -75,26 +74,23 @@ export function usePaginatedPosts({
         setLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [limitVal],
   );
 
   const fetchPageRef = useRef(fetchPage);
-  useEffect(() => {
-    fetchPageRef.current = fetchPage;
-  }, [fetchPage]);
+  useEffect(() => { fetchPageRef.current = fetchPage; }, [fetchPage]);
 
-  const goToPage = useCallback(
-    (pageNum: number) => {
-      const safe = Math.max(1, pageNum);
-      setPage(safe);
-    },
-    [],
-  );
+  const goToPage = useCallback((pageNum: number) => {
+    const safe = Math.max(1, pageNum);
+    setPage(safe);
+    fetchPageRef.current(safe);
+  }, []);
 
   const restoreFromCache = useCallback(
     (cachedPosts: PostItem[], cachedPage: number, cachedTotal: number) => {
-      skipFetchRef.current = true;
-      initialFetchDone.current = true;
+      skipRef.current = true;
+      mountedRef.current = true;
       setPosts(cachedPosts);
       setPage(cachedPage);
       setTotal(cachedTotal);
@@ -102,18 +98,20 @@ export function usePaginatedPosts({
     [],
   );
 
-  const prevInitialRef = useRef({ posts: initialPosts, page: initialPage });
+  // Sync from server props (soft navigation)
+  const prevPageRef = useRef(initialPage);
   useEffect(() => {
-    const prev = prevInitialRef.current;
-    if (initialPosts !== prev.posts || initialPage !== prev.page) {
+    if (initialPage !== prevPageRef.current) {
       setPosts(initialPosts);
       setTotal(initialTotal);
       setPage(initialPage);
-      prevInitialRef.current = { posts: initialPosts, page: initialPage };
-      initialFetchDone.current = false;
+      prevPageRef.current = initialPage;
+      mountedRef.current = false;
     }
   }, [initialPosts, initialTotal, initialPage]);
 
+  // Auto-fetch: only used when autoFetch=true, or on param change after mount.
+  // For FeedClient (autoFetch=false), fetch is driven by goToPage directly.
   const sortVal = fetchParams.sort;
   const typeVal = fetchParams.type;
   const tagsVal = fetchParams.tags;
@@ -122,31 +120,22 @@ export function usePaginatedPosts({
   const yearVal = fetchParams.year;
 
   useEffect(() => {
-    let active = true;
-    const runFetch = async () => {
-      if (!active) return;
-      if (skipFetchRef.current) {
-        skipFetchRef.current = false;
-        return;
-      }
-      if (autoFetch) {
-        await fetchPageRef.current(page);
-      } else if (!autoFetch && !initialFetchDone.current) {
-        initialFetchDone.current = true;
-      } else if (initialFetchDone.current) {
-        await fetchPageRef.current(page);
-      }
-    };
-    runFetch();
-    return () => {
-      active = false;
-    };
+    if (skipRef.current) {
+      skipRef.current = false;
+      return;
+    }
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    if (autoFetch) {
+      fetchPageRef.current(page);
+    }
   }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, page, autoFetch]);
 
+  // Post-created event
   useEffect(() => {
-    const handler = () => {
-      fetchPageRef.current(1);
-    };
+    const handler = () => fetchPageRef.current(1);
     window.addEventListener(CUSTOM_EVENTS.POST_CREATED, handler);
     return () => window.removeEventListener(CUSTOM_EVENTS.POST_CREATED, handler);
   }, []);
