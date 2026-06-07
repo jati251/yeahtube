@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
 
   images: {
     dangerouslyAllowLocalIP: true,
+    localPatterns: [
+      {
+        pathname: "/**",
+      },
+    ],
     remotePatterns: [
       {
         protocol: "http",
