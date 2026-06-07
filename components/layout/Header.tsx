@@ -100,6 +100,10 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
     }
   };
 
+  if (pathname === "/shorts") {
+    return null;
+  }
+
   return (
     <>
       <header className="sticky top-0 z-40 glass-header">

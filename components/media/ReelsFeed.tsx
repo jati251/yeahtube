@@ -27,41 +27,49 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
     return idx === -1 ? 0 : idx;
   }, [posts, activeVideoId]);
 
-  // Use Intersection Observer to detect which video is currently mostly visible
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const id = Number(entry.target.getAttribute("data-post-id"));
-            setActiveVideoId(id);
-          }
-        });
-      },
-      {
-        root: containerRef.current,
-        threshold: 0.6, // Fire when 60% of the item is visible
-      }
-    );
-
-    const elements = document.querySelectorAll(".reel-item");
-    elements.forEach((el) => observer.observe(el));
-
-    return () => {
-      elements.forEach((el) => observer.unobserve(el));
-      observer.disconnect();
-    };
-  }, [posts.length]);
-
-  // Load more when scrolling near the end
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current || !onLoadMore || !hasMore || isLoadingMore) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    if (scrollHeight - scrollTop - clientHeight < 500) {
-      onLoadMore();
+  // 1. Singleton observer for active video detection
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const getObserver = useCallback(() => {
+    if (!observerRef.current) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const id = Number(entry.target.getAttribute("data-post-id"));
+              setActiveVideoId(id);
+            }
+          });
+        },
+        {
+          root: containerRef.current,
+          threshold: 0.6,
+        }
+      );
     }
-  }, [onLoadMore, hasMore, isLoadingMore]);
+    return observerRef.current;
+  }, []);
+
+  useEffect(() => {
+    return () => observerRef.current?.disconnect();
+  }, []);
+
+  // 2. Observer for infinite scroll
+  const loadMoreNodeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!loadMoreNodeRef.current || !hasMore || isLoadingMore || !onLoadMore) return;
+    
+    const obs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        onLoadMore();
+      }
+    }, { 
+      root: containerRef.current,
+      rootMargin: "0px 0px 2500px 0px" // Trigger fetch gracefully 2500px before end
+    });
+    
+    obs.observe(loadMoreNodeRef.current);
+    return () => obs.disconnect();
+  }, [hasMore, isLoadingMore, onLoadMore]);
 
   return (
     <div className="fixed inset-0 z-30 bg-black text-white flex justify-center overflow-hidden pb-16 lg:pb-0">
@@ -84,7 +92,6 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
 
       <div 
         ref={containerRef}
-        onScroll={handleScroll}
         className="h-[100dvh] w-full max-w-md snap-y snap-mandatory overflow-y-scroll hide-scrollbar bg-black"
         style={{ scrollBehavior: 'smooth' }}
       >
@@ -93,10 +100,15 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
             key={post.id} 
             post={post} 
             isActive={activeVideoId === post.id} 
-            isNearActive={Math.abs(index - activeIndex) <= 2}
+            isNearActive={Math.abs(index - activeIndex) <= 1}
             isMuted={isMuted} 
+            getObserver={getObserver}
           />
         ))}
+        {/* Invisible trigger node for infinite scroll */}
+        {hasMore && (
+          <div ref={loadMoreNodeRef} className="w-full h-1" />
+        )}
         {isLoadingMore && (
           <div className="h-[100dvh] w-full flex items-center justify-center snap-center">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white"></div>
@@ -107,34 +119,60 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
   );
 }
 
-function ReelItem({ post, isActive, isNearActive, isMuted }: { post: PostItem; isActive: boolean; isNearActive: boolean; isMuted: boolean }) {
+function ReelItem({ 
+  post, 
+  isActive, 
+  isNearActive, 
+  isMuted,
+  getObserver 
+}: { 
+  post: PostItem; 
+  isActive: boolean; 
+  isNearActive: boolean; 
+  isMuted: boolean;
+  getObserver: () => IntersectionObserver;
+}) {
+  const itemRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showComments, setShowComments] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Bind element to global active video observer
   useEffect(() => {
-    if (isActive && videoRef.current) {
-      videoRef.current.currentTime = 0;
+    const el = itemRef.current;
+    if (el) {
+      const observer = getObserver();
+      observer.observe(el);
+      return () => observer.unobserve(el);
+    }
+  }, [getObserver]);
+
+  // Reset video when it becomes active
+  useEffect(() => {
+    if (isActive) {
       setIsPaused(false);
-      videoRef.current.play().catch(() => {
-        // Handle autoplay block if necessary
-      });
-    } else if (!isActive && videoRef.current) {
-      videoRef.current.pause();
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+      }
     }
   }, [isActive]);
 
+  // Handle play/pause based on combined state
   useEffect(() => {
-    if (!videoRef.current || !isActive) return;
-    if (isPaused) {
-      videoRef.current.pause();
+    if (!videoRef.current) return;
+
+    if (isActive && !isPaused) {
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Play was interrupted or blocked by browser, safely ignore
+        });
+      }
     } else {
-      videoRef.current.play().catch(() => {
-        // Handle play block if necessary
-      });
+      videoRef.current.pause();
     }
-  }, [isPaused, isActive]);
+  }, [isActive, isPaused]);
 
   const handleVideoClick = (e: React.MouseEvent) => {
     // Avoid triggering pause when clicking interactive overlays
@@ -146,6 +184,7 @@ function ReelItem({ post, isActive, isNearActive, isMuted }: { post: PostItem; i
 
   return (
     <div 
+      ref={itemRef}
       className="reel-item relative h-[100dvh] w-full snap-center snap-always flex items-center justify-center bg-zinc-950 overflow-hidden"
       data-post-id={post.id}
     >
@@ -164,6 +203,7 @@ function ReelItem({ post, isActive, isNearActive, isMuted }: { post: PostItem; i
               loop
               playsInline
               muted={isMuted}
+              preload="none"
             />
             {/* Play Overlay Indicator */}
             {isPaused && (
@@ -195,36 +235,41 @@ function ReelItem({ post, isActive, isNearActive, isMuted }: { post: PostItem; i
 
       {/* Interaction Sidebar (Right) */}
       <div className="absolute right-4 bottom-24 z-10 flex flex-col items-center gap-5">
-        <div className="flex flex-col items-center gap-1">
-          <div className="bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex justify-center scale-90 sm:scale-100 shadow-lg border border-white/10">
-            <LikeDislike postId={post.id} />
-          </div>
-        </div>
+        <LikeDislike postId={post.id} variant="vertical" />
 
         <button 
           onClick={() => setShowComments(true)}
-          className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition shadow-lg border border-white/10"
+          className="flex flex-col items-center gap-1 group"
         >
-          <MessageCircle className="h-6 w-6" />
+          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
+            <MessageCircle className="h-6 w-6" />
+          </div>
+          <span className="text-white text-xs font-medium drop-shadow-md">Comment</span>
         </button>
 
         <button 
           onClick={() => setShowSaveModal(true)}
-          className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition shadow-lg border border-white/10"
+          className="flex flex-col items-center gap-1 group"
         >
-          <BookmarkPlus className="h-6 w-6" />
+          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
+            <BookmarkPlus className="h-6 w-6" />
+          </div>
+          <span className="text-white text-xs font-medium drop-shadow-md">Save</span>
         </button>
         
         <Link 
           href={post.mediaType === 'video' ? `/watch/${post.id}` : `/view/${post.id}`}
-          className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition shadow-lg border border-white/10"
+          className="flex flex-col items-center gap-1 group"
         >
-          <Share2 className="h-6 w-6" />
+          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
+            <Share2 className="h-6 w-6" />
+          </div>
+          <span className="text-white text-xs font-medium drop-shadow-md">Share</span>
         </Link>
       </div>
 
       {/* Bottom Info Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-0 p-4 pb-6 pt-24 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none pr-20">
+      <div className="absolute bottom-0 left-0 right-0 z-0 p-4 pb-24 lg:pb-6 pt-32 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none pr-20">
         <Link 
           href={post.mediaType === 'video' ? `/watch/${post.id}` : `/view/${post.id}`}
           className="pointer-events-auto group inline-block"

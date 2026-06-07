@@ -20,6 +20,7 @@ interface UsePaginatedPostsOptions {
   initialPage?: number;
   fetchParams?: FetchParams;
   autoFetch?: boolean;
+  appendMode?: boolean;
 }
 
 export function usePaginatedPosts({
@@ -28,6 +29,7 @@ export function usePaginatedPosts({
   initialPage = 1,
   fetchParams = {},
   autoFetch = false,
+  appendMode = false,
 }: UsePaginatedPostsOptions) {
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [page, setPage] = useState(initialPage);
@@ -65,7 +67,17 @@ export function usePaginatedPosts({
       try {
         const res = await fetch(buildUrl(pageNum));
         const data = await res.json();
-        setPosts(data.posts || []);
+        
+        if (appendMode && pageNum !== 1) {
+          setPosts((prev) => {
+            const existingIds = new Set(prev.map((p) => p.id));
+            const newPosts = (data.posts || []).filter((p: PostItem) => !existingIds.has(p.id));
+            return [...prev, ...newPosts];
+          });
+        } else {
+          setPosts(data.posts || []);
+        }
+        
         setTotal(data.total || 0);
         setPage(pageNum);
       } catch (err) {

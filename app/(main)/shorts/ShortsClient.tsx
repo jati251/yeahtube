@@ -22,6 +22,7 @@ export function ShortsClient({ initialPosts, initialTotal }: ShortsClientProps) 
       limit: 10,
     },
     autoFetch: false,
+    appendMode: true,
   });
 
   // Hide global scrollbar when mounted

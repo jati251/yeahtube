@@ -5,9 +5,10 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 
 interface LikeDislikeProps {
   postId: number;
+  variant?: "horizontal" | "vertical";
 }
 
-export function LikeDislike({ postId }: LikeDislikeProps) {
+export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps) {
   const [likes, setLikes] = useState(0);
   const [dislikes, setDislikes] = useState(0);
   const [userAction, setUserAction] = useState<"like" | "dislike" | null>(null);
@@ -65,7 +66,43 @@ export function LikeDislike({ postId }: LikeDislikeProps) {
     }
   };
 
-  if (loading) return <div className="animate-pulse h-10 w-32 bg-zinc-200 dark:bg-zinc-800 rounded-full" />;
+  if (loading) {
+    if (variant === "vertical") {
+      return (
+        <div className="flex flex-col items-center gap-4">
+           <div className="animate-pulse h-12 w-12 bg-zinc-800 rounded-full" />
+           <div className="animate-pulse h-12 w-12 bg-zinc-800 rounded-full" />
+        </div>
+      );
+    }
+    return <div className="animate-pulse h-10 w-32 bg-zinc-200 dark:bg-zinc-800 rounded-full" />;
+  }
+
+  if (variant === "vertical") {
+    return (
+      <div className="flex flex-col items-center gap-5">
+        <button
+          onClick={() => handleAction("like")}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
+            <ThumbsUp className={`h-6 w-6 ${userAction === "like" ? "fill-white" : ""}`} />
+          </div>
+          <span className="text-white text-xs font-medium drop-shadow-md">{likes > 0 ? likes : "Like"}</span>
+        </button>
+
+        <button
+          onClick={() => handleAction("dislike")}
+          className="flex flex-col items-center gap-1 group"
+        >
+          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
+            <ThumbsDown className={`h-6 w-6 ${userAction === "dislike" ? "fill-white" : ""}`} />
+          </div>
+          <span className="text-white text-xs font-medium drop-shadow-md">{dislikes > 0 ? dislikes : "Dislike"}</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/85 p-1 w-fit">
