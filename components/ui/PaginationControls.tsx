@@ -65,7 +65,7 @@ export function PaginationControls({
   const isFirst = page <= 1;
   const isLast = page >= totalPages;
 
-  const mobilePages = buildPages(page, totalPages, 13);
+  const mobilePages = buildPages(page, totalPages, 9);
   const desktopPages = buildPages(page, totalPages, 25);
 
   const btn = "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed";
@@ -81,7 +81,7 @@ export function PaginationControls({
       <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium">Page {page} of {totalPages}</p>
 
       {/* Mobile */}
-      <div className="flex flex-nowrap items-center gap-1 overflow-x-auto sm:hidden py-1">
+      <div className="flex flex-wrap justify-center items-center gap-1 sm:hidden">
         <button onClick={onFirst} disabled={isFirst || loading} className={clsx(btn, "h-8 w-8", isFirst || loading ? dis : inact)} aria-label="First page"><ChevronsLeft className="h-4 w-4" /></button>
         <button onClick={onPrev} disabled={isFirst || loading} className={clsx(btn, "h-8 w-8", isFirst || loading ? dis : inact)} aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
         {renderPages(mobilePages, page, loading, onPage, clsx(pgBase, "h-8 w-8 text-xs"), pgAct, pgInact)}
