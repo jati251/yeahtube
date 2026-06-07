@@ -126,6 +126,14 @@ export async function DELETE(
             }),
           );
         }
+        if (m.previewKey) {
+          await s3.send(
+            new DeleteObjectCommand({
+              Bucket: storageConfig.bucket,
+              Key: m.previewKey,
+            }),
+          );
+        }
       } catch (err) {
         console.error(`Failed to delete S3 object: ${m.storageKey}`, err);
       }

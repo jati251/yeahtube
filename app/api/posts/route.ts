@@ -215,6 +215,7 @@ export async function GET(request: NextRequest) {
           .select()
           .from(schema.media)
           .where(inArray(schema.media.postId, postIds))
+          .orderBy(schema.media.orderIndex)
       : [];
 
     // Get tags for each post

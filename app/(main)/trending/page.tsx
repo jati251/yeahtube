@@ -39,7 +39,8 @@ export default async function TrendingPage() {
     const allMedia = await db
       .select()
       .from(schema.media)
-      .where(inArray(schema.media.postId, postIds));
+      .where(inArray(schema.media.postId, postIds))
+      .orderBy(schema.media.orderIndex);
 
     // Get categories
     let categoryMap = new Map<number, string>();

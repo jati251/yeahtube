@@ -69,6 +69,14 @@ export async function DELETE(request: NextRequest) {
             }),
           );
         }
+        if (m.previewKey) {
+          await s3.send(
+            new DeleteObjectCommand({
+              Bucket: storageConfig.bucket,
+              Key: m.previewKey,
+            }),
+          );
+        }
       } catch {
         s3ErrorCount++;
       }

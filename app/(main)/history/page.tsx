@@ -45,7 +45,8 @@ export default async function HistoryPage() {
   const allMedia = await db
     .select()
     .from(schema.media)
-    .where(inArray(schema.media.postId, postIds));
+    .where(inArray(schema.media.postId, postIds))
+    .orderBy(schema.media.orderIndex);
 
   // Build result maintaining history order
   const result = await Promise.all(

@@ -210,6 +210,7 @@ async function processSingleFile(
   s3: ReturnType<typeof getS3Client>,
   storageConfig: ReturnType<typeof getStorageConfig>,
   postId: number,
+  uploadedKeys: string[],
 ): Promise<{
   id: number;
   storageKey: string;
@@ -279,6 +280,7 @@ async function processSingleFile(
       ContentType: file.type,
     }),
   );
+  uploadedKeys.push(storageKey);
 
   // Generate and upload thumbnail
   if (mediaType === "image") {
@@ -297,6 +299,7 @@ async function processSingleFile(
           ContentType: "image/webp",
         }),
       );
+      uploadedKeys.push(thumbnailKey);
     } catch (thumbError) {
       console.error("Thumbnail generation failed:", thumbError);
     }
@@ -317,6 +320,7 @@ async function processSingleFile(
           ContentType: "image/webp",
         }),
       );
+      uploadedKeys.push(thumbnailKey);
 
       if (previewBuffer) {
         previewKey = `previews/${folderPath}/${storageId}_preview.mp4`;
@@ -328,6 +332,7 @@ async function processSingleFile(
             ContentType: "video/mp4",
           }),
         );
+        uploadedKeys.push(previewKey);
       }
     } catch (assetError) {
       console.error("Video asset generation failed:", assetError);
@@ -527,12 +532,28 @@ export async function POST(request: NextRequest) {
     // ── Process files ───────────────────────────────────
     const startIndex = isNew ? 0 : (await db.select().from(schema.media).where(eq(schema.media.postId, postId))).length;
     const mediaRecords = [];
+    const uploadedKeys: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       try {
-        const mediaRecord = await processSingleFile(files[i], startIndex + i, db, s3, storageConfig, postId);
+        const mediaRecord = await processSingleFile(files[i], startIndex + i, db, s3, storageConfig, postId, uploadedKeys);
         mediaRecords.push(mediaRecord);
       } catch (err) {
+        // Delete uploaded files from S3 to prevent orphaned files
+        const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+        for (const key of uploadedKeys) {
+          try {
+            await s3.send(
+              new DeleteObjectCommand({
+                Bucket: storageConfig.bucket,
+                Key: key,
+              }),
+            );
+          } catch (delErr) {
+            console.error(`[Upload] Failed to clean up S3 key ${key} after error:`, delErr);
+          }
+        }
+
         if (isNew) {
           await db.delete(schema.posts).where(eq(schema.posts.id, postId));
         }

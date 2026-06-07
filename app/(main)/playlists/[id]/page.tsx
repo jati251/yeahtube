@@ -61,7 +61,7 @@ export default async function PlaylistPage({
   // Get media for these posts
   const postIds = items.map((i) => i.id);
   const mediaRecords = postIds.length > 0 
-    ? await db.select().from(schema.media).where(inArray(schema.media.postId, postIds))
+    ? await db.select().from(schema.media).where(inArray(schema.media.postId, postIds)).orderBy(schema.media.orderIndex)
     : [];
 
   const posts = await Promise.all(items.map(async (post) => {

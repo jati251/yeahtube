@@ -95,7 +95,8 @@ export async function getRecommendations(
   const allMedia = await db
     .select()
     .from(schema.media)
-    .where(inArray(schema.media.postId, postIds));
+    .where(inArray(schema.media.postId, postIds))
+    .orderBy(schema.media.orderIndex);
 
   const allPostTags = await db
     .select({

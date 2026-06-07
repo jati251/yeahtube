@@ -20,6 +20,7 @@ export interface MediaDbItem {
   width: number | null;
   height: number | null;
   duration: number | null;
+  orderIndex?: number | null;
 }
 
 export interface TagDbItem {
@@ -38,9 +39,14 @@ export async function formatPostItem(
   postTags: TagDbItem[],
   categoryName: string | null = null
 ) {
-  const hasVideo = postMedia.some((m) => m.mediaType === "video");
-  const hasImage = postMedia.some((m) => m.mediaType === "image");
-  const firstMedia = postMedia[0];
+  // Sort media by orderIndex ascending so that original media (lowest index) comes first.
+  // This ensures that we don't accidentally pick up a transcoded version (orderIndex > 0)
+  // as the first/primary media, since transcoded versions have null thumbnails and previews.
+  const sortedMedia = [...postMedia].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+
+  const hasVideo = sortedMedia.some((m) => m.mediaType === "video");
+  const hasImage = sortedMedia.some((m) => m.mediaType === "image");
+  const firstMedia = sortedMedia[0];
 
   let thumbnailUrl = null;
   if (firstMedia?.thumbnailKey) {
@@ -49,7 +55,7 @@ export async function formatPostItem(
 
   let videoUrl = null;
   let previewUrl = null;
-  const firstVideo = postMedia.find((m) => m.mediaType === "video");
+  const firstVideo = sortedMedia.find((m) => m.mediaType === "video");
   if (firstVideo?.storageKey) {
     videoUrl = getStreamUrl(firstVideo.storageKey);
   }
@@ -57,7 +63,7 @@ export async function formatPostItem(
     previewUrl = getStreamUrl(firstVideo.previewKey);
   }
 
-  const videosOnly = postMedia.filter((m) => m.mediaType === "video");
+  const videosOnly = sortedMedia.filter((m) => m.mediaType === "video");
   let resolutionMedia = firstMedia;
   if (videosOnly.length > 0) {
     let maxVideo = videosOnly[0];
