@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
-import { ReelsFeed } from "@/components/media/ReelsFeed";
 import { FilterSidebar } from "@/components/filters/FilterSidebar";
 import { MobileFilters } from "@/components/filters/MobileFilters";
 import { ActiveFilters } from "@/components/filters/ActiveFilters";
@@ -12,7 +11,7 @@ import { TagCloud } from "@/components/filters/TagCloud";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
-import { SlidersHorizontal, LayoutGrid, List, Smartphone } from "lucide-react";
+import { SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 import { PostItem, TagItem, CategoryItem } from "@/types/post";
 import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
@@ -66,7 +65,7 @@ export function FeedClient({
   const [activeCategory, setActiveCategory] = useState<string | null>(initialCategory);
   const [activeYear, setActiveYear] = useState<string | null>(initialYear);
 
-  const [viewMode, setViewMode] = useState<"grid" | "list" | "reels">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const hasFilters = Boolean(
@@ -398,17 +397,6 @@ export function FeedClient({
                 >
                   <List className="h-4 w-4" />
                 </button>
-                <button
-                  onClick={() => setViewMode("reels")}
-                  className={`p-2 transition-colors ${
-                    viewMode === "reels"
-                      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                      : "text-zinc-500 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-900"
-                  }`}
-                  title="Reels view"
-                >
-                  <Smartphone className="h-4 w-4" />
-                </button>
               </div>
             </div>
           </div>
@@ -575,20 +563,6 @@ export function FeedClient({
           )}
         </div>
       </div>
-
-      {viewMode === "reels" && (
-        <ReelsFeed 
-          posts={posts} 
-          onClose={() => setViewMode("grid")} 
-          onLoadMore={() => {
-            if (page < totalPages && !loading) {
-              navigateToPage(page + 1);
-            }
-          }}
-          hasMore={page < totalPages}
-          isLoadingMore={loading}
-        />
-      )}
     </div>
   );
 }

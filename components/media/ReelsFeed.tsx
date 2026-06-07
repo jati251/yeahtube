@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Volume2, VolumeX, Heart, MessageCircle, Share2, BookmarkPlus } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX, Heart, MessageCircle, Share2, BookmarkPlus, Play } from "lucide-react";
 import { PostItem } from "@/types/post";
 import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
@@ -21,6 +21,11 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeVideoId, setActiveVideoId] = useState<number | null>(posts[0]?.id || null);
   const [isMuted, setIsMuted] = useState(true);
+
+  const activeIndex = React.useMemo(() => {
+    const idx = posts.findIndex(p => p.id === activeVideoId);
+    return idx === -1 ? 0 : idx;
+  }, [posts, activeVideoId]);
 
   // Use Intersection Observer to detect which video is currently mostly visible
   useEffect(() => {
@@ -59,7 +64,7 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
   }, [onLoadMore, hasMore, isLoadingMore]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black text-white flex justify-center overflow-hidden">
+    <div className="fixed inset-0 z-30 bg-black text-white flex justify-center overflow-hidden pb-16 lg:pb-0">
       {/* Top Navigation Overlay */}
       <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
         <button 
@@ -83,11 +88,12 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
         className="h-[100dvh] w-full max-w-md snap-y snap-mandatory overflow-y-scroll hide-scrollbar bg-black"
         style={{ scrollBehavior: 'smooth' }}
       >
-        {posts.map((post) => (
+        {posts.map((post, index) => (
           <ReelItem 
             key={post.id} 
             post={post} 
             isActive={activeVideoId === post.id} 
+            isNearActive={Math.abs(index - activeIndex) <= 2}
             isMuted={isMuted} 
           />
         ))}
@@ -101,14 +107,16 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
   );
 }
 
-function ReelItem({ post, isActive, isMuted }: { post: PostItem; isActive: boolean; isMuted: boolean }) {
+function ReelItem({ post, isActive, isNearActive, isMuted }: { post: PostItem; isActive: boolean; isNearActive: boolean; isMuted: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showComments, setShowComments] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     if (isActive && videoRef.current) {
       videoRef.current.currentTime = 0;
+      setIsPaused(false);
       videoRef.current.play().catch(() => {
         // Handle autoplay block if necessary
       });
@@ -117,6 +125,25 @@ function ReelItem({ post, isActive, isMuted }: { post: PostItem; isActive: boole
     }
   }, [isActive]);
 
+  useEffect(() => {
+    if (!videoRef.current || !isActive) return;
+    if (isPaused) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(() => {
+        // Handle play block if necessary
+      });
+    }
+  }, [isPaused, isActive]);
+
+  const handleVideoClick = (e: React.MouseEvent) => {
+    // Avoid triggering pause when clicking interactive overlays
+    if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) {
+      return;
+    }
+    setIsPaused((prev) => !prev);
+  };
+
   return (
     <div 
       className="reel-item relative h-[100dvh] w-full snap-center snap-always flex items-center justify-center bg-zinc-950 overflow-hidden"
@@ -124,15 +151,36 @@ function ReelItem({ post, isActive, isMuted }: { post: PostItem; isActive: boole
     >
       {/* Media Content */}
       {post.mediaType === "video" && post.videoUrl ? (
-        <video
-          ref={videoRef}
-          src={post.videoUrl}
-          poster={post.thumbnailUrl || undefined}
-          className="absolute inset-0 h-full w-full object-contain"
-          loop
-          playsInline
-          muted={isMuted}
-        />
+        isNearActive ? (
+          <div 
+            onClick={handleVideoClick} 
+            className="absolute inset-0 h-full w-full flex items-center justify-center cursor-pointer select-none"
+          >
+            <video
+              ref={videoRef}
+              src={post.videoUrl}
+              poster={post.thumbnailUrl || undefined}
+              className="h-full w-full object-contain pointer-events-none"
+              loop
+              playsInline
+              muted={isMuted}
+            />
+            {/* Play Overlay Indicator */}
+            {isPaused && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-opacity">
+                <div className="bg-black/60 p-5 rounded-full text-white backdrop-blur-sm animate-scale-up shadow-xl border border-white/10">
+                  <Play className="h-10 w-10 fill-white" />
+                </div>
+              </div>
+            )}
+          </div>
+        ) : post.thumbnailUrl ? (
+          <img
+            src={post.thumbnailUrl}
+            alt={post.title}
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+        ) : null
       ) : post.thumbnailUrl ? (
         <img
           src={post.thumbnailUrl}
@@ -146,43 +194,37 @@ function ReelItem({ post, isActive, isMuted }: { post: PostItem; isActive: boole
       )}
 
       {/* Interaction Sidebar (Right) */}
-      <div className="absolute right-4 bottom-24 z-10 flex flex-col items-center gap-6">
+      <div className="absolute right-4 bottom-24 z-10 flex flex-col items-center gap-5">
         <div className="flex flex-col items-center gap-1">
-          <div className="bg-black/40 backdrop-blur-md rounded-full p-1 scale-90 sm:scale-100">
+          <div className="bg-black/40 backdrop-blur-md rounded-full px-2 py-1 flex justify-center scale-90 sm:scale-100 shadow-lg border border-white/10">
             <LikeDislike postId={post.id} />
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
-          <button 
-            onClick={() => setShowComments(true)}
-            className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition"
-          >
-            <MessageCircle className="h-6 w-6" />
-          </button>
-        </div>
+        <button 
+          onClick={() => setShowComments(true)}
+          className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition shadow-lg border border-white/10"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </button>
 
-        <div className="flex flex-col items-center gap-1">
-          <button 
-            onClick={() => setShowSaveModal(true)}
-            className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition"
-          >
-            <BookmarkPlus className="h-6 w-6" />
-          </button>
-        </div>
+        <button 
+          onClick={() => setShowSaveModal(true)}
+          className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition shadow-lg border border-white/10"
+        >
+          <BookmarkPlus className="h-6 w-6" />
+        </button>
         
-        <div className="flex flex-col items-center gap-1">
-          <Link 
-            href={post.mediaType === 'video' ? `/watch/${post.id}` : `/view/${post.id}`}
-            className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition"
-          >
-            <Share2 className="h-6 w-6" />
-          </Link>
-        </div>
+        <Link 
+          href={post.mediaType === 'video' ? `/watch/${post.id}` : `/view/${post.id}`}
+          className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition shadow-lg border border-white/10"
+        >
+          <Share2 className="h-6 w-6" />
+        </Link>
       </div>
 
       {/* Bottom Info Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-0 p-4 pt-20 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 z-0 p-4 pb-6 pt-24 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none pr-20">
         <Link 
           href={post.mediaType === 'video' ? `/watch/${post.id}` : `/view/${post.id}`}
           className="pointer-events-auto group inline-block"
