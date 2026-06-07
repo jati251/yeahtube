@@ -42,6 +42,9 @@ export function usePaginatedPosts({
   // Ref to prevent duplicate initial fetches in strict mode
   const initialFetchDone = useRef(false);
 
+  // Skip the next fetch cycle (used by restoreFromCache)
+  const skipFetchRef = useRef(false);
+
   // Stable ref for params to avoid stale closure issues
   const fetchParamsRef = useRef(fetchParams);
   useEffect(() => {
@@ -149,6 +152,11 @@ export function usePaginatedPosts({
     let active = true;
     const runFetch = async () => {
       if (!active) return;
+      // Skip fetch after cache restore
+      if (skipFetchRef.current) {
+        skipFetchRef.current = false;
+        return;
+      }
       if (autoFetch) {
         await fetchPageRef.current(page);
       } else if (!autoFetch && !initialFetchDone.current) {
@@ -177,6 +185,19 @@ export function usePaginatedPosts({
     };
   }, []);
 
+  // Restore posts/page/total from cache without triggering a refetch.
+  // Call this in useLayoutEffect to apply cache before first paint.
+  const restoreFromCache = useCallback(
+    (cachedPosts: PostItem[], cachedPage: number, cachedTotal: number) => {
+      skipFetchRef.current = true;
+      initialFetchDone.current = true;
+      setPosts(cachedPosts);
+      setPage(cachedPage);
+      setTotal(cachedTotal);
+    },
+    [],
+  );
+
   return {
     posts,
     setPosts,
@@ -187,6 +208,7 @@ export function usePaginatedPosts({
     goToPage,
     nextPage,
     prevPage,
+    restoreFromCache,
     refetch: () => fetchPage(page),
   };
 }

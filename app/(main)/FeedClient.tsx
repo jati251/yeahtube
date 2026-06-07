@@ -46,23 +46,6 @@ export function FeedClient({
   const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
   const setCachedFeed = useAppStore((s) => s.setCachedFeed);
 
-  // Snapshot the cached feed state ONCE on mount to avoid reactive loops.
-  // The cache updates every time posts/page/total change — if we read it
-  // reactively, usePaginatedPosts' sync effects would constantly fire and
-  // reset initialFetchDone, breaking subsequent page navigations.
-  const mountCacheRef = React.useRef<{
-    page: number;
-    posts: PostItem[];
-    total: number;
-  } | null>(null);
-  if (mountCacheRef.current === null) {
-    const store = useAppStore.getState();
-    const hasCached = store.cachedFeedPage > 0 && store.cachedFeedPosts.length > 0;
-    mountCacheRef.current = hasCached
-      ? { page: store.cachedFeedPage, posts: store.cachedFeedPosts, total: store.cachedFeedTotal }
-      : { page: 0, posts: [], total: 0 };
-  }
-
   // Filters from URL for initial state
   const initialMediaType = searchParams.get("type");
   const initialSelectedTags =
@@ -76,13 +59,6 @@ export function FeedClient({
     parseInt(searchParams.get("page") || String(initialPage), 10) || 1,
   );
 
-  // Use cached feed data when navigating back from a detail page
-  const cache = mountCacheRef.current;
-  const hasCachedFeed = cache.page > 0 && cache.posts.length > 0;
-  const effectiveInitialPosts = hasCachedFeed ? cache.posts : initialPosts;
-  const effectiveInitialTotal = hasCachedFeed ? cache.total : initialTotal;
-  const effectiveInitialPage = hasCachedFeed ? cache.page : initialUrlPage;
-
   // Local state for seamless client-side filtering & pagination
   const [activeMediaType, setActiveMediaType] = useState<string | null>(
     initialMediaType,
@@ -95,7 +71,7 @@ export function FeedClient({
     initialCategory,
   );
   const [activeYear, setActiveYear] = useState<string | null>(initialYear);
-  const [activePage, setActivePage] = useState(effectiveInitialPage);
+  const [activePage, setActivePage] = useState(initialUrlPage);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -109,11 +85,11 @@ export function FeedClient({
     activeYear,
   );
 
-  const { posts, setPosts, loading, page, total, totalPages, goToPage } =
+  const { posts, setPosts, loading, page, total, totalPages, goToPage, restoreFromCache } =
     usePaginatedPosts({
-      initialPosts: effectiveInitialPosts,
-      initialTotal: effectiveInitialTotal,
-      initialPage: effectiveInitialPage,
+      initialPosts,
+      initialTotal,
+      initialPage: initialUrlPage,
       fetchParams: {
         type: activeMediaType,
         tags: activeTags.join(",") || null,
@@ -124,6 +100,23 @@ export function FeedClient({
       },
       autoFetch: false,
     });
+
+  // Restore cached feed state before first paint to avoid flash of page 1.
+  // useLayoutEffect fires after hydration but before the browser paints,
+  // so the user never sees the server-rendered page 1 content.
+  const cacheRestoredRef = React.useRef(false);
+  React.useLayoutEffect(() => {
+    if (cacheRestoredRef.current) return;
+    cacheRestoredRef.current = true;
+
+    const store = useAppStore.getState();
+    const hasCached = store.cachedFeedPage > 0 && store.cachedFeedPosts.length > 0;
+    // Only restore if the cached page differs from what the server rendered
+    if (hasCached && store.cachedFeedPage !== initialUrlPage) {
+      restoreFromCache(store.cachedFeedPosts, store.cachedFeedPage, store.cachedFeedTotal);
+      setActivePage(store.cachedFeedPage);
+    }
+  }, [initialUrlPage, restoreFromCache]);
 
   // Cache feed state whenever posts/page/total change
   useEffect(() => {
