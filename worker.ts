@@ -95,14 +95,22 @@ const worker = new Worker<TranscodeJobData>(
       }
       await fs.writeFile(tmpInput, Buffer.concat(chunks));
 
-      // Get original dimensions via ffprobe
-      const originalHeight = await getVideoHeight(tmpInput);
-      console.log(`[Worker] Original height: ${originalHeight}px`);
+      // Get original dimensions and codec via ffprobe
+      const { codec, height: originalHeight } = await getVideoInfo(tmpInput);
+      console.log(`[Worker] Original codec: ${codec}, height: ${originalHeight}px`);
 
-      const applicableTargets = TARGETS.filter((t) => t.height < originalHeight);
+      let applicableTargets = TARGETS.filter((t) => t.height < originalHeight);
+
+      // If the original codec is not h264, we always want to transcode a compatible h264 version 
+      // at the original resolution (if it matches or exceeds 360p) so that browsers can play it natively.
+      if (codec !== "h264" && originalHeight >= 360) {
+        if (!applicableTargets.some((t) => t.height === originalHeight)) {
+          applicableTargets.unshift({ label: `${originalHeight}p`, height: originalHeight });
+        }
+      }
 
       if (applicableTargets.length === 0) {
-        console.log(`[Worker] Video is already low-res (${originalHeight}px), skipping`);
+        console.log(`[Worker] No applicable transcode targets for ${originalHeight}px, skipping`);
         return;
       }
 
@@ -171,16 +179,26 @@ const worker = new Worker<TranscodeJobData>(
 
 // ── Helpers ───────────────────────────────────────────
 
-function getVideoHeight(filePath: string): Promise<number> {
+interface VideoInfo {
+  codec: string;
+  height: number;
+}
+
+function getVideoInfo(filePath: string): Promise<VideoInfo> {
   return new Promise((resolve) => {
     const ffprobe = spawn("ffprobe", [
       "-v", "error", "-select_streams", "v:0",
-      "-show_entries", "stream=height", "-of", "csv=p=0", filePath,
+      "-show_entries", "stream=height,codec_name", "-of", "csv=p=0", filePath,
     ]);
     let output = "";
     ffprobe.stdout.on("data", (d: Buffer) => { output += d.toString(); });
-    ffprobe.on("close", () => resolve(parseInt(output.trim(), 10) || 0));
-    ffprobe.on("error", () => resolve(0));
+    ffprobe.on("close", () => {
+      const parts = output.trim().split(",");
+      const codec = parts[0] || "";
+      const height = parseInt(parts[1], 10) || 0;
+      resolve({ codec, height });
+    });
+    ffprobe.on("error", () => resolve({ codec: "", height: 0 }));
   });
 }
 

@@ -61,6 +61,7 @@ export default async function WatchPage({ params }: PageProps) {
     thumbnailUrl: v.thumbnailKey ? await getPresignedUrl(v.thumbnailKey) : null,
     width: v.width,
     height: v.height,
+    orderIndex: v.orderIndex,
   })));
 
   const imagesWithUrls = await Promise.all(images.map(async (img) => ({

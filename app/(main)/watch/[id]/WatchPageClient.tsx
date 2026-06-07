@@ -23,6 +23,7 @@ interface VideoData {
   thumbnailUrl: string | null;
   width: number | null;
   height: number | null;
+  orderIndex?: number;
 }
 
 interface ImageData {
@@ -58,7 +59,10 @@ export function WatchPageClient({
   recommendations = [],
 }: WatchPageClientProps) {
   const router = useRouter();
-  const [currentVideoIndex, setCurrentVideoIndex] = React.useState(0);
+  
+  // Default to the first transcoded video (orderIndex > 0) if it exists, for maximum compatibility (Safari/Apple/AV1 issues)
+  const initialIndex = videos.findIndex((v) => (v.orderIndex ?? 0) > 0);
+  const [currentVideoIndex, setCurrentVideoIndex] = React.useState(initialIndex >= 0 ? initialIndex : 0);
   const [showSaveModal, setShowSaveModal] = React.useState(false);
   const currentVideo = videos[currentVideoIndex];
 

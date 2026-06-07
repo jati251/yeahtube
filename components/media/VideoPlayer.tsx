@@ -513,6 +513,16 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         src={src}
         poster={poster || undefined}
         onClick={togglePlay}
+        onError={(e) => {
+          console.error("Video error event:", e);
+          if (hasQualityOptions && qualityOptions && onQualityChange) {
+            const fallbackOption = qualityOptions.find((opt) => opt.src !== src);
+            if (fallbackOption) {
+              console.warn(`Video playback failed for ${src?.slice(0, 40)}..., auto-falling back to ${fallbackOption.label}`);
+              onQualityChange(fallbackOption);
+            }
+          }
+        }}
         onTimeUpdate={() => {
           if (videoRef.current && !isDragging.current) {
             setCurrentTime(videoRef.current.currentTime);
