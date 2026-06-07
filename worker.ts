@@ -188,7 +188,7 @@ function transcodeVideo(inputPath: string, outputPath: string, targetHeight: num
   return new Promise((resolve, reject) => {
     const ffmpeg = spawn("ffmpeg", [
       "-i", inputPath,
-      "-vf", `scale=-2:${targetHeight}`,
+      "-vf", `setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale=-2:${targetHeight}`,
       "-c:v", "libx264", "-preset", "fast", "-crf", "23",
       "-c:a", "aac", "-b:a", "128k",
       "-movflags", "+faststart", "-pix_fmt", "yuv420p",

@@ -114,7 +114,7 @@ async function generateVideoAssets(
           ffmpeg(tmpInput)
             .setStartTime(seekTime)
             .setDuration(previewDuration)
-            .videoFilters("scale='min(360,iw)':-2")
+            .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale='min(360,iw)':-2")
             .noAudio()
             .videoCodec("libx264")
             .outputOptions([
@@ -135,7 +135,7 @@ async function generateVideoAssets(
           ffmpeg(tmpInput)
             .seekInput(time)
             .frames(1)
-            .videoFilters("scale=400:-2")
+            .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale=400:-2")
             .output(tmpThumbPng)
             .outputOptions(["-update", "1"])
             .on("end", onSuccess)

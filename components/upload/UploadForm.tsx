@@ -31,6 +31,8 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [tagInput, setTagInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [totalProgress, setTotalProgress] = useState<number | undefined>(undefined);
+  const [isBulk, setIsBulk] = useState(false);
   const [acceptType, setAcceptType] = useState("image/*,video/*");
   const [instantUpload, setInstantUpload] = useState(false);
   const [albumMode, setAlbumMode] = useState(false);
@@ -69,6 +71,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
   const finalizeUpload = (message: string) => {
     setUploadProgress(100);
+    if (totalProgress !== undefined) setTotalProgress(100);
     addToast("success", message);
     setTimeout(() => {
       setSelectedFiles([]);
@@ -77,6 +80,8 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       setTags([]);
       setUploading(false);
       setUploadProgress(0);
+      setTotalProgress(undefined);
+      setIsBulk(false);
       setStatusText("");
       router.refresh();
       if (typeof window !== "undefined") {
@@ -91,59 +96,135 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     if (filesToUpload.length === 0) return;
     setUploading(true);
     setUploadProgress(0);
+    setTotalProgress(undefined);
+    setIsBulk(filesToUpload.length > 1 && !albumMode);
 
     const csrfToken = getCsrfToken();
     const totalFiles = filesToUpload.length;
-    const headers = { ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}) };
 
-    const sendOne = async (file: File, title: string, idx: number): Promise<boolean> => {
-      const fd = new FormData();
-      fd.append("files", file);
-      fd.append("quickPost", quick ? "true" : "false");
-      fd.append("title", title);
-      if (!quick && idx === 0) {
-        if (category) fd.append("category", category);
-        fd.append("tags", JSON.stringify(tags));
-      }
-      setStatusText(`Uploading ${idx + 1} of ${totalFiles} file(s)`);
-      setUploadProgress(Math.floor((idx / totalFiles) * 100));
+    const sendOne = async (
+      file: File,
+      title: string,
+      idx: number,
+      onProgress: (percent: number) => void
+    ): Promise<boolean> => {
+      return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        const fd = new FormData();
+        fd.append("files", file);
+        fd.append("quickPost", quick ? "true" : "false");
+        fd.append("title", title);
+        if (!quick && idx === 0) {
+          if (category) fd.append("category", category);
+          fd.append("tags", JSON.stringify(tags));
+        }
 
-      const res = await fetch("/api/upload", { method: "POST", headers, body: fd });
-      if (!res.ok) {
-        const text = await res.text();
-        console.error(`[Upload] Error (${res.status}):`, text);
-        return false;
-      }
-      return true;
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent);
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(true);
+          } else {
+            console.error(`[Upload] Error (${xhr.status}):`, xhr.responseText);
+            resolve(false);
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          console.error("[Upload] XHR network error");
+          resolve(false);
+        });
+
+        xhr.open("POST", "/api/upload");
+        if (csrfToken) {
+          xhr.setRequestHeader("x-csrf-token", decodeURIComponent(csrfToken));
+        }
+        xhr.send(fd);
+      });
     };
 
     try {
       if (albumMode) {
         // Album mode: batch all → 1 post
-        const formData = new FormData();
-        formData.append("quickPost", quick ? "true" : "false");
-        if (quick) {
-          const firstName = filesToUpload[0].file.name.replace(/\.[^/.]+$/, "");
-          formData.append("title", totalFiles === 1 ? firstName : `Album: ${firstName} +${totalFiles - 1}`);
-        } else {
-          formData.append("title", title.trim());
-          if (category) formData.append("category", category);
-          formData.append("tags", JSON.stringify(tags));
-        }
-        for (const sf of filesToUpload) formData.append("files", sf.file);
-
         setStatusText(`Uploading ${totalFiles} file(s)...`);
-        const res = await fetch("/api/upload", { method: "POST", headers, body: formData });
-        if (!res.ok) { const t = await res.text(); throw new Error(t || "Upload failed"); }
+        setTotalProgress(0);
+
+        const ok = await new Promise<boolean>((resolve) => {
+          const xhr = new XMLHttpRequest();
+          const formData = new FormData();
+          formData.append("quickPost", quick ? "true" : "false");
+          if (quick) {
+            const firstName = filesToUpload[0].file.name.replace(/\.[^/.]+$/, "");
+            formData.append("title", totalFiles === 1 ? firstName : `Album: ${firstName} +${totalFiles - 1}`);
+          } else {
+            formData.append("title", title.trim());
+            if (category) formData.append("category", category);
+            formData.append("tags", JSON.stringify(tags));
+          }
+          for (const sf of filesToUpload) formData.append("files", sf.file);
+
+          xhr.upload.addEventListener("progress", (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percent);
+              setTotalProgress(percent);
+            }
+          });
+
+          xhr.addEventListener("load", () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(true);
+            } else {
+              console.error(`[Upload] Album Error (${xhr.status}):`, xhr.responseText);
+              resolve(false);
+            }
+          });
+
+          xhr.addEventListener("error", () => {
+            console.error("[Upload] Album XHR network error");
+            resolve(false);
+          });
+
+          xhr.open("POST", "/api/upload");
+          if (csrfToken) {
+            xhr.setRequestHeader("x-csrf-token", decodeURIComponent(csrfToken));
+          }
+          xhr.send(formData);
+        });
+
+        if (!ok) {
+          throw new Error("Upload failed");
+        }
       } else {
         // Default: 1 file = 1 post
         let successCount = 0;
+        setTotalProgress(0);
+
         for (let i = 0; i < filesToUpload.length; i++) {
           const sf = filesToUpload[i];
           const fileTitle = quick
             ? sf.file.name.replace(/\.[^/.]+$/, "")
             : (i === 0 ? title.trim() : sf.file.name.replace(/\.[^/.]+$/, ""));
-          const ok = await sendOne(sf.file, fileTitle, i);
+          
+          setStatusText(
+            totalFiles === 1
+              ? `Uploading: ${sf.file.name}`
+              : `Uploading ${i + 1} of ${totalFiles}: ${sf.file.name}`
+          );
+          setUploadProgress(0);
+
+          const ok = await sendOne(sf.file, fileTitle, i, (percent) => {
+            setUploadProgress(percent);
+            const overallBase = (i / totalFiles) * 100;
+            const overallContribution = percent / totalFiles;
+            setTotalProgress(Math.floor(overallBase + overallContribution));
+          });
+
           if (!ok) {
             addToast("error", `Failed at file ${i + 1}. Uploaded ${successCount} of ${totalFiles}.`);
             setUploading(false);
@@ -152,11 +233,13 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           // Remove file from list one-by-one (GDrive style)
           setSelectedFiles((prev) => { URL.revokeObjectURL(sf.preview); return prev.filter((x) => x.id !== sf.id); });
           successCount++;
+          setTotalProgress(Math.floor((successCount / totalFiles) * 100));
         }
       }
 
       setSelectedFiles((prev) => { prev.forEach((sf) => URL.revokeObjectURL(sf.preview)); return []; });
       setUploadProgress(100);
+      if (totalFiles > 1) setTotalProgress(100);
       setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
       finalizeUpload(quick ? "Completed!" : "Published successfully!");
     } catch (error) {
@@ -619,7 +702,14 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       </div>
 
       {/* Progress */}
-      {uploading && <UploadProgress progress={uploadProgress} statusText={statusText} />}
+      {uploading && (
+        <UploadProgress
+          progress={uploadProgress}
+          totalProgress={totalProgress}
+          isBulk={isBulk}
+          statusText={statusText}
+        />
+      )}
     </form>
   );
 }
