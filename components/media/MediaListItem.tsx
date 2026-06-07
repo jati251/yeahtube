@@ -110,6 +110,12 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
           <span>{timeAgo}</span>
+          {post.views !== undefined && (
+            <>
+              <span>·</span>
+              <span>{post.views.toLocaleString()} views</span>
+            </>
+          )}
           {post.category && (
             <>
               <span>·</span>

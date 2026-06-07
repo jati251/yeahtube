@@ -14,7 +14,7 @@ export function getQualityLabel(width?: number | null, height?: number | null): 
   if (resolution >= 2160) return { label: "4K", color: "bg-red-600" };
   if (resolution >= 1080) return { label: "Full HD", color: "bg-blue-600" };
   if (resolution >= 720) return { label: "HD", color: "bg-emerald-600" };
-  return null;
+  return { label: "SD", color: "bg-gray-600" };
 }
 
 // ── Duration Formatting ───────────────────────────────

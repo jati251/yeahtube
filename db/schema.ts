@@ -44,6 +44,7 @@ export const posts = pgTable("posts", {
     .references(() => categories.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   description: text("description").default(""),
+  views: integer("views").notNull().default(0),
   createdAt: text("created_at")
     .notNull()
     .default(sql`now()`),

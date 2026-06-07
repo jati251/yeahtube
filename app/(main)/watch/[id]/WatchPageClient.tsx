@@ -93,9 +93,13 @@ export function WatchPageClient({
     };
   }, []);
 
-  // Track History
+  // Track History & Views
   useEffect(() => {
     fetch(`/api/posts/${post.id}/history`, {
+      method: "POST",
+    }).catch(console.error);
+
+    fetch(`/api/posts/${post.id}/view`, {
       method: "POST",
     }).catch(console.error);
   }, [post.id]);

@@ -65,6 +65,13 @@ export function ViewPageClient({
     };
   }, []);
 
+  // Track Views
+  useEffect(() => {
+    fetch(`/api/posts/${post.id}/view`, {
+      method: "POST",
+    }).catch(console.error);
+  }, [post.id]);
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",

@@ -18,7 +18,7 @@ interface FeedClientProps {
   initialPosts: PostItem[];
   initialTotal: number;
   initialPage: number;
-  initialSort: "newest" | "oldest";
+  initialSort: "newest" | "oldest" | "popular";
   tags: TagItem[];
 }
 
@@ -42,7 +42,7 @@ export function FeedClient({
 
   // Derive state from URL (source of truth)
   const page = Math.max(1, parseInt(searchParams.get("page") || String(initialPage), 10) || 1);
-  const sort = (searchParams.get("sort") || initialSort) as "newest" | "oldest";
+  const sort = (searchParams.get("sort") || initialSort) as "newest" | "oldest" | "popular";
   const totalPages = Math.max(1, Math.ceil(initialTotal / PAGE_SIZE));
 
   // Local-only state
@@ -85,6 +85,10 @@ export function FeedClient({
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
+      // Don't save scroll position if we're near the top because of a reset during navigation
+      if (window.scrollY === 0 && document.body.scrollHeight > window.innerHeight && page > 1) {
+          return;
+      }
       if (!ticking) {
         window.requestAnimationFrame(() => {
           setFeedScrollY(window.scrollY);
@@ -95,7 +99,7 @@ export function FeedClient({
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [setFeedScrollY]);
+  }, [setFeedScrollY, page]);
 
   const {
     selectedIds,
@@ -126,7 +130,11 @@ export function FeedClient({
   );
 
   const toggleSort = () => {
-    const newSort = sort === "newest" ? "oldest" : "newest";
+    let newSort: "newest" | "oldest" | "popular" = "newest";
+    if (sort === "newest") newSort = "oldest";
+    else if (sort === "oldest") newSort = "popular";
+    else newSort = "newest";
+
     const params = new URLSearchParams(searchParams.toString());
     if (newSort !== "newest") params.set("sort", newSort);
     else params.delete("sort");
@@ -168,7 +176,7 @@ export function FeedClient({
             onClick={toggleSort}
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
           >
-            {sort === "newest" ? "Newest" : "Oldest"}
+            {sort === "newest" ? "Newest" : sort === "oldest" ? "Oldest" : "Most Viewed"}
           </button>
 
           <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">

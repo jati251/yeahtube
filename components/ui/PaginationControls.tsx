@@ -86,7 +86,7 @@ export function PaginationControls({
       </p>
 
       {/* Controls */}
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-1.5">
         {/* First */}
         <button
           onClick={onFirst}

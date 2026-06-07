@@ -13,6 +13,7 @@ export interface PostItem {
   category?: string | null;
   width?: number | null;
   height?: number | null;
+  views?: number;
 }
 
 export interface TagItem {

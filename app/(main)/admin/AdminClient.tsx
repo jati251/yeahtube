@@ -457,7 +457,7 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Most Active User</p>
-                      <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      <p className="text-lg font-bold text-gray-900 dark:text-white truncate break-all">
                         {stats.mostActiveUser.username}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">

@@ -21,6 +21,8 @@ async function getInitialPosts(page: number, sort: string) {
 
   const orderBy = sort === "oldest"
     ? [schema.posts.createdAt, schema.posts.id] as const
+    : sort === "popular"
+    ? [desc(schema.posts.views), desc(schema.posts.createdAt), desc(schema.posts.id)] as const
     : [desc(schema.posts.createdAt), desc(schema.posts.id)] as const;
 
   const posts = await db
@@ -28,6 +30,7 @@ async function getInitialPosts(page: number, sort: string) {
       id: schema.posts.id,
       title: schema.posts.title,
       description: schema.posts.description,
+      views: schema.posts.views,
       createdAt: schema.posts.createdAt,
     })
     .from(schema.posts)
@@ -98,6 +101,7 @@ async function getInitialPosts(page: number, sort: string) {
         category: null as string | null,
         width: firstMedia?.width || null,
         height: firstMedia?.height || null,
+        views: post.views,
       };
     })
   );
@@ -117,7 +121,7 @@ export default async function HomePage({
 }) {
   const sp = await searchParams;
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
-  const sort = sp.sort === "oldest" ? "oldest" : "newest";
+  const sort = sp.sort === "oldest" ? "oldest" : sp.sort === "popular" ? "popular" : "newest";
 
   const [user, { posts, total }, tags] = await Promise.all([
     getCurrentUser(),

@@ -346,9 +346,14 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   useEffect(() => {
     return () => {
       if (controlsTimeout) clearTimeout(controlsTimeout);
-      if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
     };
   }, [controlsTimeout]);
+
+  useEffect(() => {
+    return () => {
+      if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
+    };
+  }, []);
 
   const formatTime = (t: number) => {
     if (isNaN(t) || !isFinite(t)) return "0:00";
@@ -362,19 +367,20 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   return (
     <div
       ref={containerRef}
-      className="group relative aspect-video overflow-hidden rounded-xl bg-black"
+      className="group relative aspect-video rounded-xl bg-black"
       onMouseMove={showControlsTemporarily}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => playing && setShowControls(false)}
     >
+      <div className="absolute inset-0 overflow-hidden rounded-xl">
       <video
         ref={videoRef}
-        className="h-full w-full cursor-pointer"
+        className="h-full w-full object-contain cursor-pointer"
         src={src}
         poster={poster || undefined}
         onClick={togglePlay}
         onTimeUpdate={() => {
-          if (videoRef.current) {
+          if (videoRef.current && !isDragging.current) {
             setCurrentTime(videoRef.current.currentTime);
           }
         }}
@@ -411,10 +417,11 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         playsInline
         preload="auto"
       />
+      </div>
 
       {/* Tap zones overlay — left: skip back, center: play/pause, right: skip forward */}
       <div
-        className="absolute inset-0 z-[5] cursor-pointer"
+        className="absolute inset-0 z-[5] cursor-pointer rounded-xl overflow-hidden"
         onClick={handleTapZone}
       />
 
@@ -429,7 +436,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       {skipOverlay && (
         <div
           className={`
-            absolute top-0 bottom-0 z-20 flex items-center px-6 pointer-events-none
+            absolute top-0 bottom-0 z-20 flex items-center px-6 pointer-events-none rounded-xl overflow-hidden
             animate-in fade-in duration-150
             ${skipOverlay === "back" ? "left-0 bg-gradient-to-r from-black/40 to-transparent justify-start" : "right-0 bg-gradient-to-l from-black/40 to-transparent justify-end"}
           `}
@@ -576,7 +583,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
                   className="fixed inset-0 z-40"
                   onClick={() => setShowSettings(false)}
                 />
-                <div className="absolute bottom-full left-0 right-auto z-50 mb-2 w-44 rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm sm:left-auto sm:right-0">
+                <div className="absolute bottom-full left-0 right-auto z-50 mb-2 w-44 max-h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-gray-900/95 py-2 shadow-xl backdrop-blur-sm sm:left-auto sm:right-0">
                   {/* Quality section */}
                   {hasQualityOptions && (
                     <>

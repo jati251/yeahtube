@@ -230,10 +230,13 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
           </div>
         )}
 
-        {/* Date */}
-        <p className="mt-2 truncate text-[10px] text-gray-400 dark:text-gray-500">
-          {timeAgo}
-        </p>
+        {/* Date & Views */}
+        <div className="mt-2 flex items-center justify-between text-[10px] text-gray-400 dark:text-gray-500">
+          <p className="truncate">{timeAgo}</p>
+          {post.views !== undefined && (
+            <p className="shrink-0">{post.views.toLocaleString()} views</p>
+          )}
+        </div>
       </div>
     </>
   );
