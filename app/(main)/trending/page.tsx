@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { getDb, schema } from "@/db";
 import { desc, eq, sql, inArray } from "drizzle-orm";
 import { MediaCard } from "@/components/media/MediaCard";
-import { getPresignedUrl } from "@/lib/storage";
+import { formatPostItem } from "@/lib/posts";
 import { TrendingUp } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -55,55 +55,12 @@ export default async function TrendingPage() {
         if (!post) return null;
 
         const postMedia = allMedia.filter((m) => m.postId === post.id);
-        const hasVideo = postMedia.some((m) => m.mediaType === "video");
-        const hasImage = postMedia.some((m) => m.mediaType === "image");
-        const firstMedia = postMedia[0];
-
-        let thumbnailUrl = null;
-        if (firstMedia?.thumbnailKey) {
-          thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
-        }
-
-        let videoUrl = null;
-        let previewUrl = null;
-        const firstVideo = postMedia.find((m) => m.mediaType === "video");
-        if (firstVideo?.storageKey) {
-          videoUrl = await getPresignedUrl(firstVideo.storageKey);
-        }
-        if (firstVideo?.previewKey) {
-          previewUrl = await getPresignedUrl(firstVideo.previewKey);
-        }
-
-        const videosOnly = postMedia.filter((m) => m.mediaType === "video");
-        let resolutionMedia = firstMedia;
-        if (videosOnly.length > 0) {
-          let maxVideo = videosOnly[0];
-          for (const v of videosOnly) {
-            const vRes = v.height || v.width || 0;
-            const maxRes = maxVideo.height || maxVideo.width || 0;
-            if (vRes > maxRes) {
-              maxVideo = v;
-            }
-          }
-          resolutionMedia = maxVideo;
-        }
-
+        const categoryName = post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null;
+        
+        const formatted = await formatPostItem(post, postMedia, [], categoryName);
         return {
-          id: post.id,
-          title: post.title,
-          description: post.description,
-          createdAt: post.createdAt,
-          tags: [],
-          mediaCount: postMedia.length,
-          mediaType: hasVideo && hasImage ? ("mixed" as const) : hasVideo ? ("video" as const) : ("image" as const),
-          thumbnailUrl,
-          videoUrl,
-          previewUrl,
-          duration: firstVideo?.duration || firstMedia?.duration || null,
-          category: post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null,
+          ...formatted,
           likeCount: t.likeCount,
-          width: resolutionMedia?.width || null,
-          height: resolutionMedia?.height || null,
         };
       })
     );
@@ -118,10 +75,10 @@ export default async function TrendingPage() {
           <TrendingUp className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
             Trending
           </h1>
-          <p className="text-gray-500 dark:text-gray-400">Most liked videos right now</p>
+          <p className="text-zinc-500 dark:text-zinc-400">Most liked videos right now</p>
         </div>
       </div>
 
@@ -129,7 +86,7 @@ export default async function TrendingPage() {
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {trendingPosts.map((post: any, index: number) => (
             <div key={post.id} className="relative">
-              <div className="absolute -left-3 -top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-red-500 font-bold text-white shadow-md dark:border-gray-900">
+              <div className="absolute -left-3 -top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-red-500 font-bold text-white shadow-md dark:border-zinc-950">
                 #{index + 1}
               </div>
               <MediaCard post={post} />
@@ -137,10 +94,10 @@ export default async function TrendingPage() {
           ))}
         </div>
       ) : (
-        <div className="flex h-64 flex-col items-center justify-center rounded-none border-2 border-dashed border-gray-200 dark:border-gray-800">
-          <TrendingUp className="mb-4 h-12 w-12 text-gray-300 dark:text-gray-600" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">No trending posts yet</h3>
-          <p className="text-gray-500">Wait for users to start liking some content.</p>
+        <div className="flex h-64 flex-col items-center justify-center rounded-none border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+          <TrendingUp className="mb-4 h-12 w-12 text-zinc-300 dark:text-zinc-700" />
+          <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">No trending posts yet</h3>
+          <p className="text-zinc-500">Wait for users to start liking some content.</p>
         </div>
       )}
     </div>

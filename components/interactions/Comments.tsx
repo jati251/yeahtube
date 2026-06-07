@@ -56,12 +56,12 @@ export function Comments({ postId }: CommentsProps) {
   };
 
   if (loading) {
-    return <div className="animate-pulse h-24 bg-gray-100 dark:bg-gray-800 rounded-lg mt-8" />;
+    return <div className="animate-pulse h-24 bg-zinc-100 dark:bg-zinc-900 rounded-lg mt-8" />;
   }
 
   return (
     <div className="mt-8">
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
         <MessageSquare className="h-5 w-5" />
         {comments.length} Comments
       </h2>
@@ -73,14 +73,14 @@ export function Comments({ postId }: CommentsProps) {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a comment..."
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm focus:border-zinc-950 focus:outline-none focus:ring-1 focus:ring-zinc-950 dark:border-zinc-850 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-300 dark:focus:ring-zinc-300"
             disabled={submitting}
           />
         </div>
         <button
           type="submit"
           disabled={!newComment.trim() || submitting}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200"
         >
           {submitting ? "Posting..." : <><Send className="h-4 w-4" /> Post</>}
         </button>
@@ -89,19 +89,19 @@ export function Comments({ postId }: CommentsProps) {
       <div className="space-y-4">
         {comments.map((comment) => (
           <div key={comment.id} className="flex gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
               {comment.username.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-baseline gap-2">
-                <span className="font-medium text-gray-900 dark:text-white text-sm">
+                <span className="font-medium text-zinc-900 dark:text-zinc-50 text-sm">
                   @{comment.username}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
                   {new Date(comment.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+              <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">
                 {comment.content}
               </p>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { PostItem } from "@/types/post";
+import { DEFAULT_PAGE_SIZE, CUSTOM_EVENTS } from "@/lib/constants";
 
 interface FetchParams {
   sort?: string;
@@ -35,7 +36,7 @@ export function usePaginatedPosts({
   const [total, setTotal] = useState(initialTotal);
   const [loading, setLoading] = useState(false);
 
-  const limitVal = fetchParams.limit || 20;
+  const limitVal = fetchParams.limit || DEFAULT_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(total / limitVal));
 
   // Ref to prevent duplicate initial fetches in strict mode
@@ -98,20 +99,20 @@ export function usePaginatedPosts({
       // Don't clamp by totalPages — API handles out-of-range gracefully.
       // This allows restoring a saved page even before total is known.
       const safe = Math.max(1, pageNum);
-      fetchPageRef.current(safe);
+      setPage(safe);
     },
     [],
   );
 
   const nextPage = useCallback(() => {
     if (page < totalPages) {
-      fetchPageRef.current(page + 1);
+      setPage(page + 1);
     }
   }, [page, totalPages]);
 
   const prevPage = useCallback(() => {
     if (page > 1) {
-      fetchPageRef.current(page - 1);
+      setPage(page - 1);
     }
   }, [page]);
 
@@ -131,6 +132,11 @@ export function usePaginatedPosts({
     }
   }, [initialPosts, initialTotal, initialPage]);
 
+  // Synchronize internal page when initialPage changes (from popstate or client resets)
+  useEffect(() => {
+    setPage(initialPage);
+  }, [initialPage]);
+
   // Auto fetch handler
   const sortVal = fetchParams.sort;
   const typeVal = fetchParams.type;
@@ -144,20 +150,20 @@ export function usePaginatedPosts({
     const runFetch = async () => {
       if (!active) return;
       if (autoFetch) {
-        await fetchPageRef.current(1);
+        await fetchPageRef.current(page);
       } else if (!autoFetch && !initialFetchDone.current) {
         // If autoFetch is false, rely on initial data, but mark as done
         initialFetchDone.current = true;
       } else if (initialFetchDone.current) {
-        // Parameters changed after mount → refetch page 1
-        await fetchPageRef.current(1);
+        // Parameters or page changed after mount → refetch current page
+        await fetchPageRef.current(page);
       }
     };
     runFetch();
     return () => {
       active = false;
     };
-  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, autoFetch]);
+  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, page, autoFetch]);
 
   // Listen to custom 'post-created' event to auto-refresh
   useEffect(() => {
@@ -165,9 +171,9 @@ export function usePaginatedPosts({
       fetchPageRef.current(1);
     };
 
-    window.addEventListener("post-created", handlePostCreated);
+    window.addEventListener(CUSTOM_EVENTS.POST_CREATED, handlePostCreated);
     return () => {
-      window.removeEventListener("post-created", handlePostCreated);
+      window.removeEventListener(CUSTOM_EVENTS.POST_CREATED, handlePostCreated);
     };
   }, []);
 

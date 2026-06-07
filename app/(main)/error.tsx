@@ -15,10 +15,10 @@ export default function Error({ error, reset }: ErrorProps) {
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50">
         <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
       </div>
-      <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
+      <h2 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
         Something went wrong
       </h2>
-      <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+      <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
         {error.message || "An unexpected error occurred. Please try again."}
       </p>
       <Button onClick={reset} variant="primary">

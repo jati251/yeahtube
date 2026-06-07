@@ -67,17 +67,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 dark:from-gray-900 dark:to-gray-800">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 px-4 dark:from-zinc-950 dark:to-black">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-lg">
-            <Film className="h-8 w-8 text-white" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 dark:bg-zinc-100 shadow-lg">
+            <Film className="h-8 w-8 text-white dark:text-zinc-950" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
             YeahTube
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Sign in to your account
           </p>
         </div>
@@ -88,7 +88,7 @@ export default function LoginPage() {
           method="POST"
           action="/api/auth/login"
           onSubmit={handleSubmit}
-          className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+          className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
         >
           <div className="space-y-4">
             <Input
@@ -115,7 +115,7 @@ export default function LoginPage() {
             />
 
             {error && (
-              <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-900/50 dark:text-red-400">
+              <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">
                 {error}
               </div>
             )}
@@ -131,7 +131,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <p className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
+        <p className="mt-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
           Only whitelisted users can access this application.
         </p>
       </div>

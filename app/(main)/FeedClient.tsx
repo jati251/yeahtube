@@ -1,17 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
+import { FilterSidebar } from "@/components/filters/FilterSidebar";
+import { MobileFilters } from "@/components/filters/MobileFilters";
+import { ActiveFilters } from "@/components/filters/ActiveFilters";
 import { TagCloud } from "@/components/filters/TagCloud";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
-import { LayoutGrid, List } from "lucide-react";
-import { PostItem, TagItem } from "@/types/post";
+import { RefreshCw, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
+import { PostItem, TagItem, CategoryItem } from "@/types/post";
+import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
 import { useAppStore } from "@/stores/appStore";
+import { SORT_OPTIONS, CUSTOM_EVENTS } from "@/lib/constants";
 
 interface FeedClientProps {
   isAdmin: boolean;
@@ -20,9 +25,8 @@ interface FeedClientProps {
   initialPage: number;
   initialSort: "newest" | "oldest" | "popular";
   tags: TagItem[];
+  categories: CategoryItem[];
 }
-
-const PAGE_SIZE = 20;
 
 export function FeedClient({
   isAdmin,
@@ -31,63 +35,108 @@ export function FeedClient({
   initialPage,
   initialSort,
   tags,
+  categories,
 }: FeedClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
 
-  // Zustand: only for scroll position
+  // Zustand: scroll only
   const feedScrollY = useAppStore((s) => s.feedScrollY);
   const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
 
-  // Derive state from URL (source of truth)
-  const page = Math.max(1, parseInt(searchParams.get("page") || String(initialPage), 10) || 1);
-  const sort = (searchParams.get("sort") || initialSort) as "newest" | "oldest" | "popular";
-  const totalPages = Math.max(1, Math.ceil(initialTotal / PAGE_SIZE));
+  // Filters from URL for initial state
+  const initialMediaType = searchParams.get("type");
+  const initialSelectedTags =
+    searchParams.get("tags")?.split(",").filter(Boolean) || [];
+  const initialSearchQuery = searchParams.get("q") || "";
+  const initialActiveSort = searchParams.get("sort") || initialSort;
+  const initialCategory = searchParams.get("category");
+  const initialYear = searchParams.get("year");
+  const initialUrlPage = Math.max(
+    1,
+    parseInt(searchParams.get("page") || String(initialPage), 10) || 1,
+  );
 
-  // Local-only state
+  // Local state for seamless client-side filtering & pagination
+  const [activeMediaType, setActiveMediaType] = useState<string | null>(
+    initialMediaType,
+  );
+  const [activeTags, setActiveTags] = useState<string[]>(initialSelectedTags);
+  const [activeSearchQuery, setActiveSearchQuery] =
+    useState(initialSearchQuery);
+  const [activeSort, setActiveSort] = useState(initialActiveSort);
+  const [activeCategory, setActiveCategory] = useState<string | null>(
+    initialCategory,
+  );
+  const [activeYear, setActiveYear] = useState<string | null>(initialYear);
+  const [activePage, setActivePage] = useState(initialUrlPage);
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [restoredScroll, setRestoredScroll] = useState(false);
 
-  // Use initialPosts directly from server (no fetching needed for feed — SSR handles it)
-  const [posts, setPosts] = useState<PostItem[]>(initialPosts);
-  const [total, setTotal] = useState(initialTotal);
+  const hasFilters = Boolean(
+    activeMediaType ||
+    activeTags.length > 0 ||
+    activeSearchQuery ||
+    activeCategory ||
+    activeYear,
+  );
 
-  // Sync posts/total when props change (URL navigation)
-  useEffect(() => {
-    setPosts(initialPosts);
-    setTotal(initialTotal);
-  }, [initialPosts, initialTotal]);
+  const { posts, setPosts, loading, page, total, totalPages, goToPage } =
+    usePaginatedPosts({
+      initialPosts,
+      initialTotal,
+      initialPage: activePage,
+      fetchParams: {
+        type: activeMediaType,
+        tags: activeTags.join(",") || null,
+        q: activeSearchQuery || null,
+        sort: activeSort,
+        category: activeCategory,
+        year: activeYear,
+      },
+      autoFetch: false, // Rely on initial posts on mount, fetch client-side thereafter
+    });
 
-  // Scroll to top on page change (pagination navigation)
-  const prevPageRef = useRef(page);
+  // Sync back hook page changes to activePage state
   useEffect(() => {
-    if (page !== prevPageRef.current) {
+    setActivePage(page);
+  }, [page]);
+
+  // Scroll to top on page change
+  const prevPageRef = React.useRef(page);
+  useEffect(() => {
+    if (page !== prevPageRef.current && prevPageRef.current !== 0) {
       window.scrollTo(0, 0);
       setFeedScrollY(0);
-      prevPageRef.current = page;
     }
+    prevPageRef.current = page;
   }, [page, setFeedScrollY]);
 
-  // Restore scroll position when coming back from detail (same page, no page change)
+  // Restore scroll when coming back from detail (same page)
   useEffect(() => {
-    if (!restoredScroll && feedScrollY > 0 && posts.length > 0) {
+    if (!restoredScroll && feedScrollY > 0 && posts.length > 0 && !loading) {
       const timer = setTimeout(() => {
         window.scrollTo(0, feedScrollY);
         setRestoredScroll(true);
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [restoredScroll, feedScrollY, posts.length]);
+  }, [restoredScroll, feedScrollY, posts.length, loading]);
 
   // Track and persist scroll position
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
       // Don't save scroll position if we're near the top because of a reset during navigation
-      if (window.scrollY === 0 && document.body.scrollHeight > window.innerHeight && page > 1) {
-          return;
+      if (
+        window.scrollY === 0 &&
+        document.body.scrollHeight > window.innerHeight &&
+        page > 1
+      ) {
+        return;
       }
       if (!ticking) {
         window.requestAnimationFrame(() => {
@@ -115,125 +164,344 @@ export function FeedClient({
     closeConfirm,
   } = usePostSelection(posts, setPosts, addToast);
 
-  // URL navigation helpers
-  const navigateToPage = useCallback(
-    (newPage: number) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (newPage > 1) params.set("page", String(newPage));
-      else params.delete("page");
-      if (sort !== "newest") params.set("sort", sort);
-      else params.delete("sort");
-      const qs = params.toString();
-      router.push(qs ? `/?${qs}` : "/");
-    },
-    [router, searchParams, sort],
-  );
+  // Sync state to URL silently without Next.js router re-rendering
+  useEffect(() => {
+    const sp = new URLSearchParams();
+    if (activeMediaType) sp.set("type", activeMediaType);
+    if (activeTags.length > 0) sp.set("tags", activeTags.join(","));
+    if (activeSearchQuery) sp.set("q", activeSearchQuery);
+    if (activeSort !== initialSort) sp.set("sort", activeSort);
+    if (activeCategory) sp.set("category", activeCategory);
+    if (activeYear) sp.set("year", activeYear);
+    if (activePage > 1) sp.set("page", String(activePage));
 
-  const toggleSort = () => {
-    let newSort: "newest" | "oldest" | "popular" = "newest";
-    if (sort === "newest") newSort = "oldest";
-    else if (sort === "oldest") newSort = "popular";
-    else newSort = "newest";
+    const qs = sp.toString();
+    const newUrl = qs ? `/?${qs}` : "/";
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (newSort !== "newest") params.set("sort", newSort);
-    else params.delete("sort");
-    params.delete("page"); // reset to page 1 on sort change
-    const qs = params.toString();
-    router.push(qs ? `/?${qs}` : "/");
+    if (window.location.search !== (qs ? `?${qs}` : "")) {
+      window.history.pushState(null, "", newUrl);
+    }
+  }, [
+    activeMediaType,
+    activeTags,
+    activeSearchQuery,
+    activeSort,
+    activeCategory,
+    activeYear,
+    activePage,
+    initialSort,
+  ]);
+
+  // Sync state from URL when Back/Forward browser buttons are clicked
+  useEffect(() => {
+    const handlePopState = () => {
+      const sp = new URLSearchParams(window.location.search);
+      const mType = sp.get("type");
+      const tags = sp.get("tags")?.split(",").filter(Boolean) || [];
+      const q = sp.get("q") || "";
+      const s = sp.get("sort") || initialSort;
+      const cat = sp.get("category");
+      const y = sp.get("year");
+      const p = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
+
+      setActiveMediaType(mType);
+      setActiveTags(tags);
+      setActiveSearchQuery(q);
+      setActiveSort(s);
+      setActiveCategory(cat);
+      setActiveYear(y);
+      setActivePage(p);
+      goToPage(p);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [initialSort, goToPage]);
+
+  // Handle custom window events for seamless communication from Header / MobileNav
+  useEffect(() => {
+    const handleSearch = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      setActiveSearchQuery(customEvent.detail);
+      goToPage(1);
+    };
+
+    const handleReset = () => {
+      setActiveMediaType(null);
+      setActiveTags([]);
+      setActiveSearchQuery("");
+      setActiveSort(initialSort);
+      setActiveCategory(null);
+      setActiveYear(null);
+      goToPage(1);
+    };
+
+    window.addEventListener(CUSTOM_EVENTS.FEED_SEARCH, handleSearch);
+    window.addEventListener(CUSTOM_EVENTS.FEED_RESET, handleReset);
+    return () => {
+      window.removeEventListener(CUSTOM_EVENTS.FEED_SEARCH, handleSearch);
+      window.removeEventListener(CUSTOM_EVENTS.FEED_RESET, handleReset);
+    };
+  }, [initialSort, goToPage]);
+
+  // Handlers to update local states
+  const handleMediaTypeChange = (type: string | null) => {
+    setActiveMediaType(type);
+    goToPage(1);
   };
 
-  const handleTagFilter = (slug: string | null) => {
-    setActiveTag(slug);
-    router.push(slug ? `/browse?tags=${slug}` : "/");
+  const handleTagToggle = (slug: string) => {
+    const current = new Set(activeTags);
+    if (current.has(slug)) current.delete(slug);
+    else current.add(slug);
+    setActiveTags(Array.from(current));
+    goToPage(1);
+  };
+
+  const handleCategoryChange = (slug: string | null) => {
+    setActiveCategory(slug);
+    goToPage(1);
+  };
+
+  const handleYearChange = (yearVal: string | null) => {
+    setActiveYear(yearVal);
+    goToPage(1);
+  };
+
+  const handleSortChange = (newSort: string) => {
+    setActiveSort(newSort);
+    goToPage(1);
+  };
+
+  const clearAll = () => {
+    setActiveMediaType(null);
+    setActiveTags([]);
+    setActiveSearchQuery("");
+    setActiveSort(initialSort);
+    setActiveCategory(null);
+    setActiveYear(null);
+    goToPage(1);
+  };
+
+  const navigateToPage = (newPage: number) => {
+    goToPage(newPage);
   };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Controls bar */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <TagCloud
+      {/* Active filters */}
+      <ActiveFilters
+        mediaType={activeMediaType}
+        selectedTags={activeTags}
+        searchQuery={activeSearchQuery}
+        category={activeCategory}
+        year={activeYear}
+        sort={activeSort}
+        onRemoveMediaType={() => handleMediaTypeChange(null)}
+        onRemoveTag={(slug) => {
+          const current = new Set(activeTags);
+          current.delete(slug);
+          setActiveTags(Array.from(current));
+          goToPage(1);
+        }}
+        onRemoveSearch={() => {
+          setActiveSearchQuery("");
+          goToPage(1);
+        }}
+        onRemoveCategory={() => handleCategoryChange(null)}
+        onRemoveYear={() => handleYearChange(null)}
+        onClearAll={clearAll}
+      />
+
+      <div className="lg:flex lg:gap-8">
+        <aside className="hidden w-60 flex-shrink-0 lg:block">
+          <FilterSidebar
+            mediaType={activeMediaType}
+            selectedTags={activeTags}
+            tags={tags}
+            category={activeCategory}
+            categories={categories}
+            year={activeYear}
+            onMediaTypeChange={handleMediaTypeChange}
+            onTagToggle={handleTagToggle}
+            onCategoryChange={handleCategoryChange}
+            onYearChange={handleYearChange}
+            onClearAll={clearAll}
+          />
+        </aside>
+
+        <MobileFilters
+          isOpen={mobileFiltersOpen}
+          onClose={() => setMobileFiltersOpen(false)}
+          mediaType={activeMediaType}
+          selectedTags={activeTags}
           tags={tags}
-          activeTag={activeTag}
-          onTagSelect={handleTagFilter}
+          category={activeCategory}
+          categories={categories}
+          year={activeYear}
+          onMediaTypeChange={handleMediaTypeChange}
+          onTagToggle={handleTagToggle}
+          onCategoryChange={handleCategoryChange}
+          onYearChange={handleYearChange}
+          onClearAll={clearAll}
         />
 
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <button
-              onClick={toggleSelectMode}
-              className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
-                selectMode
-                  ? "border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
-              }`}
-            >
-              {selectMode ? "Done" : "Select"}
-            </button>
+        <div className="flex-1">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMobileFiltersOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200/80 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-all lg:hidden"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Filters
+              </button>
+
+              <select
+                value={activeSort}
+                onChange={(e) => handleSortChange(e.target.value)}
+                className="rounded-xl border border-zinc-200/80 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-600 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400 dark:focus:border-zinc-600 dark:focus:ring-zinc-800 transition-all"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {isAdmin && (
+                <button
+                  onClick={toggleSelectMode}
+                  className={`rounded-xl border px-3.5 py-1.5 text-sm font-medium transition-all ${
+                    selectMode
+                      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 shadow-sm"
+                      : "border-zinc-200/80 bg-white text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                  }`}
+                >
+                  {selectMode ? "Done" : "Select"}
+                </button>
+              )}
+
+              <div className="hidden lg:block">
+                <TagCloud
+                  tags={tags}
+                  activeTag={activeTags[0] || null}
+                  onTagSelect={(slug) => {
+                    setActiveTags(slug ? [slug] : []);
+                    goToPage(1);
+                  }}
+                />
+              </div>
+
+              <div className="flex rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-700/80 dark:bg-zinc-950 overflow-hidden">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 transition-colors ${
+                    viewMode === "grid"
+                      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                      : "text-zinc-500 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                  }`}
+                  title="Grid view"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 transition-colors ${
+                    viewMode === "list"
+                      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                      : "text-zinc-500 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                  }`}
+                  title="List view"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-4 lg:hidden">
+            <TagCloud
+              tags={tags}
+              activeTag={activeTags[0] || null}
+              onTagSelect={(slug) => {
+                setActiveTags(slug ? [slug] : []);
+                goToPage(1);
+              }}
+            />
+          </div>
+
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+            {`${total} result${total !== 1 ? "s" : ""}`}
+          </p>
+
+          {posts.length > 0 && (
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              loading={loading}
+              onNext={() => navigateToPage(page + 1)}
+              onPrev={() => navigateToPage(page - 1)}
+              onFirst={() => navigateToPage(1)}
+              onLast={() => navigateToPage(totalPages)}
+              onPage={navigateToPage}
+            />
           )}
 
-          <button
-            onClick={toggleSort}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
-          >
-            {sort === "newest" ? "Newest" : sort === "oldest" ? "Oldest" : "Most Viewed"}
-          </button>
-
-          <div className="flex rounded-lg border border-gray-300 dark:border-gray-600">
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`rounded-l-lg p-2 ${
-                viewMode === "grid"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-              }`}
-              title="Grid view"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={`rounded-r-lg p-2 ${
-                viewMode === "list"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-              }`}
-              title="List view"
-            >
-              <List className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Pagination controls */}
-      {posts.length > 0 && (
-        <PaginationControls
-          page={page}
-          totalPages={totalPages}
-          total={total}
-          onNext={() => navigateToPage(page + 1)}
-          onPrev={() => navigateToPage(page - 1)}
-          onFirst={() => navigateToPage(1)}
-          onLast={() => navigateToPage(totalPages)}
-          onPage={navigateToPage}
-        />
-      )}
-
-      {/* Posts */}
-      {posts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="mb-4 text-6xl">📂</div>
-          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
-            No media yet
-          </h2>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            Upload your first photo or video to get started.
-          </p>
-        </div>
-      ) : (
-        <>
-          {viewMode === "grid" ? (
+          {loading && posts.length === 0 ? (
+            viewMode === "grid" ? (
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse overflow-hidden rounded-2xl border border-zinc-100 bg-white/50 dark:border-zinc-800/60 dark:bg-zinc-800/30"
+                  >
+                    <div className="aspect-[4/3] bg-zinc-200/70 dark:bg-zinc-700/50" />
+                    <div className="space-y-3 p-4">
+                      <div className="h-5 w-3/4 rounded bg-zinc-200/70 dark:bg-zinc-700/50" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full rounded bg-zinc-200/50 dark:bg-zinc-700/30" />
+                        <div className="h-3 w-4/6 rounded bg-zinc-200/50 dark:bg-zinc-700/30" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex animate-pulse gap-2 rounded-2xl border border-zinc-100 bg-white/50 p-4 dark:border-zinc-800/60 dark:bg-zinc-800/30"
+                  >
+                    <div className="h-20 w-28 rounded-lg bg-zinc-200/70 dark:bg-zinc-700/50 sm:h-24 sm:w-36" />
+                    <div className="flex-1 space-y-3 pt-1">
+                      <div className="h-5 w-3/4 rounded bg-zinc-200/70 dark:bg-zinc-700/50" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full rounded bg-zinc-200/50 dark:bg-zinc-700/30" />
+                        <div className="h-3 w-1/2 rounded bg-zinc-200/50 dark:bg-zinc-700/30" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : posts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="mb-4 text-6xl">📂</div>
+              <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300">
+                {hasFilters ? "No results found" : "No media yet"}
+              </h2>
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                {hasFilters
+                  ? "Try adjusting your filters or search query."
+                  : "Upload your first photo or video to get started."}
+              </p>
+            </div>
+          ) : viewMode === "grid" ? (
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 animate-slide-up">
               {posts.map((post) => (
                 <MediaCard
@@ -265,59 +533,66 @@ export function FeedClient({
             </div>
           )}
 
-          {/* Pagination controls in footer */}
           <PaginationControls
             page={page}
             totalPages={totalPages}
             total={total}
+            loading={loading}
             onNext={() => navigateToPage(page + 1)}
             onPrev={() => navigateToPage(page - 1)}
             onFirst={() => navigateToPage(1)}
             onLast={() => navigateToPage(totalPages)}
             onPage={navigateToPage}
           />
-        </>
-      )}
 
-      {/* Bulk action bar */}
-      {isAdmin && selectMode && selectedIds.size > 0 && (
-        <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/95 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {selectedIds.size} selected
-            </span>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setSelectedIds(new Set())}
-                className="rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBulkDelete}
-                disabled={deleting}
-                className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleting ? "Deleting..." : `Delete (${selectedIds.size})`}
-              </button>
+          {loading && posts.length > 0 && (
+            <div className="mt-4 flex justify-center">
+              <div className="flex items-center gap-2 text-sm text-zinc-500">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Loading...
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Confirmation modal */}
-      {confirmState && (
-        <ConfirmModal
-          isOpen={confirmState.open}
-          onClose={closeConfirm}
-          onConfirm={confirmState.onConfirm}
-          title={confirmState.title}
-          message={confirmState.message}
-          variant={confirmState.variant}
-          confirmLabel={confirmState.confirmLabel}
-          loading={deleting}
-        />
-      )}
+          {isAdmin && selectMode && selectedIds.size > 0 && (
+            <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-zinc-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/95 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {selectedIds.size} selected
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    className="rounded-xl px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={deleting}
+                    className="rounded-xl bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                  >
+                    {deleting ? "Deleting..." : `Delete (${selectedIds.size})`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {confirmState && (
+            <ConfirmModal
+              isOpen={confirmState.open}
+              onClose={closeConfirm}
+              onConfirm={confirmState.onConfirm}
+              title={confirmState.title}
+              message={confirmState.message}
+              variant={confirmState.variant}
+              confirmLabel={confirmState.confirmLabel}
+              loading={deleting}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

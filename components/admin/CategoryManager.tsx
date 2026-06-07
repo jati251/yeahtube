@@ -121,8 +121,8 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
 
   return (
     <div className="space-y-8">
-      <form onSubmit={handleAddCategory} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+      <form onSubmit={handleAddCategory} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50">
+        <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           Add New Category
         </h2>
         <div className="flex flex-wrap items-end gap-3">
@@ -152,18 +152,18 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
         </div>
       </form>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+      <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+          <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
             <tr>
-              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 w-1/3">Name & Slug</th>
-              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 w-1/2">Description</th>
-              <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300 text-right">Actions</th>
+              <th className="px-4 py-3 font-medium text-zinc-700 dark:text-zinc-300 w-1/3">Name & Slug</th>
+              <th className="px-4 py-3 font-medium text-zinc-700 dark:text-zinc-300 w-1/2">Description</th>
+              <th className="px-4 py-3 font-medium text-zinc-700 dark:text-zinc-300 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
             {categories.map((cat) => (
-              <tr key={cat.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <tr key={cat.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                 {editingId === cat.id ? (
                   <>
                     <td className="px-4 py-3 align-top">
@@ -195,23 +195,23 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
                 ) : (
                   <>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900 dark:text-white">{cat.name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">/{cat.slug}</div>
+                      <div className="font-medium text-zinc-900 dark:text-zinc-50">{cat.name}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">/{cat.slug}</div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                      {cat.description || <span className="text-gray-400 italic">No description</span>}
+                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">
+                      {cat.description || <span className="text-zinc-400 italic">No description</span>}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => startEdit(cat)}
-                          className="rounded p-1.5 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                          className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteCategory(cat.id)}
-                          className="rounded p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-gray-700 dark:hover:text-red-400"
+                          className="rounded p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-zinc-800 dark:hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -223,7 +223,7 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
             ))}
             {categories.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                <td colSpan={3} className="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
                   No categories found. Create one above!
                 </td>
               </tr>

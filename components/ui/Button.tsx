@@ -15,13 +15,13 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-sm hover:from-blue-600 hover:to-blue-700 focus:ring-blue-500 dark:from-blue-600 dark:to-blue-700 dark:hover:from-blue-500 dark:hover:to-blue-600 premium-hover",
+    "bg-zinc-900 text-white shadow-sm hover:bg-zinc-800 focus:ring-zinc-900 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus:ring-zinc-100 transition-all duration-300",
   secondary:
-    "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 focus:ring-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 premium-hover shadow-sm",
+    "bg-white border border-zinc-200/60 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 focus:ring-zinc-200 dark:bg-zinc-900/50 dark:border-zinc-700/50 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:border-zinc-600 shadow-sm transition-all duration-300",
   ghost:
-    "bg-transparent text-slate-600 hover:bg-slate-100 focus:ring-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 transition-all duration-200",
+    "bg-transparent text-zinc-600 hover:bg-zinc-100 focus:ring-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-all duration-300",
   danger:
-    "bg-gradient-to-b from-red-500 to-red-600 text-white shadow-sm hover:from-red-600 hover:to-red-700 focus:ring-red-500 dark:from-red-600 dark:to-red-700 dark:hover:from-red-500 dark:hover:to-red-600 premium-hover",
+    "bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-600 dark:bg-red-700 dark:hover:bg-red-600 transition-all duration-300",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -42,7 +42,7 @@ export function Button({
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-colors",
+        "inline-flex items-center justify-center rounded-xl font-medium transition-colors",
         "focus:outline-none focus:ring-2 focus:ring-offset-2",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         variantStyles[variant],

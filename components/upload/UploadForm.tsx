@@ -401,9 +401,9 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     <form onSubmit={handlePublish} className="relative space-y-6">
       {/* Whole-window drag & drop overlay */}
       {windowDragOver && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl bg-blue-500/15 backdrop-blur-md border-2 border-dashed border-blue-500 animate-pulse pointer-events-none">
-          <Upload className="h-12 w-12 text-blue-600 dark:text-blue-400 animate-bounce" />
-          <p className="mt-4 text-base font-semibold text-blue-700 dark:text-blue-300">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl bg-zinc-500/10 backdrop-blur-md border-2 border-dashed border-zinc-500 dark:border-zinc-400 animate-pulse pointer-events-none">
+          <Upload className="h-12 w-12 text-zinc-800 dark:text-zinc-200 animate-bounce" />
+          <p className="mt-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">
             Drop files anywhere to upload!
           </p>
         </div>
@@ -421,13 +421,13 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       {/* Drop zone */}
       <div
         onClick={() => fileInputRef.current?.click()}
-        className="cursor-pointer rounded-xl border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500"
+        className="cursor-pointer rounded-xl border-2 border-dashed border-zinc-300 p-8 text-center transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-700"
       >
-        <Upload className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <Upload className="mx-auto mb-3 h-10 w-10 text-zinc-400" />
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Drop files anywhere or click to browse
         </p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
           Images up to 20MB, Videos up to 500MB
           <br />
           Select multiple files for batch upload, paste with Cmd+V
@@ -440,11 +440,11 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           {selectedFiles.map((sf) => (
             <div
               key={sf.id}
-              className="group relative overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
+              className="group relative overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800"
             >
               {isVideoFile(sf.file) ? (
-                <div className="relative flex aspect-square items-center justify-center bg-gray-100 dark:bg-gray-800">
-                  <FileVideo className="h-8 w-8 text-gray-400" />
+                <div className="relative flex aspect-square items-center justify-center bg-zinc-100 dark:bg-zinc-900">
+                  <FileVideo className="h-8 w-8 text-zinc-400" />
                 </div>
               ) : (
                 <img
@@ -463,7 +463,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
               >
                 <X className="h-3 w-3" />
               </button>
-              <div className="truncate bg-black/5 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-white/5 dark:text-gray-300">
+              <div className="truncate bg-black/5 px-2 py-1 text-xs font-medium text-zinc-700 dark:bg-white/5 dark:text-zinc-300">
                 {sf.file.name}
               </div>
             </div>
@@ -481,20 +481,20 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           placeholder="Single file: auto-filled from filename"
           maxLength={200}
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-zinc-500">
           Required for Publish. Ignored for Quick Post.
         </p>
       </div>
 
       {/* Category */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Category
         </label>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors focus:border-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-300 dark:focus:ring-zinc-300"
         >
           <option value="">No category</option>
           {categories.map((cat) => (
@@ -507,20 +507,20 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
       {/* Tags */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Tags
         </label>
         <div className="mb-2 flex flex-wrap gap-2">
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+              className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="hover:text-blue-900 dark:hover:text-blue-100"
+                className="hover:text-zinc-600 dark:hover:text-zinc-300"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -535,7 +535,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
             onKeyDown={handleTagKeyDown}
             placeholder="Type a tag and press Enter"
             maxLength={50}
-            className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+            className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition-colors placeholder-zinc-400 focus:border-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-600 dark:focus:border-zinc-300 dark:focus:ring-zinc-300"
           />
           <Button type="button" variant="secondary" size="sm" onClick={addTag}>
             <Plus className="h-4 w-4" />
@@ -544,16 +544,16 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       </div>
 
       {/* Instant upload mode toggle */}
-      <div className="flex items-center justify-between rounded-xl border border-yellow-200 bg-yellow-50/40 p-4 dark:border-yellow-900/30 dark:bg-yellow-950/10">
+      <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-4 dark:border-zinc-800/80 dark:bg-zinc-900/30">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-            <Zap className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+            <Zap className="h-4 w-4 text-zinc-900 dark:text-zinc-100" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-400">
+            <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
               Instant Upload Mode
             </p>
-            <p className="text-[10px] text-yellow-600/95 dark:text-yellow-500/90">
+            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
               Upload immediately as Quick Post when files are selected, dropped, or pasted.
             </p>
           </div>
@@ -565,22 +565,22 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
             onChange={(e) => handleInstantUploadChange(e.target.checked)}
             className="peer sr-only"
           />
-          <div className="peer h-5 w-9 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-yellow-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
+          <div className="peer h-5 w-9 rounded-full bg-zinc-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-zinc-350 after:bg-white after:transition-all after:content-[''] peer-checked:bg-zinc-900 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-zinc-800 dark:peer-checked:bg-zinc-100"></div>
         </label>
       </div>
 
       {/* Album mode toggle (only for multiple files) */}
       {selectedFiles.length > 1 && (
-        <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50/40 p-4 dark:border-blue-900/30 dark:bg-blue-950/10">
+        <div className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-4 dark:border-zinc-800/80 dark:bg-zinc-900/30">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <svg className="h-4 w-4 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+              <svg className="h-4 w-4 text-zinc-900 dark:text-zinc-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
             </div>
             <div>
-              <p className="text-xs font-semibold text-blue-800 dark:text-blue-400">
+              <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                 Album Mode
               </p>
-              <p className="text-[10px] text-blue-600/95 dark:text-blue-500/90">
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
                 Group all files into one post instead of individual posts.
               </p>
             </div>
@@ -592,7 +592,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
               onChange={(e) => setAlbumMode(e.target.checked)}
               className="peer sr-only"
             />
-            <div className="peer h-5 w-9 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-gray-700"></div>
+            <div className="peer h-5 w-9 rounded-full bg-zinc-200 after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-zinc-350 after:bg-white after:transition-all after:content-[''] peer-checked:bg-zinc-900 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-zinc-800 dark:peer-checked:bg-zinc-100"></div>
           </label>
         </div>
       )}
@@ -608,7 +608,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
             size="lg"
             className="flex-1"
           >
-            <Zap className="mr-1.5 h-4 w-4 text-yellow-500" />
+            <Zap className="mr-1.5 h-4 w-4 text-zinc-900 dark:text-zinc-100" />
             {uploading ? "Uploading..." : "Quick Post"}
           </Button>
         )}

@@ -123,7 +123,7 @@ export function WatchPageClient({
             router.push("/");
           }
         }}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to feed
@@ -146,19 +146,19 @@ export function WatchPageClient({
 
           {/* Video info */}
           <div className="mt-4">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white break-words">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
               {post.title}
             </h1>
 
             <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                 <Calendar className="h-4 w-4" />
                 {formatDate(post.createdAt)}
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowSaveModal(true)}
-                  className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-350 dark:hover:bg-zinc-800"
                 >
                   <BookmarkPlus className="h-4 w-4" />
                   Save
@@ -174,7 +174,7 @@ export function WatchPageClient({
                   <Link
                     key={tag.id}
                     href={`/browse?tags=${tag.slug}`}
-                    className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70"
+                    className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-650 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
                   >
                     #{tag.name}
                   </Link>
@@ -184,8 +184,8 @@ export function WatchPageClient({
 
             {/* Description */}
             {post.description && (
-              <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+              <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-850 dark:bg-zinc-900/40">
+                <p className="whitespace-pre-wrap text-sm text-zinc-750 dark:text-zinc-300">
                   {post.description}
                 </p>
               </div>
@@ -196,7 +196,7 @@ export function WatchPageClient({
           {/* Images gallery */}
           {images.length > 0 && (
             <div className="mt-8">
-              <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                 Photos ({images.length})
               </h2>
               <PhotoGallery photos={images} />
@@ -209,7 +209,7 @@ export function WatchPageClient({
 
         {/* Right column (Recommendations Sidebar) */}
         <div className="space-y-4 lg:col-span-4">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
             Recommendations
           </h2>
           <div className="flex flex-col gap-4">
@@ -218,7 +218,7 @@ export function WatchPageClient({
                 <MediaListItem key={rec.id} post={rec} />
               ))
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 No recommendations found
               </p>
             )}

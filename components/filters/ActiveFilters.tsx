@@ -36,44 +36,47 @@ export function ActiveFilters({
 
   if (!hasFilters) return null;
 
+  const badgeClass = "inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-800 dark:border-zinc-800/80 dark:bg-zinc-900/50 dark:text-zinc-200 transition-colors";
+  const closeBtnClass = "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors";
+
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+    <div className="mb-4 flex flex-wrap items-center gap-2 animate-fade-in">
+      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mr-1">
         Active filters:
       </span>
 
       {searchQuery && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+        <span className={badgeClass}>
           Search: &ldquo;{searchQuery}&rdquo;
-          <button onClick={onRemoveSearch} className="hover:text-purple-900">
-            <X className="h-3 w-3" />
+          <button onClick={onRemoveSearch} className={closeBtnClass} aria-label="Remove search filter">
+            <X className="h-3.5 w-3.5" />
           </button>
         </span>
       )}
 
       {mediaType && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/50 dark:text-green-300">
+        <span className={badgeClass}>
           {mediaType === "image" ? "Images" : "Videos"}
-          <button onClick={onRemoveMediaType} className="hover:text-green-900">
-            <X className="h-3 w-3" />
+          <button onClick={onRemoveMediaType} className={closeBtnClass} aria-label="Remove media type filter">
+            <X className="h-3.5 w-3.5" />
           </button>
         </span>
       )}
 
       {category && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
-          {category}
-          <button onClick={onRemoveCategory} className="hover:text-orange-900">
-            <X className="h-3 w-3" />
+        <span className={badgeClass}>
+          Category: {category}
+          <button onClick={onRemoveCategory} className={closeBtnClass} aria-label="Remove category filter">
+            <X className="h-3.5 w-3.5" />
           </button>
         </span>
       )}
 
       {year && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-3 py-1 text-xs font-medium text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300">
-          {year}
-          <button onClick={onRemoveYear} className="hover:text-cyan-900">
-            <X className="h-3 w-3" />
+        <span className={badgeClass}>
+          Year: {year}
+          <button onClick={onRemoveYear} className={closeBtnClass} aria-label="Remove year filter">
+            <X className="h-3.5 w-3.5" />
           </button>
         </span>
       )}
@@ -81,27 +84,28 @@ export function ActiveFilters({
       {selectedTags.map((slug) => (
         <span
           key={slug}
-          className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+          className={badgeClass}
         >
           #{slug}
           <button
             onClick={() => onRemoveTag(slug)}
-            className="hover:text-blue-900"
+            className={closeBtnClass}
+            aria-label={`Remove tag #${slug}`}
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </span>
       ))}
 
       {sort !== "newest" && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200/50 bg-zinc-50/50 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:border-zinc-800/40 dark:bg-zinc-950/20 dark:text-zinc-400">
           Sorted: {sort.replace("-", " ")}
         </span>
       )}
 
       <button
         onClick={onClearAll}
-        className="text-xs text-red-600 hover:text-red-800 dark:text-red-400"
+        className="rounded-xl px-2.5 py-1 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/20 transition-all"
       >
         Clear all
       </button>

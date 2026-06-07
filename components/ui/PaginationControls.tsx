@@ -85,16 +85,14 @@ export function PaginationControls({
   }
 
   const btnBase = "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed";
-  const btnActive = "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
-  const btnInactive = "border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800";
-  const btnDisabled = "cursor-not-allowed border-gray-200 text-gray-300 dark:border-gray-700 dark:text-gray-600";
+  const btnActive = "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 font-semibold shadow-sm";
+  const btnInactive = "border-zinc-200/80 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900";
+  const btnDisabled = "cursor-not-allowed border-zinc-100 bg-zinc-50/50 text-zinc-300 dark:border-zinc-800/50 dark:bg-zinc-950/20 dark:text-zinc-600";
 
   return (
     <div className="my-6 flex flex-col items-center gap-2">
       {/* Page info (visible on both mobile and desktop) */}
-      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium mb-1">
-        Page {page} of {totalPages} <span className="opacity-75">({total} total)</span>
-      </p>
+      <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium mb-1">Page {page} of {totalPages}</p>
 
       {/* Controls: a single flex-wrap row containing all items inline */}
       <div className="flex flex-wrap justify-center items-center gap-1 sm:gap-1.5 max-w-full sm:max-w-3xl px-4">
@@ -133,7 +131,7 @@ export function PaginationControls({
             p === "ellipsis" ? (
               <span
                 key={`mob-e-${i}`}
-                className="w-6 text-center text-xs text-gray-400 dark:text-gray-500"
+                className="w-6 text-center text-xs text-zinc-400 dark:text-zinc-500"
               >
                 …
               </span>
@@ -145,7 +143,7 @@ export function PaginationControls({
                 className={clsx(
                   btnBase,
                   "h-8 w-8 text-xs",
-                  p === page ? btnActive : "border-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+                  p === page ? btnActive : "border-transparent text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
                   loading && "cursor-not-allowed opacity-50",
                 )}
               >
@@ -161,7 +159,7 @@ export function PaginationControls({
             p === "ellipsis" ? (
               <span
                 key={`desk-e-${i}`}
-                className="w-9 text-center text-sm text-gray-400 dark:text-gray-500"
+                className="w-9 text-center text-sm text-zinc-400 dark:text-zinc-500"
               >
                 …
               </span>
@@ -173,7 +171,7 @@ export function PaginationControls({
                 className={clsx(
                   btnBase,
                   "h-9 w-9 text-sm",
-                  p === page ? btnActive : "border-transparent text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800",
+                  p === page ? btnActive : "border-transparent text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
                   loading && "cursor-not-allowed opacity-50",
                 )}
               >

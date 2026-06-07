@@ -1,6 +1,6 @@
 import { getDb, schema } from "@/db";
 import { eq, ne, or, inArray, and, desc, notInArray } from "drizzle-orm";
-import { getPresignedUrl } from "@/lib/storage";
+import { formatPostItem } from "@/lib/posts";
 
 export interface RecommendedPost {
   id: number;
@@ -15,6 +15,7 @@ export interface RecommendedPost {
   category: string | null;
   width: number | null;
   height: number | null;
+  views?: number;
 }
 
 export async function getRecommendations(
@@ -24,7 +25,7 @@ export async function getRecommendations(
 ): Promise<RecommendedPost[]> {
   const db = getDb();
 
-  let recommendedPosts: { id: number; title: string; description: string | null; createdAt: string; views: number }[] = [];
+  let recommendedPosts: { id: number; title: string; description: string | null; createdAt: any; views: number }[] = [];
 
   // 1. Try to fetch posts sharing the same category or sharing any tag
   const matches = [];
@@ -113,45 +114,13 @@ export async function getRecommendations(
       .filter((pt) => pt.postId === post.id)
       .map((pt) => ({ id: pt.tagId, name: pt.tagName, slug: pt.tagSlug }));
 
-    const hasVideo = postMedia.some((m) => m.mediaType === "video");
-    const hasImage = postMedia.some((m) => m.mediaType === "image");
-    const firstMedia = postMedia[0];
+    const postDate = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
 
-    let thumbnailUrl = null;
-    if (firstMedia?.thumbnailKey) {
-      thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
-    }
-
-    const firstVideo = postMedia.find((m) => m.mediaType === "video");
-
-    const videosOnly = postMedia.filter((m) => m.mediaType === "video");
-    let resolutionMedia = firstMedia;
-    if (videosOnly.length > 0) {
-      let maxVideo = videosOnly[0];
-      for (const v of videosOnly) {
-        const vRes = v.height || v.width || 0;
-        const maxRes = maxVideo.height || maxVideo.width || 0;
-        if (vRes > maxRes) {
-          maxVideo = v;
-        }
-      }
-      resolutionMedia = maxVideo;
-    }
-
-    return {
-      id: post.id,
-      title: post.title,
-      description: post.description,
-      createdAt: post.createdAt,
-      tags: postTags,
-      mediaCount: postMedia.length,
-      mediaType: (hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image") as "image" | "video" | "mixed",
-      thumbnailUrl,
-      duration: firstVideo?.duration || firstMedia?.duration || null,
-      category: null,
-      width: resolutionMedia?.width || null,
-      height: resolutionMedia?.height || null,
-      views: post.views,
-    };
+    return formatPostItem(
+      { ...post, createdAt: postDate },
+      postMedia,
+      postTags,
+      null
+    ) as Promise<RecommendedPost>;
   }));
 }

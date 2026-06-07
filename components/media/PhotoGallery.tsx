@@ -111,7 +111,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
         {photos.map((photo, index) => (
           <div
             key={photo.id}
-            className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700"
+            className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800"
             onClick={() => openLightbox(index)}
           >
             <img
@@ -143,11 +143,11 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
 
           {/* Zoom controls */}
           <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full bg-black/50 px-4 py-2">
-            <button onClick={zoomOut} className="text-white hover:text-blue-400">
+            <button onClick={zoomOut} className="text-white hover:text-zinc-300">
               <ZoomOut className="h-5 w-5" />
             </button>
             <span className="text-sm text-white">{Math.round(zoom * 100)}%</span>
-            <button onClick={zoomIn} className="text-white hover:text-blue-400">
+            <button onClick={zoomIn} className="text-white hover:text-zinc-300">
               <ZoomIn className="h-5 w-5" />
             </button>
           </div>

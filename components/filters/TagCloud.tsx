@@ -35,10 +35,10 @@ export function TagCloud({ tags, activeTag, onTagSelect }: TagCloudProps) {
           key={tag.id}
           onClick={() => onTagSelect(activeTag === tag.slug ? null : tag.slug)}
           className={clsx(
-            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+            "rounded-full px-3 py-1 text-xs font-medium transition-colors border",
             activeTag === tag.slug
-              ? "bg-blue-600 text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700",
+              ? "bg-zinc-950 text-white border-zinc-950 dark:bg-zinc-50 dark:text-zinc-950 dark:border-zinc-50 font-semibold"
+              : "bg-zinc-100 text-zinc-650 hover:bg-zinc-200 border-transparent dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800",
           )}
         >
           #{tag.name}

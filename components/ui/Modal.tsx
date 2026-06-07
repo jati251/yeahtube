@@ -63,7 +63,7 @@ export function Modal({
       {/* Modal content */}
       <div
         className={clsx(
-          "relative z-10 flex max-h-[90vh] w-full flex-col rounded-xl bg-white shadow-xl dark:bg-gray-800",
+          "relative z-10 flex max-h-[90vh] w-full flex-col rounded-xl bg-white shadow-xl dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/80",
           sizeStyles[size],
         )}
         role="dialog"
@@ -75,12 +75,12 @@ export function Modal({
         {/* Header */}
         {title && (
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
               aria-label="Close"
             >
               <X className="h-5 w-5" />

@@ -17,7 +17,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
           >
             {label}
           </label>
@@ -28,13 +28,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className={clsx(
             "block w-full rounded-lg border px-4 py-2.5 text-sm",
             "transition-all duration-200 ease-in-out",
-            "focus:outline-none focus:ring-[3px] focus:ring-blue-500/30 focus:border-blue-500",
+            "focus:outline-none focus:ring-[3px] focus:ring-zinc-950/10 focus:border-zinc-950 dark:focus:ring-zinc-300/10 dark:focus:border-zinc-300",
             error
               ? "border-red-500 focus:ring-red-500/30 focus:border-red-500"
-              : "border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600",
-            "bg-slate-50 dark:bg-slate-900/50",
-            "text-slate-900 dark:text-slate-100",
-            "placeholder-slate-400 dark:placeholder-slate-500",
+              : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700",
+            "bg-zinc-50 dark:bg-zinc-900/50",
+            "text-zinc-900 dark:text-zinc-100",
+            "placeholder-zinc-400 dark:placeholder-zinc-500",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             className,
           )}

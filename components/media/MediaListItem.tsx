@@ -43,7 +43,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
   const ItemContent = (
     <>
       {/* Thumbnail */}
-      <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:h-24 sm:w-36">
+      <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900 sm:h-24 sm:w-36">
         {post.thumbnailUrl ? (
           <img
             src={post.thumbnailUrl}
@@ -55,9 +55,9 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         ) : (
           <div className="flex h-full items-center justify-center">
             {post.mediaType === "video" ? (
-              <Film className="h-8 w-8 text-gray-400" />
+              <Film className="h-8 w-8 text-zinc-400" />
             ) : (
-              <Image className="h-8 w-8 text-gray-400" />
+              <Image className="h-8 w-8 text-zinc-400" />
             )}
           </div>
         )}
@@ -68,15 +68,15 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
             {quality.label}
           </span>
         ) : post.mediaType === "image" ? (
-          <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-green-600">
+          <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-zinc-700">
             Photo
           </span>
         ) : post.mediaType === "video" ? (
-          <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-gray-600">
+          <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-zinc-700">
             Video
           </span>
         ) : post.mediaType === "mixed" ? (
-          <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-blue-600">
+          <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-zinc-850 dark:bg-zinc-800">
             Mixed
           </span>
         ) : null}
@@ -91,11 +91,11 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
       {/* Info */}
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="truncate text-sm font-semibold tracking-tight sm:text-base text-slate-900 dark:text-white" title={post.title}>
+          <h3 className="truncate text-sm font-semibold tracking-tight sm:text-base text-zinc-900 dark:text-zinc-50" title={post.title}>
             {post.title}
           </h3>
           {post.mediaCount > 1 && (
-            <span className="hidden shrink-0 items-center gap-1 text-xs text-slate-400 sm:flex">
+            <span className="hidden shrink-0 items-center gap-1 text-xs text-zinc-400 sm:flex">
               <Layers className="h-3 w-3" />
               {post.mediaCount}
             </span>
@@ -103,13 +103,13 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
         </div>
 
         {post.description && (
-          <p className="line-clamp-1 break-words text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          <p className="line-clamp-1 break-words text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
             {post.description}
           </p>
         )}
 
         {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 dark:text-gray-500">
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
           <span>{timeAgo}</span>
           {post.views !== undefined && (
             <>
@@ -120,7 +120,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
           {post.category && (
             <>
               <span>·</span>
-              <span className="text-gray-500 dark:text-gray-400">
+              <span className="text-zinc-500 dark:text-zinc-400">
                 {post.category}
               </span>
             </>
@@ -142,13 +142,13 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
             {post.tags.slice(0, 4).map((tag) => (
               <span
                 key={tag.id}
-                className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
               >
                 #{tag.name}
               </span>
             ))}
             {post.tags.length > 4 && (
-              <span className="text-[10px] text-gray-400">
+              <span className="text-[10px] text-zinc-400">
                 +{post.tags.length - 4}
               </span>
             )}
@@ -168,7 +168,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
       className={clsx(
         "group relative flex min-w-0 gap-4 rounded-xl glass-card premium-hover p-3 sm:p-4 cursor-pointer transition-all duration-200",
         selectMode && "select-none",
-        selectMode && selected && "ring-2 ring-blue-500 bg-blue-50/10 dark:bg-blue-900/20"
+        selectMode && selected && "ring-2 ring-zinc-900 bg-zinc-100/30 dark:ring-zinc-100 dark:bg-zinc-900/40"
       )}
     >
       {/* Selection checkbox (visible only in select mode) */}
@@ -181,7 +181,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
             type="checkbox"
             checked={selected || false}
             onChange={() => onToggleSelect?.(post.id)}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+            className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-zinc-300"
           />
         </div>
       )}
@@ -203,7 +203,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
               e.preventDefault();
               setMenuOpen(!menuOpen);
             }}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
             aria-label="More actions"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
@@ -216,7 +216,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
                 className="fixed inset-0 z-10"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-8 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+              <div className="absolute right-0 z-20 mt-8 w-32 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -224,7 +224,7 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
                     onDelete?.(post.id);
                   }}
                   disabled={deleting}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-gray-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-gray-700"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-zinc-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-zinc-800"
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>

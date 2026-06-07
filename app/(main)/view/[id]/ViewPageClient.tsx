@@ -91,7 +91,7 @@ export function ViewPageClient({
             router.push("/");
           }
         }}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to feed
@@ -105,11 +105,11 @@ export function ViewPageClient({
 
         {/* Sidebar info */}
         <div className="mt-6 lg:mt-0 lg:w-72 lg:flex-shrink-0">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-white break-words">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
             {post.title}
           </h1>
 
-          <div className="mt-2 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="mt-2 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
             <Calendar className="h-4 w-4" />
             {formatDate(post.createdAt)}
           </div>
@@ -121,7 +121,7 @@ export function ViewPageClient({
                 <Link
                   key={tag.id}
                   href={`/browse?tags=${tag.slug}`}
-                  className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70"
+                  className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                 >
                   #{tag.name}
                 </Link>
@@ -131,11 +131,11 @@ export function ViewPageClient({
 
           {/* Description */}
           {post.description && (
-            <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-              <h3 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+              <h3 className="mb-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 Description
               </h3>
-              <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+              <p className="whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">
                 {post.description}
               </p>
             </div>
@@ -144,7 +144,7 @@ export function ViewPageClient({
           {/* Also has videos */}
           {videos.length > 0 && (
             <div className="mt-4">
-              <h3 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              <h3 className="mb-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 Also includes {videos.length} video{videos.length > 1 ? "s" : ""}
               </h3>
               <div className="flex flex-col gap-2">
@@ -152,9 +152,9 @@ export function ViewPageClient({
                   <Link
                     key={video.id}
                     href={`/watch/${post.id}`}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 p-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 min-w-0"
+                    className="flex items-center gap-2 rounded-lg border border-zinc-200 p-2 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900 min-w-0"
                   >
-                    <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-700">
+                    <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-zinc-100 dark:bg-zinc-800">
                       {video.thumbnailUrl ? (
                         <img
                           src={video.thumbnailUrl}
@@ -162,12 +162,12 @@ export function ViewPageClient({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-gray-400 text-[10px]">
+                        <div className="flex h-full items-center justify-center text-zinc-400 text-[10px]">
                           Video
                         </div>
                       )}
                     </div>
-                    <span className="truncate text-xs text-gray-600 dark:text-gray-400">
+                    <span className="truncate text-xs text-zinc-600 dark:text-zinc-400">
                       {video.filename}
                     </span>
                   </Link>
@@ -180,8 +180,8 @@ export function ViewPageClient({
 
       {/* Recommendations Grid at the bottom */}
       {recommendations.length > 0 && (
-        <div className="mt-12 border-t border-gray-200 pt-8 dark:border-gray-800">
-          <h2 className="mb-6 text-xl font-bold text-gray-900 dark:text-white">
+        <div className="mt-12 border-t border-zinc-200 pt-8 dark:border-zinc-800">
+          <h2 className="mb-6 text-xl font-bold text-zinc-900 dark:text-zinc-50">
             Recommendations
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">

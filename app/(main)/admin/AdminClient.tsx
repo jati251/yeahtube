@@ -41,40 +41,49 @@ interface AdminClientProps {
 }
 
 const colorMap: Record<string, string> = {
-  blue: "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400",
-  indigo: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400",
-  green: "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400",
-  amber: "bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400",
-  cyan: "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/50 dark:text-cyan-400",
-  red: "bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400",
-  violet: "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-400",
-  teal: "bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-400",
-  orange: "bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400",
+  blue:   "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
+  indigo: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400",
+  green:  "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400",
+  amber:  "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",
+  cyan:   "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400",
+  red:    "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400",
+  violet: "bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400",
+  teal:   "bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400",
+  orange: "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400",
+  yellow: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400",
 };
 
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
   const colorClass = colorMap[color] || colorMap.blue;
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorClass}`}>
+        <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${colorClass}`}>
           {icon}
         </div>
-        <div>
-          <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{label}</p>
-          <p className="text-xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <div className="min-w-0">
+          <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
+          <p className="text-xl font-bold text-zinc-900 dark:text-zinc-50">{value}</p>
         </div>
       </div>
     </div>
   );
 }
 
+const TABS = [
+  { id: "users", label: "Users" },
+  { id: "categories", label: "Categories" },
+  { id: "system", label: "System" },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
 export function AdminClient({ currentUserId, users, categories = [], stats }: AdminClientProps) {
   const router = useRouter();
   const { addToast } = useToast();
-  
-  const [activeTab, setActiveTab] = useState<"users" | "categories" | "system">("users");
-  
+
+  const [activeTab, setActiveTab] = useState<TabId>("users");
+
   const [userList, setUserList] = useState(users);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -177,59 +186,43 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-            Admin Panel
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Manage users, permissions, and categories
-          </p>
-        </div>
-        
-        {/* Tabs */}
-        <div className="flex rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "users"
-                ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            Users
-          </button>
-          <button
-            onClick={() => setActiveTab("categories")}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "categories"
-                ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            Categories
-          </button>
-          <button
-            onClick={() => setActiveTab("system")}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "system"
-                ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
-            System Stats
-          </button>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+          Admin Panel
+        </h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Manage users, permissions, and categories
+        </p>
+      </div>
+
+      {/* Tabs — scrollable on mobile, stays single row */}
+      <div className="mb-6 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex gap-1 overflow-x-auto pb-0 scrollbar-none">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-shrink-0 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {activeTab === "users" ? (
         <>
           {/* Add User Form */}
-          <form onSubmit={handleAddUser} className="mb-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+          <form onSubmit={handleAddUser} className="mb-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
               Add New User
             </h2>
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
               <div className="min-w-0 flex-1">
                 <Input
                   label="Username"
@@ -251,53 +244,48 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                   required
                 />
               </div>
-              <label className="flex cursor-pointer items-center gap-2 pb-1 text-sm text-gray-600 dark:text-gray-400">
-                <input
-                  type="checkbox"
-                  checked={newIsAdmin}
-                  onChange={(e) => setNewIsAdmin(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
-                />
-                Admin
-              </label>
-              <Button type="submit" loading={adding} size="sm">
-                <UserPlus className="mr-1 h-4 w-4" />
-                Add User
-              </Button>
+              <div className="flex items-center gap-3 sm:pb-1">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={newIsAdmin}
+                    onChange={(e) => setNewIsAdmin(e.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 accent-zinc-900 dark:accent-zinc-100"
+                  />
+                  Admin
+                </label>
+                <Button type="submit" loading={adding} size="sm">
+                  <UserPlus className="mr-1 h-4 w-4" />
+                  Add User
+                </Button>
+              </div>
             </div>
           </form>
 
-          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+          {/* Users Table — horizontally scrollable on mobile */}
+          <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+            <table className="w-full min-w-[480px] text-left text-sm">
+              <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/80">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                    Username
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                    Whitelisted
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                    Admin
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-gray-300">
-                    Created
-                  </th>
+                  <th className="px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Username</th>
+                  <th className="px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Whitelisted</th>
+                  <th className="px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Admin</th>
+                  <th className="px-4 py-3 font-medium text-zinc-600 dark:text-zinc-400">Created</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {userList.map((u) => (
                   <tr
                     key={u.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800/60"
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-white">
+                        <span className="font-medium text-zinc-900 dark:text-zinc-50">
                           {u.username}
                         </span>
                         {u.id === currentUserId && (
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
                             You
                           </span>
                         )}
@@ -309,19 +297,15 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                         disabled={u.id === currentUserId}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                           u.isWhitelisted
-                            ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300"
-                            : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
+                            ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300"
+                            : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
                         }`}
                         title={u.id === currentUserId ? "Cannot modify your own whitelist status" : undefined}
                       >
                         {u.isWhitelisted ? (
-                          <>
-                            <Check className="h-3 w-3" /> Yes
-                          </>
+                          <><Check className="h-3 w-3" /> Yes</>
                         ) : (
-                          <>
-                            <X className="h-3 w-3" /> No
-                          </>
+                          <><X className="h-3 w-3" /> No</>
                         )}
                       </button>
                     </td>
@@ -331,22 +315,18 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                         disabled={u.id === currentUserId}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
                           u.isAdmin
-                            ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/50 dark:text-purple-300"
-                            : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400"
+                            ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300"
+                            : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
                         }`}
                       >
                         {u.isAdmin ? (
-                          <>
-                            <Shield className="h-3 w-3" /> Yes
-                          </>
+                          <><Shield className="h-3 w-3" /> Yes</>
                         ) : (
-                          <>
-                            <ShieldOff className="h-3 w-3" /> No
-                          </>
+                          <><ShieldOff className="h-3 w-3" /> No</>
                         )}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-500 dark:text-zinc-400">
                       {new Date(u.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -359,57 +339,63 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
         <CategoryManager initialCategories={categories} />
       ) : activeTab === "system" && stats ? (
         <div className="space-y-6">
-          {/* Storage Stats */}
+          {/* Storage */}
           <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
               Storage
             </h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Total media size */}
+              <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                     <Database className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total Media Size</p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total Media Size</p>
+                    <p className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
                       {formatBytes(stats.totalMediaSize)}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              {/* VM storage */}
+              <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
                     <HardDrive className="h-5 w-5" />
                   </div>
-                  <div className="w-full">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">VM Storage Available</p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      {formatBytes(stats.vmFreeStorage)} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">/ {formatBytes(stats.vmTotalStorage)}</span>
+                  <div className="w-full min-w-0">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">VM Storage Available</p>
+                    <p className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+                      {formatBytes(stats.vmFreeStorage)}{" "}
+                      <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">
+                        / {formatBytes(stats.vmTotalStorage)}
+                      </span>
                     </p>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
                       <div
-                        className={`h-full ${stats.vmFreeStorage / stats.vmTotalStorage < 0.1 ? 'bg-red-500' : 'bg-green-500'}`}
+                        className={`h-full ${stats.vmFreeStorage / stats.vmTotalStorage < 0.1 ? "bg-red-500" : "bg-green-500"}`}
                         style={{ width: `${Math.max(0, Math.min(100, 100 - (stats.vmFreeStorage / stats.vmTotalStorage * 100)))}%` }}
                       />
                     </div>
                   </div>
                 </div>
               </div>
-              
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+
+              {/* Environment */}
+              <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400">
                     <Server className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Environment</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white break-all">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Environment</p>
+                    <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50 break-all">
                       Node {process.version}
                     </p>
-                    <p className="text-[10px] text-gray-400">{process.platform}</p>
+                    <p className="text-[10px] text-zinc-400">{process.platform}</p>
                   </div>
                 </div>
               </div>
@@ -418,10 +404,10 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
 
           {/* Content Overview */}
           <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
               Content Overview
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <StatCard icon={<FileText className="h-5 w-5" />} label="Total Posts" value={String(stats.totalPosts)} color="blue" />
               <StatCard icon={<Film className="h-5 w-5" />} label="Media Files" value={String(stats.totalMediaFiles)} color="indigo" />
               <StatCard icon={<MessageCircle className="h-5 w-5" />} label="Comments" value={String(stats.totalComments)} color="green" />
@@ -429,12 +415,12 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
             </div>
           </div>
 
-          {/* Community Stats */}
+          {/* Community */}
           <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
               Community
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <StatCard icon={<Users className="h-5 w-5" />} label="Total Users" value={String(stats.totalUsers)} color="cyan" />
               <StatCard icon={<Heart className="h-5 w-5" />} label="Likes" value={String(stats.totalLikes)} color="red" />
               <StatCard icon={<ListVideo className="h-5 w-5" />} label="Playlists" value={String(stats.totalPlaylists)} color="violet" />
@@ -443,24 +429,24 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
             </div>
           </div>
 
-          {/* Top Stats */}
+          {/* Highlights */}
           <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
               Highlights
             </h2>
             <div className="grid gap-4 md:grid-cols-2">
               {stats.mostActiveUser && (
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400">
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Most Active User</p>
-                      <p className="text-lg font-bold text-gray-900 dark:text-white truncate break-all">
+                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Most Active User</p>
+                      <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50 truncate break-all">
                         {stats.mostActiveUser.username}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
                         {stats.mostActiveUser.postCount} post{stats.mostActiveUser.postCount !== 1 ? "s" : ""}
                       </p>
                     </div>
@@ -469,28 +455,28 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
               )}
 
               {stats.largestFiles.length > 0 && (
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400">
+                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
                       <FileWarning className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Largest Files</p>
-                      <p className="text-lg font-bold text-gray-900 dark:text-white">Top {stats.largestFiles.length}</p>
+                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Largest Files</p>
+                      <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Top {Math.min(stats.largestFiles.length, 5)}</p>
                     </div>
                   </div>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {stats.largestFiles.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700/50">
+                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 w-full overflow-hidden">
+                    {stats.largestFiles.slice(0, 5).map((f, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60">
                         <div className="min-w-0 flex-1 overflow-hidden">
-                          <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-300" title={f.postTitle}>
+                          <p className="truncate text-xs font-medium text-zinc-700 dark:text-zinc-300" title={f.postTitle}>
                             {f.postTitle}
                           </p>
-                          <p className="truncate text-[10px] text-gray-400" title={f.filename}>
+                          <p className="truncate text-[10px] text-zinc-400" title={f.filename}>
                             {f.filename}
                           </p>
                         </div>
-                        <span className="shrink-0 text-xs font-mono text-gray-500 dark:text-gray-400">
+                        <span className="shrink-0 font-mono text-xs text-zinc-500 dark:text-zinc-400">
                           {formatBytes(f.fileSize)}
                         </span>
                       </div>

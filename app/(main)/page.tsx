@@ -2,7 +2,7 @@ import "server-only";
 import { getDb, schema } from "@/db";
 import { eq, desc, inArray, sql } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
-import { getPresignedUrl } from "@/lib/storage";
+import { formatPostItem } from "@/lib/posts";
 import { FeedClient } from "./FeedClient";
 
 export const dynamic = "force-dynamic";
@@ -61,62 +61,13 @@ async function getInitialPosts(page: number, sort: string) {
     .where(inArray(schema.postTags.postId, postIds));
 
   const result = await Promise.all(
-    posts.map(async (post) => {
+    posts.map((post) => {
       const postMedia = allMedia.filter((m) => m.postId === post.id);
       const postTags = allPostTags
         .filter((pt) => pt.postId === post.id)
         .map((pt) => ({ id: pt.tagId, name: pt.tagName, slug: pt.tagSlug }));
 
-      const hasVideo = postMedia.some((m) => m.mediaType === "video");
-      const hasImage = postMedia.some((m) => m.mediaType === "image");
-      const firstMedia = postMedia[0];
-
-      let thumbnailUrl = null;
-      if (firstMedia?.thumbnailKey) {
-        thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
-      }
-
-      let videoUrl = null;
-      let previewUrl = null;
-      const firstVideo = postMedia.find((m) => m.mediaType === "video");
-      if (firstVideo?.storageKey) {
-        videoUrl = await getPresignedUrl(firstVideo.storageKey);
-      }
-      if (firstVideo?.previewKey) {
-        previewUrl = await getPresignedUrl(firstVideo.previewKey);
-      }
-
-      const videosOnly = postMedia.filter((m) => m.mediaType === "video");
-      let resolutionMedia = firstMedia;
-      if (videosOnly.length > 0) {
-        let maxVideo = videosOnly[0];
-        for (const v of videosOnly) {
-          const vRes = v.height || v.width || 0;
-          const maxRes = maxVideo.height || maxVideo.width || 0;
-          if (vRes > maxRes) {
-            maxVideo = v;
-          }
-        }
-        resolutionMedia = maxVideo;
-      }
-
-      return {
-        id: post.id,
-        title: post.title,
-        description: post.description,
-        createdAt: post.createdAt,
-        tags: postTags,
-        mediaCount: postMedia.length,
-        mediaType: (hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image") as "image" | "video" | "mixed",
-        thumbnailUrl,
-        videoUrl,
-        previewUrl,
-        duration: firstVideo?.duration || firstMedia?.duration || null,
-        category: null as string | null,
-        width: resolutionMedia?.width || null,
-        height: resolutionMedia?.height || null,
-        views: post.views,
-      };
+      return formatPostItem(post, postMedia, postTags, null);
     })
   );
 
@@ -128,6 +79,15 @@ async function getTags() {
   return db.select().from(schema.tags).orderBy(schema.tags.name);
 }
 
+async function getCategories() {
+  try {
+    const db = getDb();
+    return await db.select().from(schema.categories).orderBy(schema.categories.name);
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -137,10 +97,11 @@ export default async function HomePage({
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
   const sort = sp.sort === "oldest" ? "oldest" : sp.sort === "popular" ? "popular" : "newest";
 
-  const [user, { posts, total }, tags] = await Promise.all([
+  const [user, { posts, total }, tags, categories] = await Promise.all([
     getCurrentUser(),
     getInitialPosts(page, sort),
     getTags(),
+    getCategories(),
   ]);
 
   return (
@@ -151,6 +112,7 @@ export default async function HomePage({
       initialPage={page}
       initialSort={sort}
       tags={tags.map((t) => ({ id: t.id, name: t.name, slug: t.slug }))}
+      categories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
     />
   );
 }

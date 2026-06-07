@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { eq, desc, sql, like, inArray } from "drizzle-orm";
-import { getPresignedUrl } from "@/lib/storage";
+import { formatPostItem } from "@/lib/posts";
 
 export const dynamic = "force-dynamic";
 
@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Assemble result
-    const result = await Promise.all(posts.slice(0, limit).map(async (post) => {
+    const result = await Promise.all(posts.slice(0, limit).map((post) => {
       const postMedia = allMedia.filter((m) => m.postId === post.id);
       const postTags = allPostTags
         .filter((pt) => pt.postId === post.id)
@@ -251,55 +251,8 @@ export async function GET(request: NextRequest) {
           slug: pt.tagSlug,
         }));
 
-      const hasVideo = postMedia.some((m) => m.mediaType === "video");
-      const hasImage = postMedia.some((m) => m.mediaType === "image");
-      const firstMedia = postMedia[0];
-
-      let thumbnailUrl = null;
-      if (firstMedia?.thumbnailKey) {
-        thumbnailUrl = await getPresignedUrl(firstMedia.thumbnailKey);
-      }
-
-      let videoUrl = null;
-      let previewUrl = null;
-      const firstVideo = postMedia.find((m) => m.mediaType === "video");
-      if (firstVideo?.storageKey) {
-        videoUrl = await getPresignedUrl(firstVideo.storageKey);
-      }
-      if (firstVideo?.previewKey) {
-        previewUrl = await getPresignedUrl(firstVideo.previewKey);
-      }
-
-      const videosOnly = postMedia.filter((m) => m.mediaType === "video");
-      let resolutionMedia = firstMedia;
-      if (videosOnly.length > 0) {
-        let maxVideo = videosOnly[0];
-        for (const v of videosOnly) {
-          const vRes = v.height || v.width || 0;
-          const maxRes = maxVideo.height || maxVideo.width || 0;
-          if (vRes > maxRes) {
-            maxVideo = v;
-          }
-        }
-        resolutionMedia = maxVideo;
-      }
-
-      return {
-        id: post.id,
-        title: post.title,
-        description: post.description,
-        createdAt: post.createdAt,
-        tags: postTags,
-        mediaCount: post.mediaCount,
-        mediaType: hasVideo && hasImage ? "mixed" : hasVideo ? "video" : "image",
-        thumbnailUrl,
-        videoUrl,
-        previewUrl,
-        duration: firstVideo?.duration || firstMedia?.duration || null,
-        category: post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null,
-        width: resolutionMedia?.width || null,
-        height: resolutionMedia?.height || null,
-      };
+      const categoryName = post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null;
+      return formatPostItem(post, postMedia, postTags, categoryName);
     }));
 
     const hasMore = posts.length > limit;

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { CUSTOM_EVENTS } from "@/lib/constants";
 import {
   Upload,
   LogOut,
@@ -81,7 +82,11 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/browse?q=${encodeURIComponent(searchQuery.trim())}`);
+      if (pathname === "/") {
+        window.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.FEED_SEARCH, { detail: searchQuery.trim() }));
+      } else {
+        router.push(`/?q=${encodeURIComponent(searchQuery.trim())}`);
+      }
       setSearchQuery("");
     }
   };
@@ -93,7 +98,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden"
+            className="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 lg:hidden transition-colors"
             aria-label="Toggle menu"
           >
             <Menu className="h-5 w-5" />
@@ -102,9 +107,15 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white"
+            onClick={(e) => {
+              if (pathname === "/") {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.FEED_RESET));
+              }
+            }}
+            className="flex items-center gap-2 text-xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight"
           >
-            <Film className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <Film className="h-6 w-6 text-zinc-900 dark:text-zinc-50" />
             <span className="hidden sm:inline">YeahTube</span>
           </Link>
 
@@ -114,7 +125,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
             className="hidden flex-1 sm:mx-4 sm:flex md:mx-8"
           >
             <div className="relative w-full max-w-lg">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
                 value={searchQuery}
@@ -125,10 +136,10 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 placeholder="Search media..."
-                className="w-full rounded-full border border-gray-300 bg-gray-50 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
+                className="w-full rounded-full border border-zinc-200/60 bg-zinc-50/50 py-2.5 pl-10 pr-4 text-sm focus:border-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
               />
               {showDropdown && searchResults.length > 0 && (
-                <div className="absolute top-full mt-2 w-full rounded-xl border border-gray-200 bg-white py-2 shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                <div className="absolute top-full mt-2 w-full rounded-2xl border border-zinc-200/50 bg-white py-2 shadow-2xl dark:border-zinc-800/50 dark:bg-zinc-950">
                   {searchResults.map((result) => (
                     <button
                       key={result.id}
@@ -138,10 +149,10 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
                         setShowDropdown(false);
                         setSearchQuery("");
                       }}
-                      className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-900"
                     >
-                      <Search className="h-4 w-4 text-gray-400" />
-                      <span className="truncate text-gray-700 dark:text-gray-200">{result.title}</span>
+                      <Search className="h-4 w-4 text-zinc-400" />
+                      <span className="truncate text-zinc-700 dark:text-zinc-200">{result.title}</span>
                     </button>
                   ))}
                 </div>
@@ -166,7 +177,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
 
             <button
               onClick={() => setUploadOpen(true)}
-              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 sm:hidden"
+              className="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 sm:hidden transition-colors"
               aria-label="Upload"
             >
               <Upload className="h-5 w-5" />
@@ -176,7 +187,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 rounded-lg p-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 rounded-xl p-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"
               >
                 <User className="h-5 w-5" />
                 <span className="hidden md:inline">{username || "User"}</span>
@@ -188,14 +199,14 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
                     className="fixed inset-0 z-10"
                     onClick={() => setUserMenuOpen(false)}
                   />
-                  <div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                    <div className="border-b border-gray-100 px-4 py-2 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                      Signed in as <span className="font-medium text-gray-900 dark:text-white">{username}</span>
+                  <div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+                    <div className="border-b border-zinc-100 px-4 py-2 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                      Signed in as <span className="font-medium text-zinc-900 dark:text-zinc-50">{username}</span>
                     </div>
                     {isAdmin && (
                       <Link
                         href="/admin"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        className="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         Admin Panel
@@ -206,7 +217,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
                         setUserMenuOpen(false);
                         handleLogout();
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700"
+                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-zinc-100 dark:text-red-400 dark:hover:bg-zinc-800"
                     >
                       <LogOut className="h-4 w-4" />
                       Logout
@@ -221,16 +232,16 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
         {/* Mobile search bar */}
         <form
           onSubmit={handleSearch}
-          className="border-t border-gray-200 px-4 pb-3 pt-2 sm:hidden dark:border-gray-700"
+          className="border-t border-zinc-200 px-4 pb-3 pt-2 sm:hidden dark:border-zinc-800"
         >
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search media..."
-              className="w-full rounded-full border border-gray-300 bg-gray-50 py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              className="w-full rounded-full border border-zinc-200/60 bg-zinc-50/50 py-2.5 pl-10 pr-4 text-sm focus:border-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
             />
           </div>
         </form>
@@ -247,7 +258,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
       {/* Mobile navigation drawer container */}
       <div
         className={clsx(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-white/95 p-5 shadow-2xl backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 lg:hidden transition-all duration-300 ease-in-out transform",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-white/95 p-5 shadow-2xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden transition-all duration-300 ease-in-out transform",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -255,15 +266,21 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
         <div className="mb-8 flex items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white"
-            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 text-xl font-bold text-zinc-900 dark:text-zinc-50"
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              if (pathname === "/") {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.FEED_RESET));
+              }
+            }}
           >
-            <Film className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <Film className="h-6 w-6 text-zinc-900 dark:text-zinc-50" />
             <span>YeahTube</span>
           </Link>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
@@ -277,34 +294,28 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname === "/"
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
-                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+                ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900/50",
             )}
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={(e) => {
+              setMobileMenuOpen(false);
+              if (pathname === "/") {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.FEED_RESET));
+              }
+            }}
           >
             <Home className="h-5 w-5" />
             Home
           </Link>
-          <Link
-            href="/browse"
-            className={clsx(
-              "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
-              pathname?.startsWith("/browse")
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
-                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
-            )}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <Compass className="h-5 w-5" />
-            Browse
-          </Link>
+
           <Link
             href="/upload"
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname === "/upload"
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
-                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+                ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900/50",
             )}
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -316,8 +327,8 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname === "/history"
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
-                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+                ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900/50",
             )}
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -329,8 +340,8 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname?.startsWith("/playlists")
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
-                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+                ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900/50",
             )}
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -342,8 +353,8 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname === "/trending"
-                ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
-                : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+                ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900/50",
             )}
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -356,8 +367,8 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
               className={clsx(
                 "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
                 pathname?.startsWith("/admin")
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
-                  : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50",
+                  ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                  : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900/50",
               )}
               onClick={() => setMobileMenuOpen(false)}
             >

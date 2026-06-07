@@ -41,9 +41,9 @@ export function ConfirmModal({
       button: "bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500 text-white",
     },
     info: {
-      icon: "text-blue-600 dark:text-blue-400",
-      bg: "bg-blue-100 dark:bg-blue-900/30",
-      button: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 text-white",
+      icon: "text-zinc-900 dark:text-zinc-100",
+      bg: "bg-zinc-100 dark:bg-zinc-800",
+      button: "bg-zinc-900 hover:bg-zinc-800 focus:ring-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200",
     },
   };
 
@@ -58,12 +58,12 @@ export function ConfirmModal({
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           {title}
         </h3>
 
         {/* Message */}
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-2 text-sm text-zinc-650 dark:text-zinc-400">
           {message}
         </p>
 
@@ -72,7 +72,7 @@ export function ConfirmModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="flex-1 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
             {cancelLabel}
           </button>

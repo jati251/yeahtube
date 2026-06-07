@@ -37,7 +37,7 @@ export default async function LibraryPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
           Library
         </h1>
       </div>
@@ -48,10 +48,10 @@ export default async function LibraryPage() {
             <Link
               key={playlist.id}
               href={`/playlists/${playlist.id}`}
-              className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 transition-all hover:shadow-lg hover:ring-blue-500 dark:bg-gray-800 dark:ring-gray-700 dark:hover:ring-blue-500"
+              className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200 transition-all hover:shadow-lg hover:ring-zinc-400 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:ring-zinc-600"
             >
-              <div className="relative aspect-video flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                <ListVideo className="h-12 w-12 text-gray-400 group-hover:scale-110 transition-transform duration-300" />
+              <div className="relative aspect-video flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                <ListVideo className="h-12 w-12 text-zinc-400 group-hover:scale-110 transition-transform duration-300" />
                 <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">
                   <ListVideo className="h-3 w-3" />
                   {playlist.videoCount}
@@ -59,10 +59,10 @@ export default async function LibraryPage() {
               </div>
               <div className="flex flex-1 flex-col justify-between p-4">
                 <div>
-                  <h3 className="line-clamp-2 text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className="line-clamp-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                     {playlist.name}
                   </h3>
-                  <div className="mt-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="mt-1 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                     {playlist.isPublic ? (
                       <div className="flex items-center gap-1"><Globe className="h-3 w-3" /> Public</div>
                     ) : (
@@ -75,11 +75,11 @@ export default async function LibraryPage() {
           ))
         ) : (
           <div className="col-span-full py-12 text-center">
-            <ListVideo className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+            <ListVideo className="mx-auto h-12 w-12 text-zinc-400" />
+            <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
               No playlists
             </h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               Create a playlist by saving a video from the watch page.
             </p>
           </div>

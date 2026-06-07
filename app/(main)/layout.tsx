@@ -24,7 +24,7 @@ export default async function MainLayout({
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       <Header
         username={user?.username}
         isAdmin={user?.isAdmin}

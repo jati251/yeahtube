@@ -97,7 +97,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const CardContent = (
     <>
       {/* Thumbnail */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-700 rounded-none">
+      <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100 dark:bg-zinc-900 rounded-t-2xl">
         {post.previewUrl && (
           <video
             ref={videoRef}
@@ -153,19 +153,19 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
               src={post.thumbnailUrl}
               alt={post.title}
               className={clsx(
-                "relative z-10 mx-auto h-full w-full object-contain transition-all duration-300",
-                isPlaying ? "scale-105 opacity-0" : "scale-100 opacity-100"
+                "relative z-10 mx-auto h-full w-full object-contain transition-all duration-500",
+                isPlaying ? "scale-110 opacity-0" : "scale-100 group-hover:scale-105 opacity-100"
               )}
               loading="lazy"
               decoding="async"
             />
           </>
         ) : (
-          <div className="flex h-full items-center justify-center">
+          <div className="flex h-full items-center justify-center text-zinc-400 dark:text-zinc-600">
             {post.mediaType === "video" ? (
-              <Film className="h-12 w-12 text-gray-400" />
+              <Film className="h-12 w-12" />
             ) : (
-              <Image className="h-12 w-12 text-gray-400" />
+              <Image className="h-12 w-12" />
             )}
           </div>
         )}
@@ -174,25 +174,25 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         <div className="absolute bottom-2 left-2 z-10 flex gap-2">
           {/* Quality badge for video/mixed; fallback label for posts without resolution data */}
           {quality && post.mediaType !== "image" ? (
-            <span className={`rounded-none px-2 py-0.5 text-xs font-medium text-white ${quality.color}`}>
+            <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium text-white shadow-sm ${quality.color}`}>
               {quality.label}
             </span>
           ) : post.mediaType === "image" ? (
-            <span className="rounded-none px-2 py-0.5 text-xs font-medium text-white bg-green-600">
+            <span className="rounded-md px-2 py-0.5 text-[11px] font-medium text-white bg-zinc-800 shadow-sm dark:bg-zinc-700">
               Photo
             </span>
           ) : post.mediaType === "video" ? (
-            <span className="rounded-none px-2 py-0.5 text-xs font-medium text-white bg-gray-600">
+            <span className="rounded-md px-2 py-0.5 text-[11px] font-medium text-white bg-zinc-800 shadow-sm dark:bg-zinc-700">
               Video
             </span>
           ) : post.mediaType === "mixed" ? (
-            <span className="rounded-none px-2 py-0.5 text-xs font-medium text-white bg-blue-600">
+            <span className="rounded-md px-2 py-0.5 text-[11px] font-medium text-white bg-zinc-800 shadow-sm dark:bg-zinc-700">
               Mixed
             </span>
           ) : null}
 
           {post.duration && (
-            <span className="flex items-center gap-1 rounded-none bg-black/70 px-2 py-0.5 text-xs text-white">
+            <span className="flex items-center gap-1 rounded-md bg-black/70 backdrop-blur-md px-2 py-0.5 text-[11px] font-medium text-white shadow-sm">
               <Clock className="h-3 w-3" />
               {formatDuration(post.duration)}
             </span>
@@ -203,24 +203,24 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
 
       {/* Info */}
       <div className="min-w-0 p-4">
-        <h3 className="truncate text-lg font-semibold tracking-tight text-slate-900 dark:text-white" title={post.title}>
+        <h3 className="truncate text-[1.05rem] font-bold tracking-tight text-zinc-900 dark:text-zinc-50" title={post.title}>
           {post.title}
         </h3>
         {post.description && (
-          <p className="mt-1.5 line-clamp-2 break-words text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          <p className="mt-1 line-clamp-2 break-words text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
             {post.description}
           </p>
         )}
 
         {/* Tags */}
         {post.tags.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="mt-3 flex flex-wrap gap-1.5">
             {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag.id}
-                className="rounded-none bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50"
               >
-                #{tag.name}
+                {tag.name}
               </span>
             ))}
             {post.tags.length > 3 && (
@@ -232,7 +232,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         )}
 
         {/* Date & Views */}
-        <div className="mt-2 flex items-center justify-between text-[10px] text-gray-400 dark:text-gray-500">
+        <div className="mt-3 flex items-center justify-between text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
           <p className="truncate">{timeAgo}</p>
           {post.views !== undefined && (
             <p className="shrink-0">{post.views.toLocaleString()} views</p>
@@ -250,9 +250,9 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         }
       }}
       className={clsx(
-        "group relative block min-w-0 overflow-hidden rounded-none glass-card premium-hover cursor-pointer transition-all duration-200",
+        "group relative block min-w-0 overflow-hidden rounded-2xl glass-card premium-hover cursor-pointer transition-all duration-300",
         selectMode && "select-none",
-        selectMode && selected && "ring-2 ring-blue-500 bg-blue-50/10 dark:bg-blue-900/20"
+        selectMode && selected && "ring-2 ring-zinc-900 dark:ring-zinc-100 bg-zinc-50/50 dark:bg-zinc-800/50"
       )}
     >
       {/* Selection checkbox (visible only in select mode) */}
@@ -265,7 +265,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             type="checkbox"
             checked={selected || false}
             onChange={() => onToggleSelect?.(post.id)}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600"
+            className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-zinc-300"
           />
         </div>
       )}
@@ -300,7 +300,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
                 className="fixed inset-0 z-10"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-1 w-32 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+              <div className="absolute right-0 z-20 mt-1 w-32 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -308,7 +308,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
                     onDelete?.(post.id);
                   }}
                   disabled={deleting}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-gray-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-gray-700"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-zinc-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-zinc-800"
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>
