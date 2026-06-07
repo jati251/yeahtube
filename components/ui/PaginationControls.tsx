@@ -73,8 +73,7 @@ export function PaginationControls({
   const isFirst = page <= 1;
   const isLast = page >= totalPages;
 
-  const mobilePages = buildPages(page, totalPages, 5);
-  const desktopPages = buildPages(page, totalPages, 9);
+  const pages = buildPages(page, totalPages, 9);
 
   const btnBase = "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed";
   const btnDisabled = "cursor-not-allowed border-zinc-100 bg-zinc-50/50 text-zinc-300 dark:border-zinc-800/50 dark:bg-zinc-950/20 dark:text-zinc-600";
@@ -93,8 +92,7 @@ export function PaginationControls({
           <ChevronLeft className="h-4 w-4" /><span className="hidden sm:inline">Prev</span>
         </button>
 
-        <PageButtons pages={mobilePages} page={page} loading={loading} onPage={onPage} className="sm:hidden" />
-        <PageButtons pages={desktopPages} page={page} loading={loading} onPage={onPage} className="hidden sm:flex" />
+        <PageButtons pages={pages} page={page} loading={loading} onPage={onPage} />
 
         <button onClick={onNext} disabled={isLast || !!loading} className={clsx(btnBase, "h-8 w-8 sm:h-9 sm:w-auto sm:px-3 sm:gap-1", isLast || loading ? btnDisabled : nav)} aria-label="Next page">
           <span className="hidden sm:inline">Next</span><ChevronRight className="h-4 w-4" />
