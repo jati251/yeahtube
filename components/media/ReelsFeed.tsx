@@ -134,6 +134,7 @@ function ReelItem({
 }) {
   const itemRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
   const [showComments, setShowComments] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -174,6 +175,30 @@ function ReelItem({
     }
   }, [isActive, isPaused]);
 
+  const handleTimeUpdate = () => {
+    if (videoRef.current && progressRef.current) {
+      const { currentTime, duration } = videoRef.current;
+      if (duration > 0) {
+        const percent = (currentTime / duration) * 100;
+        progressRef.current.style.width = `${percent}%`;
+      }
+    }
+  };
+
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percent = clickX / rect.width;
+      videoRef.current.currentTime = videoRef.current.duration * percent;
+      
+      if (progressRef.current) {
+        progressRef.current.style.width = `${percent * 100}%`;
+      }
+    }
+  };
+
   const handleVideoClick = (e: React.MouseEvent) => {
     // Avoid triggering pause when clicking interactive overlays
     if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) {
@@ -204,6 +229,7 @@ function ReelItem({
               playsInline
               muted={isMuted}
               preload="none"
+              onTimeUpdate={handleTimeUpdate}
             />
             {/* Play Overlay Indicator */}
             {isPaused && (
@@ -213,6 +239,20 @@ function ReelItem({
                 </div>
               </div>
             )}
+            
+            {/* Timeline Progress Bar (Clickable Area) */}
+            <div 
+              className="absolute bottom-16 lg:bottom-0 left-0 right-0 h-6 cursor-pointer z-20 flex items-end group"
+              onClick={handleTimelineClick}
+            >
+              <div className="w-full h-[4px] group-hover:h-[6px] transition-all bg-white/20 relative">
+                <div 
+                  ref={progressRef} 
+                  className="absolute top-0 left-0 h-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                  style={{ width: '0%' }} 
+                />
+              </div>
+            </div>
           </div>
         ) : post.thumbnailUrl ? (
           <img

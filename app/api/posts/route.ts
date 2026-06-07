@@ -166,11 +166,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply cursor pagination & sorting config
-    type SortKey = "newest" | "oldest" | "title-asc" | "title-desc" | "recently-updated" | "most-media";
+    type SortKey = "newest" | "oldest" | "title-asc" | "title-desc" | "recently-updated" | "most-media" | "random";
     const sortConfigs: Record<SortKey, { 
       where: (c: any) => ReturnType<typeof sql> | undefined, 
       orderBy: any[] 
     }> = {
+      "random": {
+        where: () => undefined,
+        orderBy: [sql`RANDOM()`]
+      },
       "oldest": {
         where: (c) => c.createdAt && c.id ? sql`(${schema.posts.createdAt}, ${schema.posts.id}) > (${c.createdAt}, ${c.id})` : c.createdAt ? sql`${schema.posts.createdAt} > ${c.createdAt}` : undefined,
         orderBy: [schema.posts.createdAt, schema.posts.id]

@@ -27,7 +27,7 @@ async function getInitialShorts() {
       createdAt: schema.posts.createdAt,
     })
     .from(schema.posts)
-    .orderBy(desc(schema.posts.createdAt), desc(schema.posts.id))
+    .orderBy(sql`RANDOM()`)
     .limit(PAGE_SIZE);
 
   if (posts.length === 0) {

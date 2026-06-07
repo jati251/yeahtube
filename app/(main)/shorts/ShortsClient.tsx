@@ -20,6 +20,7 @@ export function ShortsClient({ initialPosts, initialTotal }: ShortsClientProps) 
     initialPage: 1,
     fetchParams: {
       limit: 10,
+      sort: "random",
     },
     autoFetch: false,
     appendMode: true,
