@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Film, Image, Clock } from "lucide-react";
 import { clsx } from "clsx";
@@ -36,63 +36,78 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
-  const [timeAgo, setTimeAgo] = useState("");
+  // useMemo instead of useEffect for derived state
+  const timeAgo = useMemo(() => getTimeAgo(post.createdAt), [post.createdAt]);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-
-  useEffect(() => { setTimeAgo(getTimeAgo(post.createdAt)); }, [post.createdAt]);
   const [previewTriggered, setPreviewTriggered] = useState(false);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // --- Stable refs for event handlers ---
+
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
   const isDispatchingRef = useRef(false);
 
-  // Listen for global "stop-all-previews" event to stop playback
-  useEffect(() => {
-    const handleStopAll = () => {
-      // Don't stop ourselves — we just started
-      if (isDispatchingRef.current) {
-        isDispatchingRef.current = false;
-        return;
+  // Register "stop-all-previews" listener once, using stable refs
+  const handleStopAll = useCallback(() => {
+    if (isDispatchingRef.current) {
+      isDispatchingRef.current = false;
+      return;
+    }
+    if (isPlayingRef.current) {
+      // We can't call setIsPlaying here directly since this is an external
+      // callback; instead we rely on the video ref to stop playback.
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
       }
-      if (isPlaying) {
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("stop-all-previews", handleStopAll);
+    return () => window.removeEventListener("stop-all-previews", handleStopAll);
+  }, [handleStopAll]);
+
+  // Auto-stop mobile preview after 3 seconds (consolidated timer logic)
+  const startPlaying = useCallback(() => {
+    setIsPlaying(true);
+    // Dispatch event to stop other previews
+    isDispatchingRef.current = true;
+    window.dispatchEvent(new CustomEvent("stop-all-previews"));
+
+    // Auto-stop after 3s on mobile
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = setTimeout(() => {
         setIsPlaying(false);
         setPreviewTriggered(false);
         if (videoRef.current) {
           videoRef.current.pause();
           videoRef.current.currentTime = 0;
         }
-      }
-    };
-    window.addEventListener("stop-all-previews", handleStopAll);
-    return () => window.removeEventListener("stop-all-previews", handleStopAll);
-  }, [isPlaying]);
-
-  // Auto-stop mobile preview after 3 seconds
-  useEffect(() => {
-    if (isPlaying) {
-      // Dispatch event to stop other previews (flag prevents self-stop)
-      isDispatchingRef.current = true;
-      window.dispatchEvent(new CustomEvent("stop-all-previews"));
-      
-      // Auto-stop after 3s on mobile
-      if (window.matchMedia("(pointer: coarse)").matches) {
-        previewTimerRef.current = setTimeout(() => {
-          setIsPlaying(false);
-          setPreviewTriggered(false);
-          if (videoRef.current) {
-            videoRef.current.pause();
-            videoRef.current.currentTime = 0;
-          }
-        }, 3000);
-      }
+      }, 3000);
     }
-    return () => {
-      if (previewTimerRef.current) {
-        clearTimeout(previewTimerRef.current);
-        previewTimerRef.current = null;
-      }
-    };
-  }, [isPlaying]);
+  }, []);
+
+  const stopPlaying = useCallback(() => {
+    setIsPlaying(false);
+    setPreviewTriggered(false);
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, []);
 
   const CardContent = (
     <>
@@ -111,44 +126,34 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             playsInline
             preload="none"
             onMouseEnter={(e) => {
-              setIsPlaying(true);
+              startPlaying();
               e.currentTarget.play().catch(() => {});
             }}
-            onMouseLeave={(e) => {
-              setIsPlaying(false);
-              setPreviewTriggered(false);
-              e.currentTarget.pause();
-              e.currentTarget.currentTime = 0;
+            onMouseLeave={() => {
+              stopPlaying();
             }}
             onTouchStart={(e) => {
-              // Mobile: first tap plays preview (auto-stops after 3s), second tap navigates
               if (!previewTriggered) {
                 e.preventDefault();
                 e.stopPropagation();
-                setIsPlaying(true);
+                startPlaying();
                 setPreviewTriggered(true);
                 e.currentTarget.play().catch(() => {});
               }
             }}
-            onTouchEnd={(e) => {
-              // Don't pause on touch end
-            }}
             onTouchCancel={() => {
-              setIsPlaying(false);
-              setPreviewTriggered(false);
+              stopPlaying();
             }}
           />
         )}
         {post.thumbnailUrl ? (
           <>
-            {/* Blurred background cover */}
             <img
               src={post.thumbnailUrl}
               alt=""
               className="absolute inset-0 z-0 h-full w-full object-cover blur-[2px] scale-[1.02] opacity-50 dark:opacity-30 transition-all duration-300"
               loading="lazy"
             />
-            {/* Full view contain cover */}
             <img
               src={post.thumbnailUrl}
               alt={post.title}
@@ -172,7 +177,6 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
 
         {/* Badges */}
         <div className="absolute bottom-2 left-2 z-10 flex gap-2">
-          {/* Quality badge for video/mixed; fallback label for posts without resolution data */}
           {quality && post.mediaType !== "image" ? (
             <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium text-white shadow-sm ${quality.color}`}>
               {quality.label}
@@ -197,7 +201,6 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
               {formatDuration(post.duration)}
             </span>
           )}
-
         </div>
       </div>
 
@@ -212,7 +215,6 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
           </p>
         )}
 
-        {/* Tags */}
         {post.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {post.tags.slice(0, 3).map((tag) => (
@@ -231,7 +233,6 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
           </div>
         )}
 
-        {/* Date & Views */}
         <div className="mt-3 flex items-center justify-between text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
           <p className="truncate">{timeAgo}</p>
           {post.views !== undefined && (
@@ -255,7 +256,6 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         selectMode && selected && "ring-2 ring-zinc-900 dark:ring-zinc-100 bg-zinc-50/50 dark:bg-zinc-800/50"
       )}
     >
-      {/* Selection checkbox (visible only in select mode) */}
       {selectMode && (
         <div
           className="absolute left-2 top-2 z-10"
@@ -278,7 +278,6 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         </Link>
       )}
 
-      {/* Admin actions dropdown */}
       {isAdmin && !selectMode && (
         <div className="absolute right-2 top-2 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
@@ -320,4 +319,3 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
     </div>
   );
 }
-

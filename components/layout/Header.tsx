@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { CUSTOM_EVENTS } from "@/lib/constants";
@@ -13,7 +13,6 @@ import {
   Film,
   X,
   Home,
-  Compass,
   Shield,
   Clock,
   ListVideo,
@@ -46,27 +45,37 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  useEffect(() => {
-    if (searchQuery.length < 2) {
+  // Debounced search using refs — no useEffect needed
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const doSearch = useCallback(async (query: string) => {
+    if (query.length < 2) {
       setSearchResults([]);
       return;
     }
-    const timeoutId = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSearchResults(data.results || []);
-        }
-      } catch (err) {
-        console.error(err);
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data.results || []);
       }
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        doSearch(value);
+      }, 300);
+    },
+    [doSearch],
+  );
 
   const handleLogout = async () => {
-    // Read CSRF token from cookie (set by proxy.ts)
     const csrfToken = document.cookie.match(
       new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
     )?.[1];
@@ -130,7 +139,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
+                  handleSearchChange(e.target.value);
                   setShowDropdown(true);
                 }}
                 onFocus={() => setShowDropdown(true)}
@@ -239,7 +248,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search media..."
               className="w-full rounded-full border border-zinc-200/60 bg-zinc-50/50 py-2.5 pl-10 pr-4 text-sm focus:border-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
             />

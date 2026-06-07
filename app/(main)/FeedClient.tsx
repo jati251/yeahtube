@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
 import { FilterSidebar } from "@/components/filters/FilterSidebar";
@@ -37,19 +37,17 @@ export function FeedClient({
   tags,
   categories,
 }: FeedClientProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
 
-  // Zustand: scroll + cached feed
+  // Zustand global store (sessionStorage-backed)
   const feedScrollY = useAppStore((s) => s.feedScrollY);
   const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
   const setCachedFeed = useAppStore((s) => s.setCachedFeed);
 
-  // Filters from URL for initial state
+  // ---- Derive initial state from URL ----
   const initialMediaType = searchParams.get("type");
-  const initialSelectedTags =
-    searchParams.get("tags")?.split(",").filter(Boolean) || [];
+  const initialSelectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
   const initialSearchQuery = searchParams.get("q") || "";
   const initialActiveSort = searchParams.get("sort") || initialSort;
   const initialCategory = searchParams.get("category");
@@ -59,30 +57,19 @@ export function FeedClient({
     parseInt(searchParams.get("page") || String(initialPage), 10) || 1,
   );
 
-  // Local state for seamless client-side filtering & pagination
-  const [activeMediaType, setActiveMediaType] = useState<string | null>(
-    initialMediaType,
-  );
+  // ---- Local filter state ----
+  const [activeMediaType, setActiveMediaType] = useState<string | null>(initialMediaType);
   const [activeTags, setActiveTags] = useState<string[]>(initialSelectedTags);
-  const [activeSearchQuery, setActiveSearchQuery] =
-    useState(initialSearchQuery);
+  const [activeSearchQuery, setActiveSearchQuery] = useState(initialSearchQuery);
   const [activeSort, setActiveSort] = useState(initialActiveSort);
-  const [activeCategory, setActiveCategory] = useState<string | null>(
-    initialCategory,
-  );
+  const [activeCategory, setActiveCategory] = useState<string | null>(initialCategory);
   const [activeYear, setActiveYear] = useState<string | null>(initialYear);
-  const [activePage, setActivePage] = useState(initialUrlPage);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [restoredScroll, setRestoredScroll] = useState(false);
 
   const hasFilters = Boolean(
-    activeMediaType ||
-    activeTags.length > 0 ||
-    activeSearchQuery ||
-    activeCategory ||
-    activeYear,
+    activeMediaType || activeTags.length > 0 || activeSearchQuery || activeCategory || activeYear,
   );
 
   const { posts, setPosts, loading, page, total, totalPages, goToPage, restoreFromCache } =
@@ -99,70 +86,47 @@ export function FeedClient({
         year: activeYear,
       },
       autoFetch: false,
+      onPageChange: () => {
+        window.scrollTo(0, 0);
+        setFeedScrollY(0);
+      },
     });
 
-  // Restore cached feed state before first paint to avoid flash of page 1.
-  // useLayoutEffect fires after hydration but before the browser paints,
-  // so the user never sees the server-rendered page 1 content.
-  const cacheRestoredRef = React.useRef(false);
+  // ---- Restore from Zustand cache on mount (prevents flash of page 1) ----
+  const cacheRestoredRef = useRef(false);
   React.useLayoutEffect(() => {
     if (cacheRestoredRef.current) return;
     cacheRestoredRef.current = true;
 
     const store = useAppStore.getState();
-    const hasCached = store.cachedFeedPage > 0 && store.cachedFeedPosts.length > 0;
-    // Only restore if the cached page differs from what the server rendered
-    if (hasCached && store.cachedFeedPage !== initialUrlPage) {
+    if (store.cachedFeedPage > 0 && store.cachedFeedPosts.length > 0) {
       restoreFromCache(store.cachedFeedPosts, store.cachedFeedPage, store.cachedFeedTotal);
-      setActivePage(store.cachedFeedPage);
     }
-  }, [initialUrlPage, restoreFromCache]);
+  }, [restoreFromCache]);
 
-  // Cache feed state whenever posts/page/total change
+  // ---- Save to Zustand cache whenever feed data changes ----
   useEffect(() => {
     if (posts.length > 0 && page > 0) {
       setCachedFeed(page, posts, total);
     }
   }, [posts, page, total, setCachedFeed]);
 
-  // Sync back hook page changes to activePage state
+  // ---- Scroll: restore position on back-navigation ----
+  const scrollRestoredRef = useRef(false);
   useEffect(() => {
-    setActivePage(page);
-  }, [page]);
-
-  // Scroll to top on page change
-  const prevPageRef = React.useRef(page);
-  useEffect(() => {
-    if (page !== prevPageRef.current && prevPageRef.current !== 0) {
-      window.scrollTo(0, 0);
-      setFeedScrollY(0);
-    }
-    prevPageRef.current = page;
-  }, [page, setFeedScrollY]);
-
-  // Restore scroll when coming back from detail (same page)
-  useEffect(() => {
-    if (!restoredScroll && feedScrollY > 0 && posts.length > 0 && !loading) {
+    if (!scrollRestoredRef.current && feedScrollY > 0 && posts.length > 0 && !loading) {
+      scrollRestoredRef.current = true;
       const timer = setTimeout(() => {
         window.scrollTo(0, feedScrollY);
-        setRestoredScroll(true);
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [restoredScroll, feedScrollY, posts.length, loading]);
+  }, [feedScrollY, posts.length, loading]);
 
-  // Track and persist scroll position
+  // ---- Scroll: track position ----
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
-      // Don't save scroll position if we're near the top because of a reset during navigation
-      if (
-        window.scrollY === 0 &&
-        document.body.scrollHeight > window.innerHeight &&
-        page > 1
-      ) {
-        return;
-      }
       if (!ticking) {
         window.requestAnimationFrame(() => {
           setFeedScrollY(window.scrollY);
@@ -173,23 +137,10 @@ export function FeedClient({
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [setFeedScrollY, page]);
+  }, [setFeedScrollY]);
 
-  const {
-    selectedIds,
-    setSelectedIds,
-    selectMode,
-    toggleSelectMode,
-    deleting,
-    deletingId,
-    toggleSelect,
-    handleDelete,
-    handleBulkDelete,
-    confirmState,
-    closeConfirm,
-  } = usePostSelection(posts, setPosts, addToast);
 
-  // Sync state to URL silently without Next.js router re-rendering
+  // ---- URL sync: replaceState (not pushState) to avoid history pollution ----
   useEffect(() => {
     const sp = new URLSearchParams();
     if (activeMediaType) sp.set("type", activeMediaType);
@@ -198,88 +149,74 @@ export function FeedClient({
     if (activeSort !== initialSort) sp.set("sort", activeSort);
     if (activeCategory) sp.set("category", activeCategory);
     if (activeYear) sp.set("year", activeYear);
-    if (activePage > 1) sp.set("page", String(activePage));
+    if (page > 1) sp.set("page", String(page));
 
     const qs = sp.toString();
     const newUrl = qs ? `/?${qs}` : "/";
 
     if (window.location.search !== (qs ? `?${qs}` : "")) {
-      window.history.pushState(null, "", newUrl);
+      window.history.replaceState(null, "", newUrl);
     }
-  }, [
-    activeMediaType,
-    activeTags,
-    activeSearchQuery,
-    activeSort,
-    activeCategory,
-    activeYear,
-    activePage,
-    initialSort,
-  ]);
+  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, initialSort]);
 
-  // Sync state from URL when Back/Forward browser buttons are clicked
+  // ---- Browser back/forward + custom events (registered once via refs) ----
+  const goToPageRef = useRef(goToPage);
+  useEffect(() => { goToPageRef.current = goToPage; }, [goToPage]);
+
+  const initialSortRef = useRef(initialSort);
+  useEffect(() => { initialSortRef.current = initialSort; }, [initialSort]);
+
   useEffect(() => {
     const handlePopState = () => {
       const sp = new URLSearchParams(window.location.search);
-      const mType = sp.get("type");
-      const tags = sp.get("tags")?.split(",").filter(Boolean) || [];
-      const q = sp.get("q") || "";
-      const s = sp.get("sort") || initialSort;
-      const cat = sp.get("category");
-      const y = sp.get("year");
+      setActiveMediaType(sp.get("type"));
+      setActiveTags(sp.get("tags")?.split(",").filter(Boolean) || []);
+      setActiveSearchQuery(sp.get("q") || "");
+      setActiveSort(sp.get("sort") || initialSortRef.current);
+      setActiveCategory(sp.get("category"));
+      setActiveYear(sp.get("year"));
       const p = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
-
-      setActiveMediaType(mType);
-      setActiveTags(tags);
-      setActiveSearchQuery(q);
-      setActiveSort(s);
-      setActiveCategory(cat);
-      setActiveYear(y);
-      setActivePage(p);
-      goToPage(p);
+      goToPageRef.current(p);
     };
 
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [initialSort, goToPage]);
-
-  // Handle custom window events for seamless communication from Header / MobileNav
-  useEffect(() => {
     const handleSearch = (e: Event) => {
-      const customEvent = e as CustomEvent<string>;
-      setActiveSearchQuery(customEvent.detail);
-      goToPage(1);
+      setActiveSearchQuery((e as CustomEvent<string>).detail);
+      goToPageRef.current(1);
     };
 
     const handleReset = () => {
       setActiveMediaType(null);
       setActiveTags([]);
       setActiveSearchQuery("");
-      setActiveSort(initialSort);
+      setActiveSort(initialSortRef.current);
       setActiveCategory(null);
       setActiveYear(null);
-      goToPage(1);
+      goToPageRef.current(1);
     };
 
+    window.addEventListener("popstate", handlePopState);
     window.addEventListener(CUSTOM_EVENTS.FEED_SEARCH, handleSearch);
     window.addEventListener(CUSTOM_EVENTS.FEED_RESET, handleReset);
     return () => {
+      window.removeEventListener("popstate", handlePopState);
       window.removeEventListener(CUSTOM_EVENTS.FEED_SEARCH, handleSearch);
       window.removeEventListener(CUSTOM_EVENTS.FEED_RESET, handleReset);
     };
-  }, [initialSort, goToPage]);
+  }, []);
 
-  // Handlers to update local states
+  // ---- Handlers ----
   const handleMediaTypeChange = (type: string | null) => {
     setActiveMediaType(type);
     goToPage(1);
   };
 
   const handleTagToggle = (slug: string) => {
-    const current = new Set(activeTags);
-    if (current.has(slug)) current.delete(slug);
-    else current.add(slug);
-    setActiveTags(Array.from(current));
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return Array.from(next);
+    });
     goToPage(1);
   };
 
@@ -312,9 +249,23 @@ export function FeedClient({
     goToPage(newPage);
   };
 
+  // ---- Admin post selection ----
+  const {
+    selectedIds,
+    setSelectedIds,
+    selectMode,
+    toggleSelectMode,
+    deleting,
+    deletingId,
+    toggleSelect,
+    handleDelete,
+    handleBulkDelete,
+    confirmState,
+    closeConfirm,
+  } = usePostSelection(posts, setPosts, addToast);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Active filters */}
       <ActiveFilters
         mediaType={activeMediaType}
         selectedTags={activeTags}
@@ -324,9 +275,7 @@ export function FeedClient({
         sort={activeSort}
         onRemoveMediaType={() => handleMediaTypeChange(null)}
         onRemoveTag={(slug) => {
-          const current = new Set(activeTags);
-          current.delete(slug);
-          setActiveTags(Array.from(current));
+          setActiveTags((prev) => prev.filter((t) => t !== slug));
           goToPage(1);
         }}
         onRemoveSearch={() => {

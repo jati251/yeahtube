@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { Film, Image, Clock, Layers } from "lucide-react";
+import { Film, Image, Layers } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
 
@@ -35,10 +35,8 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
-  const [timeAgo, setTimeAgo] = useState("");
+  const timeAgo = useMemo(() => getTimeAgo(post.createdAt), [post.createdAt]);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => { setTimeAgo(getTimeAgo(post.createdAt)); }, [post.createdAt]);
 
   const ItemContent = (
     <>

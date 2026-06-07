@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Calendar } from "lucide-react";
@@ -58,11 +58,16 @@ export function WatchPageClient({
   recommendations = [],
 }: WatchPageClientProps) {
   const router = useRouter();
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [currentVideoIndex, setCurrentVideoIndex] = React.useState(0);
+  const [showSaveModal, setShowSaveModal] = React.useState(false);
   const currentVideo = videos[currentVideoIndex];
 
-  // Build quality options from all videos
+  // Fire-and-forget tracking
+  useEffect(() => {
+    fetch(`/api/posts/${post.id}/history`, { method: "POST" }).catch(() => {});
+    fetch(`/api/posts/${post.id}/view`, { method: "POST" }).catch(() => {});
+  }, [post.id]);
+
   const qualityOptions = videos.length > 1 ? videos.map((v, idx) => ({
     label: getQualityLabel(v.width, v.height)?.label ?? "Auto",
     src: v.streamUrl,
@@ -79,31 +84,6 @@ export function WatchPageClient({
     }
   };
 
-  // Force scroll to top on mount — Next.js App Router overrides with scroll restoration,
-  // so we disable it temporarily and scroll with rAF to ensure it sticks.
-  useEffect(() => {
-    const prev = history.scrollRestoration;
-    history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
-    requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-    });
-    return () => {
-      history.scrollRestoration = prev;
-    };
-  }, []);
-
-  // Track History & Views
-  useEffect(() => {
-    fetch(`/api/posts/${post.id}/history`, {
-      method: "POST",
-    }).catch(console.error);
-
-    fetch(`/api/posts/${post.id}/view`, {
-      method: "POST",
-    }).catch(console.error);
-  }, [post.id]);
-
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
@@ -114,7 +94,6 @@ export function WatchPageClient({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Back button — uses router.back() to preserve scroll position */}
       <button
         onClick={() => {
           if (window.history.length > 1) {
@@ -130,9 +109,7 @@ export function WatchPageClient({
       </button>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Left column (Player & Details) */}
         <div className="lg:col-span-8">
-          {/* Video player */}
           <VideoPlayer
             key={post.id}
             src={currentVideo.streamUrl}
@@ -144,7 +121,6 @@ export function WatchPageClient({
             onQualityChange={handleQualityChange}
           />
 
-          {/* Video info */}
           <div className="mt-4">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
               {post.title}
@@ -167,7 +143,6 @@ export function WatchPageClient({
               </div>
             </div>
 
-            {/* Tags */}
             {tags.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {tags.map((tag) => (
@@ -182,7 +157,6 @@ export function WatchPageClient({
               </div>
             )}
 
-            {/* Description */}
             {post.description && (
               <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-850 dark:bg-zinc-900/40">
                 <p className="whitespace-pre-wrap text-sm text-zinc-750 dark:text-zinc-300">
@@ -192,8 +166,6 @@ export function WatchPageClient({
             )}
           </div>
 
-
-          {/* Images gallery */}
           {images.length > 0 && (
             <div className="mt-8">
               <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
@@ -203,11 +175,9 @@ export function WatchPageClient({
             </div>
           )}
 
-          {/* Comments Section */}
           <Comments postId={post.id} />
         </div>
 
-        {/* Right column (Recommendations Sidebar) */}
         <div className="space-y-4 lg:col-span-4">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
             Recommendations
@@ -232,4 +202,3 @@ export function WatchPageClient({
     </div>
   );
 }
-

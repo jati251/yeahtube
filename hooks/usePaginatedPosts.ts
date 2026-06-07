@@ -20,6 +20,8 @@ interface UsePaginatedPostsOptions {
   initialPage?: number;
   fetchParams?: FetchParams;
   autoFetch?: boolean;
+  /** Called after fetch completes — perfect place for scroll-to-top */
+  onPageChange?: (pageNum: number) => void;
 }
 
 const DEFAULT_POSTS: PostItem[] = [];
@@ -30,6 +32,7 @@ export function usePaginatedPosts({
   initialPage = 1,
   fetchParams = {},
   autoFetch = false,
+  onPageChange,
 }: UsePaginatedPostsOptions) {
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [page, setPage] = useState(initialPage);
@@ -39,59 +42,52 @@ export function usePaginatedPosts({
   const limitVal = fetchParams.limit || DEFAULT_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(total / limitVal));
 
-  // Ref to prevent duplicate initial fetches in strict mode
-  const initialFetchDone = useRef(false);
+  const mountedRef = useRef(false);
 
-  // Skip the next fetch cycle (used by restoreFromCache)
-  const skipFetchRef = useRef(false);
-
-  // Stable ref for params to avoid stale closure issues
-  const fetchParamsRef = useRef(fetchParams);
+  const fpRef = useRef(fetchParams);
   useEffect(() => {
-    fetchParamsRef.current = fetchParams;
+    fpRef.current = fetchParams;
   }, [fetchParams]);
 
-  const buildUrl = useCallback(
-    (pageNum: number) => {
-      const params = new URLSearchParams();
-      const fp = fetchParamsRef.current;
-
-      params.set("offset", String((pageNum - 1) * limitVal));
-      params.set("limit", String(limitVal));
-      params.set("sort", fp.sort || "newest");
-
-      if (fp.type) params.set("type", fp.type);
-      if (fp.tags) params.set("tags", fp.tags);
-      if (fp.q) params.set("q", fp.q);
-      if (fp.category) params.set("category", fp.category);
-      if (fp.year) params.set("year", fp.year);
-
-      return `/api/posts?${params.toString()}`;
-    },
-    [limitVal],
-  );
+  const onPageChangeRef = useRef(onPageChange);
+  useEffect(() => {
+    onPageChangeRef.current = onPageChange;
+  }, [onPageChange]);
 
   const fetchPage = useCallback(
     async (pageNum: number) => {
-      setLoading(true);
+      if (posts.length === 0) {
+        setLoading(true);
+      }
       try {
-        const url = buildUrl(pageNum);
-        const res = await fetch(url);
+        const fp = fpRef.current;
+        const params = new URLSearchParams();
+        params.set("offset", String((pageNum - 1) * limitVal));
+        params.set("limit", String(limitVal));
+        params.set("sort", fp.sort || "newest");
+
+        if (fp.type) params.set("type", fp.type);
+        if (fp.tags) params.set("tags", fp.tags);
+        if (fp.q) params.set("q", fp.q);
+        if (fp.category) params.set("category", fp.category);
+        if (fp.year) params.set("year", fp.year);
+
+        const res = await fetch(`/api/posts?${params.toString()}`);
         const data = await res.json();
 
         setPosts(data.posts || []);
         setTotal(data.total || 0);
         setPage(pageNum);
+        setLoading(false);
+        onPageChangeRef.current?.(pageNum);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
-      } finally {
         setLoading(false);
       }
     },
-    [buildUrl],
+    [limitVal, posts.length],
   );
 
-  // Stable ref for fetchPage
   const fetchPageRef = useRef(fetchPage);
   useEffect(() => {
     fetchPageRef.current = fetchPage;
@@ -99,48 +95,39 @@ export function usePaginatedPosts({
 
   const goToPage = useCallback(
     (pageNum: number) => {
-      // Don't clamp by totalPages — API handles out-of-range gracefully.
-      // This allows restoring a saved page even before total is known.
       const safe = Math.max(1, pageNum);
       setPage(safe);
+      fetchPageRef.current(safe);
     },
     [],
   );
 
-  const nextPage = useCallback(() => {
-    if (page < totalPages) {
-      setPage(page + 1);
-    }
-  }, [page, totalPages]);
+  const restoreFromCache = useCallback(
+    (cachedPosts: PostItem[], cachedPage: number, cachedTotal: number) => {
+      mountedRef.current = true;
+      setPosts(cachedPosts);
+      setPage(cachedPage);
+      setTotal(cachedTotal);
+    },
+    [],
+  );
 
-  const prevPage = useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  }, [page]);
-
-  // Synchronize initial data if it changes on parent (e.g., soft navigation)
-  const prevInitialPosts = useRef(initialPosts);
+  const prevInitialPageRef = useRef(initialPage);
+  const prevInitialTotalRef = useRef(initialTotal);
   useEffect(() => {
-    const postsChanged =
-      initialPosts !== prevInitialPosts.current &&
-      (initialPosts.length > 0 || prevInitialPosts.current.length > 0);
-
-    if (postsChanged) {
+    if (
+      initialPage !== prevInitialPageRef.current ||
+      initialTotal !== prevInitialTotalRef.current
+    ) {
       setPosts(initialPosts);
       setTotal(initialTotal);
       setPage(initialPage);
-      prevInitialPosts.current = initialPosts;
-      initialFetchDone.current = false;
+      prevInitialPageRef.current = initialPage;
+      prevInitialTotalRef.current = initialTotal;
+      mountedRef.current = false;
     }
   }, [initialPosts, initialTotal, initialPage]);
 
-  // Synchronize internal page when initialPage changes (from popstate or client resets)
-  useEffect(() => {
-    setPage(initialPage);
-  }, [initialPage]);
-
-  // Auto fetch handler
   const sortVal = fetchParams.sort;
   const typeVal = fetchParams.type;
   const tagsVal = fetchParams.tags;
@@ -149,54 +136,22 @@ export function usePaginatedPosts({
   const yearVal = fetchParams.year;
 
   useEffect(() => {
-    let active = true;
-    const runFetch = async () => {
-      if (!active) return;
-      // Skip fetch after cache restore
-      if (skipFetchRef.current) {
-        skipFetchRef.current = false;
-        return;
-      }
-      if (autoFetch) {
-        await fetchPageRef.current(page);
-      } else if (!autoFetch && !initialFetchDone.current) {
-        // If autoFetch is false, rely on initial data, but mark as done
-        initialFetchDone.current = true;
-      } else if (initialFetchDone.current) {
-        // Parameters or page changed after mount → refetch current page
-        await fetchPageRef.current(page);
-      }
-    };
-    runFetch();
-    return () => {
-      active = false;
-    };
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    if (autoFetch) {
+      fetchPageRef.current(page);
+    }
   }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, page, autoFetch]);
 
-  // Listen to custom 'post-created' event to auto-refresh
   useEffect(() => {
-    const handlePostCreated = () => {
+    const handler = () => {
       fetchPageRef.current(1);
     };
-
-    window.addEventListener(CUSTOM_EVENTS.POST_CREATED, handlePostCreated);
-    return () => {
-      window.removeEventListener(CUSTOM_EVENTS.POST_CREATED, handlePostCreated);
-    };
+    window.addEventListener(CUSTOM_EVENTS.POST_CREATED, handler);
+    return () => window.removeEventListener(CUSTOM_EVENTS.POST_CREATED, handler);
   }, []);
-
-  // Restore posts/page/total from cache without triggering a refetch.
-  // Call this in useLayoutEffect to apply cache before first paint.
-  const restoreFromCache = useCallback(
-    (cachedPosts: PostItem[], cachedPage: number, cachedTotal: number) => {
-      skipFetchRef.current = true;
-      initialFetchDone.current = true;
-      setPosts(cachedPosts);
-      setPage(cachedPage);
-      setTotal(cachedTotal);
-    },
-    [],
-  );
 
   return {
     posts,
@@ -206,8 +161,6 @@ export function usePaginatedPosts({
     total,
     totalPages,
     goToPage,
-    nextPage,
-    prevPage,
     restoreFromCache,
     refetch: () => fetchPage(page),
   };

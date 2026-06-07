@@ -5,7 +5,6 @@ import { persist } from "zustand/middleware";
 import { PostItem } from "@/types/post";
 
 interface AppState {
-  // Scroll positions
   feedScrollY: number;
   browseScrollY: number;
   setFeedScrollY: (y: number) => void;
@@ -16,7 +15,6 @@ interface AppState {
   cachedFeedPosts: PostItem[];
   cachedFeedTotal: number;
   setCachedFeed: (page: number, posts: PostItem[], total: number) => void;
-  clearCachedFeed: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -32,8 +30,6 @@ export const useAppStore = create<AppState>()(
       setBrowseScrollY: (browseScrollY) => set({ browseScrollY }),
       setCachedFeed: (cachedFeedPage, cachedFeedPosts, cachedFeedTotal) =>
         set({ cachedFeedPage, cachedFeedPosts, cachedFeedTotal }),
-      clearCachedFeed: () =>
-        set({ cachedFeedPage: 0, cachedFeedPosts: [], cachedFeedTotal: 0 }),
     }),
     {
       name: "yeahtube-app",

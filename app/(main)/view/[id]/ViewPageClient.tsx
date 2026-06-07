@@ -51,25 +51,9 @@ export function ViewPageClient({
 }: ViewPageClientProps) {
   const router = useRouter();
 
-  // Force scroll to top on mount — Next.js App Router overrides with scroll restoration,
-  // so we disable it temporarily and scroll with rAF to ensure it sticks.
+  // Fire-and-forget tracking
   useEffect(() => {
-    const prev = history.scrollRestoration;
-    history.scrollRestoration = "manual";
-    window.scrollTo(0, 0);
-    requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-    });
-    return () => {
-      history.scrollRestoration = prev;
-    };
-  }, []);
-
-  // Track Views
-  useEffect(() => {
-    fetch(`/api/posts/${post.id}/view`, {
-      method: "POST",
-    }).catch(console.error);
+    fetch(`/api/posts/${post.id}/view`, { method: "POST" }).catch(() => {});
   }, [post.id]);
 
   const formatDate = (dateStr: string) => {
@@ -82,7 +66,6 @@ export function ViewPageClient({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Back button — uses router.back() to preserve scroll position */}
       <button
         onClick={() => {
           if (window.history.length > 1) {
@@ -98,12 +81,10 @@ export function ViewPageClient({
       </button>
 
       <div className="lg:flex lg:gap-8">
-        {/* Gallery */}
         <div className="flex-1">
           <PhotoGallery photos={images} />
         </div>
 
-        {/* Sidebar info */}
         <div className="mt-6 lg:mt-0 lg:w-72 lg:flex-shrink-0">
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
             {post.title}
@@ -114,7 +95,6 @@ export function ViewPageClient({
             {formatDate(post.createdAt)}
           </div>
 
-          {/* Tags */}
           {tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {tags.map((tag) => (
@@ -129,7 +109,6 @@ export function ViewPageClient({
             </div>
           )}
 
-          {/* Description */}
           {post.description && (
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
               <h3 className="mb-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -141,7 +120,6 @@ export function ViewPageClient({
             </div>
           )}
 
-          {/* Also has videos */}
           {videos.length > 0 && (
             <div className="mt-4">
               <h3 className="mb-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -178,7 +156,6 @@ export function ViewPageClient({
         </div>
       </div>
 
-      {/* Recommendations Grid at the bottom */}
       {recommendations.length > 0 && (
         <div className="mt-12 border-t border-zinc-200 pt-8 dark:border-zinc-800">
           <h2 className="mb-6 text-xl font-bold text-zinc-900 dark:text-zinc-50">
