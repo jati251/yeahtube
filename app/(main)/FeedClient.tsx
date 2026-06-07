@@ -11,7 +11,7 @@ import { TagCloud } from "@/components/filters/TagCloud";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
-import { RefreshCw, SlidersHorizontal, LayoutGrid, List } from "lucide-react";
+import { SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 import { PostItem, TagItem, CategoryItem } from "@/types/post";
 import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
@@ -430,7 +430,7 @@ export function FeedClient({
             />
           )}
 
-          {loading && posts.length === 0 ? (
+          {loading ? (
             viewMode === "grid" ? (
               <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -523,15 +523,6 @@ export function FeedClient({
             onLast={() => navigateToPage(totalPages)}
             onPage={navigateToPage}
           />
-
-          {loading && posts.length > 0 && (
-            <div className="mt-4 flex justify-center">
-              <div className="flex items-center gap-2 text-sm text-zinc-500">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Loading...
-              </div>
-            </div>
-          )}
 
           {isAdmin && selectMode && selectedIds.size > 0 && (
             <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-zinc-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/95 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
