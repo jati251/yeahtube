@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import NextImage from "next/image";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaCard } from "@/components/media/MediaCard";
@@ -134,10 +135,12 @@ export function ViewPageClient({
                   >
                     <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-zinc-100 dark:bg-zinc-800">
                       {video.thumbnailUrl ? (
-                        <img
+                        <NextImage
                           src={video.thumbnailUrl}
                           alt=""
-                          className="h-full w-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 64px, 64px"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-zinc-400 text-[10px]">

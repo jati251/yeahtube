@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, primaryKey, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, primaryKey, serial, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // ── Media Type enum ────────────────────────────────────
@@ -51,7 +51,10 @@ export const posts = pgTable("posts", {
   updatedAt: text("updated_at")
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  createdAtIndex: index("posts_created_at_idx").on(table.createdAt),
+  categoryIndex: index("posts_category_id_idx").on(table.categoryId),
+}));
 
 // ── Media Files ────────────────────────────────────────
 
@@ -74,7 +77,10 @@ export const media = pgTable("media", {
   createdAt: text("created_at")
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  postIdIndex: index("media_post_id_idx").on(table.postId),
+  mediaTypeIndex: index("media_type_idx").on(table.mediaType),
+}));
 
 // ── Tags ───────────────────────────────────────────────
 
@@ -101,6 +107,8 @@ export const postTags = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.postId, table.tagId] }),
+    postIdIndex: index("post_tags_post_id_idx").on(table.postId),
+    tagIdIndex: index("post_tags_tag_id_idx").on(table.tagId),
   }),
 );
 

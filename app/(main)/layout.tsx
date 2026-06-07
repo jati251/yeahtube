@@ -2,7 +2,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb, schema } from "@/db";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
-import { GlobalPlayer } from "@/components/media/GlobalPlayer";
+import dynamic from "next/dynamic";
+
+const GlobalPlayer = dynamic(() => import("@/components/media/GlobalPlayer").then(mod => mod.GlobalPlayer));
 
 async function getCategories() {
   try {

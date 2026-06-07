@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect } from "react";
+import NextImage from "next/image";
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 
 interface Photo {
@@ -93,12 +94,13 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
   // Single photo: large display
   if (photos.length === 1) {
     return (
-      <div className="flex items-center justify-center">
-        <img
+      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 cursor-pointer" onClick={() => openLightbox(0)}>
+        <NextImage
           src={photos[0].imageUrl}
           alt={photos[0].filename}
-          className="max-h-[70vh] w-auto max-w-full cursor-pointer rounded-lg object-contain"
-          onClick={() => openLightbox(0)}
+          fill
+          className="object-contain"
+          sizes="(max-width: 1024px) 100vw, 800px"
         />
       </div>
     );
@@ -114,11 +116,12 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
             className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800"
             onClick={() => openLightbox(index)}
           >
-            <img
+            <NextImage
               src={photo.thumbnailUrl || photo.imageUrl}
               alt={photo.filename}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             />
           </div>
         ))}
@@ -180,6 +183,8 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
               style={{ transform: `scale(${zoom})`, transition: "transform 0.2s" }}
               className="max-h-full max-w-full object-contain"
               draggable={false}
+              loading="lazy"
+              decoding="async"
             />
           </div>
 

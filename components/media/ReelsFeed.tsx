@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { ArrowLeft, Volume2, VolumeX, Heart, MessageCircle, Share2, BookmarkPlus, Play } from "lucide-react";
 import { PostItem } from "@/types/post";
 import { LikeDislike } from "@/components/interactions/LikeDislike";
@@ -258,17 +259,21 @@ const ReelItem = React.memo(function ReelItem({
             </div>
           </div>
         ) : post.thumbnailUrl ? (
-          <img
+          <NextImage
             src={post.thumbnailUrl}
             alt={post.title}
-            className="absolute inset-0 h-full w-full object-contain"
+            fill
+            className="object-contain"
+            sizes="(max-width: 1024px) 100vw, 800px"
           />
         ) : null
       ) : post.thumbnailUrl ? (
-        <img
+        <NextImage
           src={post.thumbnailUrl}
           alt={post.title}
-          className="absolute inset-0 h-full w-full object-contain"
+          fill
+          className="object-contain"
+          sizes="(max-width: 1024px) 100vw, 800px"
         />
       ) : (
         <div className="absolute inset-0 h-full w-full flex items-center justify-center text-zinc-600 bg-zinc-900">

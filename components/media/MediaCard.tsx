@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Film, Image, Clock } from "lucide-react";
+import NextImage from "next/image";
+import { Film, Image as ImageIcon, Clock } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
 
@@ -31,7 +32,7 @@ interface MediaCardProps {
   deleting?: boolean;
 }
 
-export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, deleting }: MediaCardProps) {
+export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, deleting }: MediaCardProps) {
   const quality = getQualityLabel(post.width, post.height);
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
@@ -148,15 +149,16 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
         )}
         {post.thumbnailUrl ? (
           <>
-            <img
+            <NextImage
               src={post.thumbnailUrl}
               alt=""
+              fill
               className="absolute inset-0 z-0 h-full w-full object-cover blur-[2px] scale-[1.02] opacity-50 dark:opacity-30 transition-all duration-300"
-              loading="lazy"
             />
-            <img
+            <NextImage
               src={post.thumbnailUrl}
               alt={post.title}
+              fill
               className={clsx(
                 "relative z-10 mx-auto h-full w-full object-contain transition-all duration-500",
                 isPlaying ? "scale-110 opacity-0" : "scale-100 group-hover:scale-105 opacity-100"
@@ -170,7 +172,7 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
             {post.mediaType === "video" ? (
               <Film className="h-12 w-12" />
             ) : (
-              <Image className="h-12 w-12" />
+              <ImageIcon className="h-12 w-12" />
             )}
           </div>
         )}
@@ -318,4 +320,4 @@ export function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect,
       )}
     </div>
   );
-}
+});

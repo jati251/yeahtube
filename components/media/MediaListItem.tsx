@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { Film, Image, Layers } from "lucide-react";
+import NextImage from "next/image";
+import { Film, Image as ImageIcon, Layers } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
 
@@ -30,7 +31,7 @@ interface MediaListItemProps {
   deleting?: boolean;
 }
 
-export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, deleting }: MediaListItemProps) {
+export const MediaListItem = React.memo(function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, deleting }: MediaListItemProps) {
   const quality = getQualityLabel(post.width, post.height);
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
@@ -43,19 +44,19 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
       {/* Thumbnail */}
       <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900 sm:h-24 sm:w-36">
         {post.thumbnailUrl ? (
-          <img
+          <NextImage
             src={post.thumbnailUrl}
             alt={post.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-            decoding="async"
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 640px) 144px, 112px"
           />
         ) : (
           <div className="flex h-full items-center justify-center">
             {post.mediaType === "video" ? (
               <Film className="h-8 w-8 text-zinc-400" />
             ) : (
-              <Image className="h-8 w-8 text-zinc-400" />
+              <ImageIcon className="h-8 w-8 text-zinc-400" />
             )}
           </div>
         )}
@@ -233,5 +234,5 @@ export function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSel
       )}
     </div>
   );
-}
+});
 
