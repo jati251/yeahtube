@@ -102,23 +102,17 @@ export function usePaginatedPosts({
     [],
   );
 
-  const prevInitialPosts = useRef(initialPosts);
+  const prevInitialRef = useRef({ posts: initialPosts, page: initialPage });
   useEffect(() => {
-    const postsChanged =
-      initialPosts !== prevInitialPosts.current &&
-      (initialPosts.length > 0 || prevInitialPosts.current.length > 0);
-    if (postsChanged) {
+    const prev = prevInitialRef.current;
+    if (initialPosts !== prev.posts || initialPage !== prev.page) {
       setPosts(initialPosts);
       setTotal(initialTotal);
       setPage(initialPage);
-      prevInitialPosts.current = initialPosts;
+      prevInitialRef.current = { posts: initialPosts, page: initialPage };
       initialFetchDone.current = false;
     }
   }, [initialPosts, initialTotal, initialPage]);
-
-  useEffect(() => {
-    setPage(initialPage);
-  }, [initialPage]);
 
   const sortVal = fetchParams.sort;
   const typeVal = fetchParams.type;
