@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"yeahtube","namespace":"apps"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"yeahtube"}},"template":{"metadata":{"labels":{"app":"yeahtube"}},"spec":{"containers":[{"env":[{"name":"NODE_ENV","value":"production"},{"name":"DATABASE_URL","valueFrom":{"secretKeyRef":{"key":"DATABASE_URL","name":"yeahtube-secret"}}},{"name":"REDIS_URL","valueFrom":{"secretKeyRef":{"key":"REDIS_URL","name":"yeahtube-secret"}}},{"name":"S3_ENDPOINT","valueFrom":{"secretKeyRef":{"key":"S3_ENDPOINT","name":"yeahtube-secret"}}},{"name":"S3_REGION","valueFrom":{"secretKeyRef":{"key":"S3_REGION","name":"yeahtube-secret"}}},{"name":"S3_BUCKET","valueFrom":{"secretKeyRef":{"key":"S3_BUCKET","name":"yeahtube-secret"}}},{"name":"S3_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"S3_ACCESS_KEY","name":"yeahtube-secret"}}},{"name":"S3_SECRET_KEY","valueFrom":{"secretKeyRef":{"key":"S3_SECRET_KEY","name":"yeahtube-secret"}}},{"name":"S3_FORCE_PATH_STYLE","valueFrom":{"secretKeyRef":{"key":"S3_FORCE_PATH_STYLE","name":"yeahtube-secret"}}},{"name":"JWT_SECRET","valueFrom":{"secretKeyRef":{"key":"JWT_SECRET","name":"yeahtube-secret"}}},{"name":"STORAGE_TYPE","valueFrom":{"secretKeyRef":{"key":"STORAGE_TYPE","name":"yeahtube-secret"}}}],"image":"192.168.1.230:30500/yeahtube:latest","imagePullPolicy":"Always","name":"yeahtube","ports":[{"containerPort":5207}],"resources":{"limits":{"cpu":"500m","memory":"256Mi"},"requests":{"cpu":"10m","memory":"64Mi"}}}]}}}}
+  name: yeahtube
+  namespace: apps
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: yeahtube
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: yeahtube
+    spec:
+      containers:
+      - env:
+        - name: NODE_ENV
+          value: production
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: yeahtube-secret
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              key: REDIS_URL
+              name: yeahtube-secret
+        - name: S3_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              key: S3_ENDPOINT
+              name: yeahtube-secret
+        - name: S3_REGION
+          valueFrom:
+            secretKeyRef:
+              key: S3_REGION
+              name: yeahtube-secret
+        - name: S3_BUCKET
+          valueFrom:
+            secretKeyRef:
+              key: S3_BUCKET
+              name: yeahtube-secret
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: S3_ACCESS_KEY
+              name: yeahtube-secret
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: S3_SECRET_KEY
+              name: yeahtube-secret
+        - name: S3_FORCE_PATH_STYLE
+          valueFrom:
+            secretKeyRef:
+              key: S3_FORCE_PATH_STYLE
+              name: yeahtube-secret
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: JWT_SECRET
+              name: yeahtube-secret
+        - name: STORAGE_TYPE
+          valueFrom:
+            secretKeyRef:
+              key: STORAGE_TYPE
+              name: yeahtube-secret
+        image: 192.168.1.230:30500/yeahtube:latest
+        imagePullPolicy: Always
+        name: yeahtube
+        ports:
+        - containerPort: 5207
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"yeahtube-svc","namespace":"apps"},"spec":{"ports":[{"port":5207,"targetPort":5207}],"selector":{"app":"yeahtube"}}}
+  name: yeahtube-svc
+  namespace: apps
+spec:
+  - 10.110.44.47
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - port: 5207
+    protocol: TCP
+    targetPort: 5207
+  selector:
+    app: yeahtube
+  sessionAffinity: None
+  type: ClusterIP
