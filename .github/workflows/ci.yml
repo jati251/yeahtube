@@ -28,9 +28,9 @@ jobs:
           cd homelab-gitops
           
           # Use sed to update the image tag in the deployment yaml
-          # The yeahtube deployment is presumably in apps/yeahtube.yaml or similar
+          # The yeahtube deployment is presumably in apps/yeahtube/deploy.yaml or similar
           # Let's search for the image line and replace it
-          sed -i "s|image: 192.168.1.41:30500/yeahtube-image:.*|image: 192.168.1.41:30500/yeahtube-image:${GITHUB_SHA}|g" apps/yeahtube.yaml || true
+          sed -i "s|image: 192.168.1.41:30500/yeahtube-image:.*|image: 192.168.1.41:30500/yeahtube-image:${GITHUB_SHA}|g" apps/yeahtube/deploy.yaml || true
           
           git config user.name "CI/CD Pipeline"
           git config user.email "ci@homelab.local"
