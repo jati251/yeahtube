@@ -6,18 +6,28 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
 
       - name: Build Docker image
-        run: docker build -t 192.168.1.41:30500/yeahtube-image:${{ github.sha }} -t 192.168.1.41:30500/yeahtube-image:latest .
+        run: docker build -t ghcr.io/jati251/yeahtube-image:${{ github.sha }} -t ghcr.io/jati251/yeahtube-image:latest .
 
       - name: Push Docker image
         run: |
-          docker push 192.168.1.41:30500/yeahtube-image:${{ github.sha }}
-          docker push 192.168.1.41:30500/yeahtube-image:latest
+          docker push ghcr.io/jati251/yeahtube-image:${{ github.sha }}
+          docker push ghcr.io/jati251/yeahtube-image:latest
 
       - name: Update GitOps Repository
         env:
@@ -30,7 +40,7 @@ jobs:
           # Use sed to update the image tag in the deployment yaml
           # The yeahtube deployment is presumably in apps/yeahtube/deploy.yaml or similar
           # Let's search for the image line and replace it
-          sed -i "s|image: 192.168.1.41:30500/yeahtube-image:.*|image: 192.168.1.41:30500/yeahtube-image:${GITHUB_SHA}|g" apps/yeahtube/deploy.yaml || true
+          sed -i "s|image: ghcr.io/jati251/yeahtube-image:.*|image: ghcr.io/jati251/yeahtube-image:${GITHUB_SHA}|g" apps/yeahtube/deploy.yaml || true
           
           git config user.name "CI/CD Pipeline"
           git config user.email "ci@homelab.local"
@@ -39,3 +49,47 @@ jobs:
           # Only commit if there are changes
           git diff-index --quiet HEAD || git commit -m "Update yeahtube image to ${GITHUB_SHA}"
           git push origin master
+
+      - name: Ensure Cloudflare DNS Record
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          RECORD_NAME: ${{ secrets.CLOUDFLARE_RECORD_NAME }}
+          TUNNEL_TARGET: ${{ secrets.CLOUDFLARE_TUNNEL_TARGET }}
+        run: |
+          echo "Checking if DNS record $RECORD_NAME already exists..."
+          RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?name=$RECORD_NAME&type=CNAME" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json")
+          
+          if echo "$RESPONSE" | grep -q '"success":true'; then
+            COUNT=$(echo "$RESPONSE" | grep -o '"count":[0-9]*' | cut -d':' -f2)
+            
+            if [ -n "$COUNT" ] && [ "$COUNT" -gt 0 ]; then
+              echo "DNS Record $RECORD_NAME already exists. Skipping creation."
+            else
+              echo "DNS Record $RECORD_NAME not found. Creating..."
+              CREATE_RESP=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data '{
+                  "type": "CNAME",
+                  "name": "'"$RECORD_NAME"'",
+                  "content": "'"$TUNNEL_TARGET"'",
+                  "ttl": 1,
+                  "proxied": true
+                }')
+              
+              if echo "$CREATE_RESP" | grep -q '"success":true'; then
+                echo "DNS Record created successfully."
+              else
+                echo "Failed to create DNS record!"
+                echo "Response: $CREATE_RESP"
+                exit 1
+              fi
+            fi
+          else
+            echo "Error checking Cloudflare API! Verify token permissions."
+            echo "API Response: $RESPONSE"
+            exit 1
+          fi
