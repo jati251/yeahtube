@@ -140,7 +140,7 @@ export async function getPresignedUrl(key: string, expiresInSeconds: number = 36
 
   // Proxy through Next.js to avoid Local Network Access prompt on iOS/macOS
   const { endpoint } = getStorageConfig();
-  if (endpoint.includes("192.168.")) {
+  if (endpoint.includes("192.168.") || endpoint.includes("dev-minio")) {
     return url.replace(endpoint, "/storage");
   }
 

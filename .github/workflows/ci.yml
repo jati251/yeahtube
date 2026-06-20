@@ -1,0 +1,41 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: docker build -t 192.168.1.41:30500/yeahtube-image:${{ github.sha }} -t 192.168.1.41:30500/yeahtube-image:latest .
+
+      - name: Push Docker image
+        run: |
+          docker push 192.168.1.41:30500/yeahtube-image:${{ github.sha }}
+          docker push 192.168.1.41:30500/yeahtube-image:latest
+
+      - name: Update GitOps Repository
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          git clone https://x-access-token:${GH_PAT}@github.com/jati251/homelab-gitops.git
+          cd homelab-gitops
+          
+          # Use sed to update the image tag in the deployment yaml
+          # The yeahtube deployment is presumably in apps/yeahtube.yaml or similar
+          # Let's search for the image line and replace it
+          sed -i "s|image: 192.168.1.41:30500/yeahtube-image:.*|image: 192.168.1.41:30500/yeahtube-image:${GITHUB_SHA}|g" apps/yeahtube.yaml || true
+          
+          git config user.name "CI/CD Pipeline"
+          git config user.email "ci@homelab.local"
+          git add .
+          
+          # Only commit if there are changes
+          git diff-index --quiet HEAD || git commit -m "Update yeahtube image to ${GITHUB_SHA}"
+          git push origin master
