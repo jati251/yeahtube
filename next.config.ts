@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/storage/:path*",
-        destination: "http://api.s3.homelab.local/:path*", // Proxy to MinIO
+        destination: "http://dev-minio.dev-storage.svc.cluster.local:9000/:path*", // Proxy to MinIO
       },
     ];
   },
