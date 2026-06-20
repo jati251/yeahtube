@@ -511,7 +511,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           Drop files anywhere or click to browse
         </p>
         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
-          Images up to 20MB, Videos up to 500MB
+          Images up to 20MB, Videos up to 2GB
           <br />
           Select multiple files for batch upload, paste with Cmd+V
         </p>

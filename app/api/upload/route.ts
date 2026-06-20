@@ -33,7 +33,7 @@ const ALLOWED_VIDEO_TYPES = [
 ];
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
-const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_VIDEO_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
 function determineMediaType(mimeType: string): "image" | "video" {
   if (ALLOWED_IMAGE_TYPES.includes(mimeType)) return "image";

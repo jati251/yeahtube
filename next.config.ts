@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   // The proxy clones the request body and buffers it in memory; this limit
   // prevents excessive memory usage for large file uploads.
   experimental: {
-    proxyClientMaxBodySize: "500MB",
+    proxyClientMaxBodySize: "2GB",
   },
 
   serverExternalPackages: ["pg", "sharp"],
