@@ -54,6 +54,9 @@ export const posts = pgTable("posts", {
 }, (table) => ({
   createdAtIndex: index("posts_created_at_idx").on(table.createdAt),
   categoryIndex: index("posts_category_id_idx").on(table.categoryId),
+  userIdIndex: index("posts_user_id_idx").on(table.userId),
+  updatedAtIndex: index("posts_updated_at_idx").on(table.updatedAt),
+  viewsIndex: index("posts_views_idx").on(table.views),
 }));
 
 // ── Media Files ────────────────────────────────────────
@@ -139,7 +142,10 @@ export const likes = pgTable("likes", {
   createdAt: text("created_at")
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  userIdIndex: index("likes_user_id_idx").on(table.userId),
+  postIdIndex: index("likes_post_id_idx").on(table.postId),
+}));
 
 export type Like = typeof likes.$inferSelect;
 export type NewLike = typeof likes.$inferInsert;
@@ -158,7 +164,9 @@ export const comments = pgTable("comments", {
   createdAt: text("created_at")
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  postIdIndex: index("comments_post_id_idx").on(table.postId),
+}));
 
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
@@ -176,7 +184,9 @@ export const watchHistory = pgTable("watch_history", {
   watchedAt: text("watched_at")
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  userIdIndex: index("watch_history_user_id_idx").on(table.userId),
+}));
 
 export type WatchHistory = typeof watchHistory.$inferSelect;
 export type NewWatchHistory = typeof watchHistory.$inferInsert;
@@ -209,7 +219,9 @@ export const playlistItems = pgTable("playlist_items", {
   addedAt: text("added_at")
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  playlistIdIndex: index("playlist_items_playlist_id_idx").on(table.playlistId),
+}));
 
 export type PlaylistItem = typeof playlistItems.$inferSelect;
 export type NewPlaylistItem = typeof playlistItems.$inferInsert;

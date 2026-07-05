@@ -13,8 +13,8 @@ import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import os from "os";
 import fs from "fs/promises";
-import { spawn } from "child_process";
 import { Pool } from "pg";
+import sharp from "sharp";
 
 // ── Types ─────────────────────────────────────────────
 interface TranscodeJobData {
@@ -30,16 +30,6 @@ interface TranscodeJobData {
   secretKey: string;
   forcePathStyle: boolean;
 }
-
-interface TranscodeTarget {
-  label: string;
-  height: number;
-}
-
-const TARGETS: TranscodeTarget[] = [
-  { label: "720p", height: 720 },
-  { label: "480p", height: 480 },
-];
 
 // ── Redis Connection ──────────────────────────────────
 function getRedisConnection() {
@@ -66,7 +56,7 @@ const worker = new Worker<TranscodeJobData>(
       bucket, endpoint, region, accessKey, secretKey, forcePathStyle,
     } = job.data;
 
-    console.log(`[Worker] Processing transcode for media #${mediaId} (post #${postId})`);
+    console.log(`[Worker] Processing video assets for media #${mediaId} (post #${postId})`);
 
     const s3 = new S3Client({
       endpoint,
@@ -78,7 +68,18 @@ const worker = new Worker<TranscodeJobData>(
     const tmpDir = os.tmpdir();
     const uniqueId = uuidv4();
     const ext = path.extname(filename);
-    const tmpInput = path.join(tmpDir, `yt-transcode-${uniqueId}${ext}`);
+    const tmpInput = path.join(tmpDir, `yt-asset-${uniqueId}${ext}`);
+    
+    // Derived keys for S3
+    const now = new Date();
+    const folderPath = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const thumbnailFilename = `${uniqueId}_thumb.webp`;
+    const thumbnailKey = `thumbnails/${folderPath}/${thumbnailFilename}`;
+    const previewKey = `previews/${folderPath}/${uniqueId}_preview.mp4`;
+
+    const thumbBasename = `yt-thumb-${uniqueId}`;
+    const tmpThumbPng = path.join(tmpDir, `${thumbBasename}.png`);
+    const tmpPreview = path.join(tmpDir, `yt-preview-${uniqueId}.mp4`);
 
     try {
       // Download original from S3
@@ -95,79 +96,141 @@ const worker = new Worker<TranscodeJobData>(
       }
       await fs.writeFile(tmpInput, Buffer.concat(chunks));
 
-      // Get original dimensions and codec via ffprobe
-      const { codec, height: originalHeight } = await getVideoInfo(tmpInput);
-      console.log(`[Worker] Original codec: ${codec}, height: ${originalHeight}px`);
+      console.log(`[Worker] Extracting metadata and generating assets...`);
+      
+      let actualDuration = 0;
+      let videoWidth: number | null = null;
+      let videoHeight: number | null = null;
 
-      let applicableTargets = TARGETS.filter((t) => t.height < originalHeight);
+      await new Promise<void>((resolve, reject) => {
+        const ffmpeg = require("fluent-ffmpeg") as any;
 
-      // If the original codec is not h264, we always want to transcode a compatible h264 version 
-      // at the original resolution (if it matches or exceeds 360p) so that browsers can play it natively.
-      if (codec !== "h264" && originalHeight >= 360) {
-        if (!applicableTargets.some((t) => t.height === originalHeight)) {
-          applicableTargets.unshift({ label: `${originalHeight}p`, height: originalHeight });
-        }
+        ffmpeg.ffprobe(tmpInput, (err: any, metadata: any) => {
+          if (err) return reject(err);
+
+          actualDuration = metadata.format.duration || 0;
+          const videoStream = metadata.streams?.find((s: any) => s.codec_type === "video");
+          if (videoStream) {
+            if (videoStream.width) videoWidth = videoStream.width;
+            if (videoStream.height) videoHeight = videoStream.height;
+          }
+          
+          const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
+
+          const generatePreview = (onDone: () => void) => {
+            if (actualDuration < 0.5) {
+              onDone();
+              return;
+            }
+            const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
+
+            ffmpeg(tmpInput)
+              .setStartTime(seekTime)
+              .setDuration(previewDuration)
+              .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale='min(360,iw)':-2")
+              .noAudio()
+              .videoCodec("libx264")
+              .outputOptions([
+                "-preset ultrafast",
+                "-crf 32",
+                "-movflags +faststart",
+                "-pix_fmt yuv420p",
+              ])
+              .save(tmpPreview)
+              .on("end", onDone)
+              .on("error", (previewErr: any) => {
+                console.error("[Worker] Preview generation failed:", previewErr.message);
+                onDone();
+              });
+          };
+
+          const tryThumbnail = (time: number, onSuccess: () => void, onFail: () => void) => {
+            ffmpeg(tmpInput)
+              .seekInput(time)
+              .frames(1)
+              .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale=400:-2")
+              .output(tmpThumbPng)
+              .outputOptions(["-update", "1"])
+              .on("end", onSuccess)
+              .on("error", (e: any) => {
+                console.error(`[Worker] Thumbnail at t=${time} failed:`, e.message);
+                onFail();
+              })
+              .run();
+          };
+
+          tryThumbnail(
+            seekTime,
+            () => generatePreview(() => resolve()),
+            () => {
+              tryThumbnail(
+                0,
+                () => generatePreview(() => resolve()),
+                () => {
+                  console.error("[Worker] All thumbnail attempts failed");
+                  resolve();
+                },
+              );
+            },
+          );
+        });
+      });
+
+      // Convert PNG to WebP
+      let thumbnailBuffer: Buffer;
+      try {
+        const pngBuffer = await fs.readFile(tmpThumbPng);
+        thumbnailBuffer = await sharp(pngBuffer)
+          .webp({ quality: 75 })
+          .toBuffer();
+      } catch (e) {
+        console.error("[Worker] Could not read/convert thumbnail PNG, generating fallback");
+        thumbnailBuffer = await sharp({
+          create: { width: 400, height: 225, channels: 3, background: { r: 30, g: 30, b: 30 } },
+        }).webp({ quality: 50 }).toBuffer();
       }
 
-      if (applicableTargets.length === 0) {
-        console.log(`[Worker] No applicable transcode targets for ${originalHeight}px, skipping`);
-        return;
-      }
+      console.log(`[Worker] Uploading thumbnail...`);
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: thumbnailKey,
+          Body: thumbnailBuffer,
+          ContentType: "image/webp",
+        }),
+      );
 
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const folderPath = `${year}/${month}`;
-
-      for (const target of applicableTargets) {
-        const transcodeId = uuidv4();
-        const outputFilename = `${transcodeId}.mp4`;
-        const outputKey = `uploads/videos/${folderPath}/${outputFilename}`;
-        const tmpOutput = path.join(tmpDir, `yt-transcode-${transcodeId}.mp4`);
-
-        console.log(`[Worker] Transcoding ${target.label} (${target.height}p)...`);
-
-        await transcodeVideo(tmpInput, tmpOutput, target.height);
-
-        const outputBuffer = await fs.readFile(tmpOutput);
-        const fileSize = outputBuffer.length;
-
+      let finalPreviewKey: string | null = null;
+      try {
+        const previewBuffer = await fs.readFile(tmpPreview);
+        console.log(`[Worker] Uploading preview...`);
         await s3.send(
           new PutObjectCommand({
             Bucket: bucket,
-            Key: outputKey,
-            Body: outputBuffer,
+            Key: previewKey,
+            Body: previewBuffer,
             ContentType: "video/mp4",
           }),
         );
-
-        // Get next orderIndex
-        const { rows } = await pool.query(
-          `SELECT COALESCE(MAX(order_index), -1) + 1 AS next_index FROM media WHERE post_id = $1`,
-          [postId],
-        );
-        const nextIndex = rows[0]?.next_index ?? 0;
-
-        // Insert new media record
-        await pool.query(
-          `INSERT INTO media (post_id, storage_key, filename, mime_type, media_type, file_size, width, height, duration, thumbnail_key, preview_key, order_index, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())`,
-          [
-            postId, outputKey, `${target.label} - ${filename}`, "video/mp4",
-            "video", fileSize, Math.round((target.height / 9) * 16), target.height,
-            null, null, null, nextIndex,
-          ],
-        );
-
-        console.log(`[Worker] ✅ ${target.label} done — ${(fileSize / 1024 / 1024).toFixed(1)}MB`);
-
-        try { await fs.unlink(tmpOutput); } catch {}
+        finalPreviewKey = previewKey;
+      } catch (e) {
+        console.error("[Worker] Could not read preview buffer (preview may not have been generated)");
       }
+
+      console.log(`[Worker] Updating media record #${mediaId}...`);
+      await pool.query(
+        `UPDATE media SET width = $1, height = $2, duration = $3, thumbnail_key = $4, preview_key = $5 WHERE id = $6`,
+        [videoWidth, videoHeight, actualDuration, thumbnailKey, finalPreviewKey, mediaId]
+      );
+
+      console.log(`[Worker] ✅ Video assets generated successfully for media #${mediaId}`);
     } catch (err) {
-      console.error(`[Worker] ❌ Transcode failed for media #${mediaId}:`, err);
+      console.error(`[Worker] ❌ Asset generation failed for media #${mediaId}:`, err);
       throw err;
     } finally {
-      try { await fs.unlink(tmpInput); } catch {}
+      for (const f of [tmpInput, tmpThumbPng, tmpPreview]) {
+        try { await fs.unlink(f); } catch {}
+      }
     }
   },
   {
@@ -176,53 +239,6 @@ const worker = new Worker<TranscodeJobData>(
     stalledInterval: 30000,
   },
 );
-
-// ── Helpers ───────────────────────────────────────────
-
-interface VideoInfo {
-  codec: string;
-  height: number;
-}
-
-function getVideoInfo(filePath: string): Promise<VideoInfo> {
-  return new Promise((resolve) => {
-    const ffprobe = spawn("ffprobe", [
-      "-v", "error", "-select_streams", "v:0",
-      "-show_entries", "stream=height,codec_name", "-of", "csv=p=0", filePath,
-    ]);
-    let output = "";
-    ffprobe.stdout.on("data", (d: Buffer) => { output += d.toString(); });
-    ffprobe.on("close", () => {
-      const parts = output.trim().split(",");
-      const codec = parts[0] || "";
-      const height = parseInt(parts[1], 10) || 0;
-      resolve({ codec, height });
-    });
-    ffprobe.on("error", () => resolve({ codec: "", height: 0 }));
-  });
-}
-
-function transcodeVideo(inputPath: string, outputPath: string, targetHeight: number): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = spawn("ffmpeg", [
-      "-i", inputPath,
-      "-vf", `setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale=-2:${targetHeight}`,
-      "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-      "-c:a", "aac", "-b:a", "128k",
-      "-movflags", "+faststart", "-pix_fmt", "yuv420p",
-      "-y", outputPath,
-    ]);
-
-    let stderr = "";
-    ffmpeg.stderr.on("data", (d: Buffer) => { stderr += d.toString(); });
-
-    ffmpeg.on("close", (code: number) => {
-      if (code === 0) resolve();
-      else reject(new Error(`ffmpeg exit ${code}: ${stderr.slice(-200)}`));
-    });
-    ffmpeg.on("error", reject);
-  });
-}
 
 // ── Shutdown ──────────────────────────────────────────
 async function shutdown() {
@@ -234,4 +250,4 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-console.log("[Worker] YeahTube transcode worker started, waiting for jobs...");
+console.log("[Worker] YeahTube video asset worker started, waiting for jobs...");

@@ -6,9 +6,9 @@ import fs from "fs/promises";
 import { existsSync } from "fs";
 import os from "os";
 import { v4 as uuidv4 } from "uuid";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 
 // Load .env.local on top of .env
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
@@ -147,6 +147,62 @@ async function generateVideoAssets(
   }
 }
 
+async function cleanDuplicates() {
+  console.log("\n🔍 Checking for duplicate posts before seeding...");
+  const db = getDb();
+  const s3 = getS3Client();
+  const storageConfig = getStorageConfig();
+
+  const allPosts = await db.select().from(schema.posts).orderBy(asc(schema.posts.id));
+  const titleGroups = new Map<string, typeof allPosts>();
+
+  for (const post of allPosts) {
+    const title = post.title.trim().toLowerCase();
+    if (!titleGroups.has(title)) titleGroups.set(title, []);
+    titleGroups.get(title)!.push(post);
+  }
+
+  let deletedCount = 0;
+  for (const [title, posts] of titleGroups.entries()) {
+    if (posts.length > 1) {
+      console.log(`Found duplicate title: "${posts[0].title}" (${posts.length} copies)`);
+      const keepPost = posts[0];
+      const duplicatesToDelete = posts.slice(1);
+      console.log(`  Keeping Post ID: ${keepPost.id}`);
+
+      for (const dup of duplicatesToDelete) {
+        console.log(`  Deleting Post ID: ${dup.id}...`);
+        const mediaFiles = await db.select().from(schema.media).where(eq(schema.media.postId, dup.id));
+        for (const m of mediaFiles) {
+          try {
+            console.log(`    - Deleting S3 key: ${m.storageKey}`);
+            await s3.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: m.storageKey }));
+            if (m.thumbnailKey) {
+              console.log(`    - Deleting S3 key: ${m.thumbnailKey}`);
+              await s3.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: m.thumbnailKey }));
+            }
+            if (m.previewKey) {
+              console.log(`    - Deleting S3 key: ${m.previewKey}`);
+              await s3.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: m.previewKey }));
+            }
+          } catch (s3Err) {
+            console.error(`    ❌ S3 Delete failed for media ID ${m.id}:`, s3Err);
+          }
+        }
+        await db.delete(schema.posts).where(eq(schema.posts.id, dup.id));
+        console.log(`    ✅ Deleted Post ID: ${dup.id} from DB`);
+        deletedCount++;
+      }
+    }
+  }
+
+  if (deletedCount > 0) {
+    console.log(`🎉 Duplicate cleanup finished. Deleted ${deletedCount} duplicate post(s).\n`);
+  } else {
+    console.log("✅ No duplicates found.\n");
+  }
+}
+
 async function main() {
   const seedDir = path.resolve(os.homedir(), "Downloads/seed-videos");
   console.log(`📂 Scanning folder: ${seedDir}`);
@@ -168,6 +224,8 @@ async function main() {
   }
 
   console.log(`🌱 Found ${videoFiles.length} video files to seed.`);
+
+  await cleanDuplicates();
 
   const db = getDb();
   const s3 = getS3Client();
@@ -214,6 +272,20 @@ async function main() {
 
     console.log(`\n🚀 [${i + 1}/${videoFiles.length}] Seeding: "${title}"...`);
 
+    // Check for duplicates
+    const [existingMedia] = await db
+      .select()
+      .from(schema.media)
+      .where(eq(schema.media.filename, filename))
+      .limit(1);
+
+    if (existingMedia) {
+      console.log(`  ⏭️  Skipping: "${filename}" already exists in database.`);
+      continue;
+    }
+
+    let uploadedS3Keys: string[] = [];
+
     try {
       const fileBuffer = await fs.readFile(filepath);
       const ext = path.extname(filename).toLowerCase();
@@ -235,7 +307,7 @@ async function main() {
       const storageKey = `uploads/videos/${folderPath}/${storageFilename}`;
       const thumbnailKey = `thumbnails/${folderPath}/${thumbnailFilename}`;
       const previewKey = `previews/${folderPath}/${storageId}_preview.mp4`;
-
+      
       console.log(`  - Uploading original video to S3...`);
       await s3.send(
         new PutObjectCommand({
@@ -245,6 +317,7 @@ async function main() {
           ContentType: mimeType,
         }),
       );
+      uploadedS3Keys.push(storageKey);
 
       console.log(`  - Generating thumbnails & previews...`);
       const { thumbnailBuffer, previewBuffer, duration, width, height } = 
@@ -259,6 +332,7 @@ async function main() {
           ContentType: "image/webp",
         }),
       );
+      uploadedS3Keys.push(thumbnailKey);
 
       if (previewBuffer) {
         console.log(`  - Uploading preview to S3...`);
@@ -270,6 +344,7 @@ async function main() {
             ContentType: "video/mp4",
           }),
         );
+        uploadedS3Keys.push(previewKey);
       }
 
       console.log(`  - Inserting database records...`);
@@ -321,6 +396,18 @@ async function main() {
       console.log(`  ✅ Successfully seeded: "${title}" (Post ID: ${newPost.id})`);
     } catch (err) {
       console.error(`  ❌ Failed to seed "${filename}":`, err);
+      
+      // Cleanup S3 on failure
+      if (typeof uploadedS3Keys !== "undefined" && uploadedS3Keys.length > 0) {
+        console.log(`  🧹 Cleaning up partial S3 uploads...`);
+        for (const key of uploadedS3Keys) {
+          try {
+            await s3.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: key }));
+          } catch (e) {
+            console.error(`    ⚠️ Failed to delete ${key} during cleanup`);
+          }
+        }
+      }
     }
   }
 
