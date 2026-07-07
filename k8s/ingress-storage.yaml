@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-external
+  namespace: apps
+spec:
+  type: ExternalName
+  externalName: dev-minio.dev-storage.svc.cluster.local
+  ports:
+  - port: 9000
+    protocol: TCP
+    targetPort: 9000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: yeahtube-storage-ingress
+  namespace: apps
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: yeahtube.cekcok.my.id
+    http:
+      paths:
+      - path: /storage(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: minio-external
+            port:
+              number: 9000
+  tls:
+  - hosts:
+    - yeahtube.cekcok.my.id
+    secretName: yeahtube-tls
