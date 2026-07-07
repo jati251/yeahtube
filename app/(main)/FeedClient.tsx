@@ -94,7 +94,19 @@ export function FeedClient({
     if (cacheRestoredRef.current) return;
     cacheRestoredRef.current = true;
 
+    // Fix cache getting stuck on hard refresh
+    const isReload =
+      typeof window !== "undefined" &&
+      window.performance &&
+      window.performance.getEntriesByType("navigation").length > 0 &&
+      (window.performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming).type === "reload";
+
     const store = useAppStore.getState();
+    if (isReload) {
+      store.setCachedFeed(0, [], 0);
+      return;
+    }
+
     if (store.cachedFeedPage > 0 && store.cachedFeedPosts.length > 0) {
       restoreFromCache(store.cachedFeedPosts, store.cachedFeedPage, store.cachedFeedTotal);
     }
