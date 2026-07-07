@@ -12,7 +12,7 @@ RUN apk add --no-cache python3 make g++ ffmpeg
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts && npm rebuild sharp && npm cache clean --force
+RUN npm install --ignore-scripts && npm rebuild sharp && npm cache clean --force
 
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
