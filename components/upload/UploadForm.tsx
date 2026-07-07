@@ -91,7 +91,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     }, 500);
   };
 
-  // Upload helper: album OFF = individual posts, album ON = 1 album post
   const doUpload = async (filesToUpload: SelectedFile[], quick: boolean) => {
     if (filesToUpload.length === 0) return;
     setUploading(true);
@@ -106,19 +105,12 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       file: File,
       title: string,
       idx: number,
+      postIdToAppend: string | null,
       onProgress: (percent: number) => void
-    ): Promise<boolean> => {
+    ): Promise<{ success: boolean; postId?: string }> => {
       return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
-        const fd = new FormData();
-        fd.append("files", file);
-        fd.append("quickPost", quick ? "true" : "false");
-        fd.append("title", title);
-        if (!quick && idx === 0) {
-          if (category) fd.append("category", category);
-          fd.append("tags", JSON.stringify(tags));
-        }
-
+        
         xhr.upload.addEventListener("progress", (event) => {
           if (event.lengthComputable) {
             const percent = Math.round((event.loaded / event.total) * 100);
@@ -128,77 +120,87 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
 
         xhr.addEventListener("load", () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(true);
+            try {
+              const res = JSON.parse(xhr.responseText);
+              resolve({ success: true, postId: res.post?.id?.toString() });
+            } catch {
+              resolve({ success: true });
+            }
           } else {
             console.error(`[Upload] Error (${xhr.status}):`, xhr.responseText);
-            resolve(false);
+            resolve({ success: false });
           }
         });
 
         xhr.addEventListener("error", () => {
           console.error("[Upload] XHR network error");
-          resolve(false);
+          resolve({ success: false });
         });
 
         xhr.open("POST", "/api/upload");
         if (csrfToken) {
           xhr.setRequestHeader("x-csrf-token", decodeURIComponent(csrfToken));
         }
-        xhr.send(fd);
+        
+        // Pass metadata as custom headers
+        xhr.setRequestHeader("x-file-name", encodeURIComponent(file.name));
+        xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
+        xhr.setRequestHeader("x-quick-post", quick ? "true" : "false");
+        xhr.setRequestHeader("x-order-index", idx.toString());
+        
+        if (postIdToAppend) {
+          xhr.setRequestHeader("x-post-id", postIdToAppend);
+        } else {
+          xhr.setRequestHeader("x-post-title", encodeURIComponent(title));
+          if (!quick && idx === 0) {
+            if (category) xhr.setRequestHeader("x-post-category", category);
+            xhr.setRequestHeader("x-post-tags", encodeURIComponent(JSON.stringify(tags)));
+          }
+        }
+        
+        // Send raw file stream! (0 memory overhead in Next.js)
+        xhr.send(file);
       });
     };
 
     try {
       if (albumMode) {
-        // Album mode: batch all → 1 post
-        setStatusText(`Uploading ${totalFiles} file(s)...`);
+        // Album mode: stream files one by one but group them into the same Post
+        setStatusText(`Uploading Album: 0 of ${totalFiles} file(s)...`);
         setTotalProgress(0);
 
-        const ok = await new Promise<boolean>((resolve) => {
-          const xhr = new XMLHttpRequest();
-          const formData = new FormData();
-          formData.append("quickPost", quick ? "true" : "false");
-          if (quick) {
-            const firstName = filesToUpload[0].file.name.replace(/\.[^/.]+$/, "");
-            formData.append("title", totalFiles === 1 ? firstName : `Album: ${firstName} +${totalFiles - 1}`);
-          } else {
-            formData.append("title", title.trim());
-            if (category) formData.append("category", category);
-            formData.append("tags", JSON.stringify(tags));
+        let createdPostId: string | null = null;
+        let successCount = 0;
+
+        for (let i = 0; i < filesToUpload.length; i++) {
+          const sf = filesToUpload[i];
+          const firstName = filesToUpload[0].file.name.replace(/\.[^/.]+$/, "");
+          const fileTitle = quick
+            ? (totalFiles === 1 ? firstName : `Album: ${firstName} +${totalFiles - 1}`)
+            : title.trim();
+
+          setStatusText(`Uploading ${i + 1} of ${totalFiles}: ${sf.file.name}`);
+          setUploadProgress(0);
+
+          // The first file creates the post. Subsequent files append to it via `createdPostId`
+          const { success, postId } = await sendOne(sf.file, fileTitle, i, createdPostId, (percent) => {
+            setUploadProgress(percent);
+            const overallBase = (i / totalFiles) * 100;
+            const overallContribution = percent / totalFiles;
+            setTotalProgress(Math.floor(overallBase + overallContribution));
+          });
+
+          if (!success) {
+             throw new Error(`Failed at file ${i + 1}. Uploaded ${successCount} of ${totalFiles}.`);
           }
-          for (const sf of filesToUpload) formData.append("files", sf.file);
-
-          xhr.upload.addEventListener("progress", (event) => {
-            if (event.lengthComputable) {
-              const percent = Math.round((event.loaded / event.total) * 100);
-              setUploadProgress(percent);
-              setTotalProgress(percent);
-            }
-          });
-
-          xhr.addEventListener("load", () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve(true);
-            } else {
-              console.error(`[Upload] Album Error (${xhr.status}):`, xhr.responseText);
-              resolve(false);
-            }
-          });
-
-          xhr.addEventListener("error", () => {
-            console.error("[Upload] Album XHR network error");
-            resolve(false);
-          });
-
-          xhr.open("POST", "/api/upload");
-          if (csrfToken) {
-            xhr.setRequestHeader("x-csrf-token", decodeURIComponent(csrfToken));
+          
+          if (i === 0 && postId) {
+            createdPostId = postId;
           }
-          xhr.send(formData);
-        });
 
-        if (!ok) {
-          throw new Error("Upload failed");
+          setSelectedFiles((prev) => { URL.revokeObjectURL(sf.preview); return prev.filter((x) => x.id !== sf.id); });
+          successCount++;
+          setTotalProgress(Math.floor((successCount / totalFiles) * 100));
         }
       } else {
         // Default: 1 file = 1 post
@@ -218,19 +220,19 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           );
           setUploadProgress(0);
 
-          const ok = await sendOne(sf.file, fileTitle, i, (percent) => {
+          const { success } = await sendOne(sf.file, fileTitle, i, null, (percent) => {
             setUploadProgress(percent);
             const overallBase = (i / totalFiles) * 100;
             const overallContribution = percent / totalFiles;
             setTotalProgress(Math.floor(overallBase + overallContribution));
           });
 
-          if (!ok) {
+          if (!success) {
             addToast("error", `Failed at file ${i + 1}. Uploaded ${successCount} of ${totalFiles}.`);
             setUploading(false);
             return;
           }
-          // Remove file from list one-by-one (GDrive style)
+          
           setSelectedFiles((prev) => { URL.revokeObjectURL(sf.preview); return prev.filter((x) => x.id !== sf.id); });
           successCount++;
           setTotalProgress(Math.floor((successCount / totalFiles) * 100));
