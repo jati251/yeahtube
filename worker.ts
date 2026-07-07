@@ -9,6 +9,7 @@
 
 import { Worker, Job } from "bullmq";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import os from "os";
@@ -67,8 +68,6 @@ const worker = new Worker<TranscodeJobData>(
 
     const tmpDir = os.tmpdir();
     const uniqueId = uuidv4();
-    const ext = path.extname(filename);
-    const tmpInput = path.join(tmpDir, `yt-asset-${uniqueId}${ext}`);
     
     // Derived keys for S3
     const now = new Date();
@@ -82,21 +81,14 @@ const worker = new Worker<TranscodeJobData>(
     const tmpPreview = path.join(tmpDir, `yt-preview-${uniqueId}.mp4`);
 
     try {
-      // Download original from S3
-      console.log(`[Worker] Downloading ${storageKey}...`);
-      const { Body } = await s3.send(
+      console.log(`[Worker] Generating presigned URL for HTTP Range Streaming...`);
+      const presignedUrl = await getSignedUrl(
+        s3,
         new GetObjectCommand({ Bucket: bucket, Key: storageKey }),
+        { expiresIn: 3600 }
       );
-      if (!Body) throw new Error("Empty body from S3");
 
-      const chunks: Buffer[] = [];
-      const reader = Body as AsyncIterable<Uint8Array>;
-      for await (const chunk of reader) {
-        chunks.push(Buffer.from(chunk));
-      }
-      await fs.writeFile(tmpInput, Buffer.concat(chunks));
-
-      console.log(`[Worker] Extracting metadata and generating assets...`);
+      console.log(`[Worker] Extracting metadata and generating assets via HTTP streaming...`);
       
       let actualDuration = 0;
       let videoWidth: number | null = null;
@@ -105,7 +97,7 @@ const worker = new Worker<TranscodeJobData>(
       await new Promise<void>((resolve, reject) => {
         const ffmpeg = require("fluent-ffmpeg") as any;
 
-        ffmpeg.ffprobe(tmpInput, (err: any, metadata: any) => {
+        ffmpeg.ffprobe(presignedUrl, (err: any, metadata: any) => {
           if (err) return reject(err);
 
           actualDuration = metadata.format.duration || 0;
@@ -124,7 +116,7 @@ const worker = new Worker<TranscodeJobData>(
             }
             const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
 
-            ffmpeg(tmpInput)
+            ffmpeg(presignedUrl)
               .setStartTime(seekTime)
               .setDuration(previewDuration)
               .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale='min(360,iw)':-2")
@@ -145,7 +137,7 @@ const worker = new Worker<TranscodeJobData>(
           };
 
           const tryThumbnail = (time: number, onSuccess: () => void, onFail: () => void) => {
-            ffmpeg(tmpInput)
+            ffmpeg(presignedUrl)
               .seekInput(time)
               .frames(1)
               .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale=400:-2")
@@ -228,14 +220,14 @@ const worker = new Worker<TranscodeJobData>(
       console.error(`[Worker] ❌ Asset generation failed for media #${mediaId}:`, err);
       throw err;
     } finally {
-      for (const f of [tmpInput, tmpThumbPng, tmpPreview]) {
+      for (const f of [tmpThumbPng, tmpPreview]) {
         try { await fs.unlink(f); } catch {}
       }
     }
   },
   {
     connection: getRedisConnection(),
-    concurrency: 1,
+    concurrency: 4,
     stalledInterval: 30000,
   },
 );
@@ -250,4 +242,4 @@ async function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
 
-console.log("[Worker] YeahTube video asset worker started, waiting for jobs...");
+console.log("[Worker] YeahTube video asset worker started (concurrency: 4), waiting for jobs...");
