@@ -153,12 +153,14 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
               src={post.thumbnailUrl}
               alt=""
               fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="absolute inset-0 z-0 h-full w-full object-cover blur-[2px] scale-[1.02] opacity-50 dark:opacity-30 transition-all duration-300"
             />
             <NextImage
               src={post.thumbnailUrl}
               alt={post.title}
               fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className={clsx(
                 "relative z-10 mx-auto h-full w-full object-contain transition-all duration-500",
                 isPlaying ? "scale-110 opacity-0" : "scale-100 group-hover:scale-105 opacity-100"

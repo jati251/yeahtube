@@ -1,13 +1,9 @@
 /* eslint-disable */
-import "dotenv/config";
-import dotenv from "dotenv";
-import path from "path";
+import "./env";
 import { getDb, schema } from "./index";
 import { getS3Client, getStorageConfig } from "../lib/storage";
 import { ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
-// Load .env.local on top of .env
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 async function main() {
   console.log("🔍 Scanning for orphaned S3 objects...");

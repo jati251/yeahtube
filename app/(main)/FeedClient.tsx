@@ -52,10 +52,6 @@ export function FeedClient({
   const initialActiveSort = searchParams.get("sort") || initialSort;
   const initialCategory = searchParams.get("category");
   const initialYear = searchParams.get("year");
-  const initialUrlPage = Math.max(
-    1,
-    parseInt(searchParams.get("page") || String(initialPage), 10) || 1,
-  );
 
   // ---- Local filter state ----
   const [activeMediaType, setActiveMediaType] = useState<string | null>(initialMediaType);
@@ -76,7 +72,7 @@ export function FeedClient({
     usePaginatedPosts({
       initialPosts,
       initialTotal,
-      initialPage: initialUrlPage,
+      initialPage: initialPage,
       fetchParams: {
         type: activeMediaType,
         tags: activeTags.join(",") || null,

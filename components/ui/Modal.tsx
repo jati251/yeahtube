@@ -10,6 +10,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "full";
+  isMinimized?: boolean;
 }
 
 const sizeStyles = {
@@ -26,6 +27,7 @@ export function Modal({
   title,
   children,
   size = "md",
+  isMinimized = false,
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -52,28 +54,34 @@ export function Modal({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className={clsx(
+        "fixed inset-0 z-50 flex p-4",
+        isMinimized ? "pointer-events-none items-end justify-center sm:justify-end" : "items-center justify-center"
+      )}
       onClick={(e) => {
-        if (e.target === overlayRef.current) onClose();
+        if (!isMinimized && e.target === overlayRef.current) onClose();
       }}
     >
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+      {!isMinimized && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />}
 
       {/* Modal content */}
       <div
         className={clsx(
-          "relative z-10 flex max-h-[90vh] w-full flex-col rounded-xl bg-white shadow-xl dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/80",
-          sizeStyles[size],
+          "relative z-10 flex w-full flex-col",
+          !isMinimized && "max-h-[90vh] rounded-xl bg-white shadow-xl dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/80",
+          !isMinimized && sizeStyles[size],
+          isMinimized && "pointer-events-auto"
         )}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
         {/* Scrollable body container */}
-        <div className="overflow-y-auto rounded-xl p-6">
+        <div className={clsx("overflow-y-auto", !isMinimized && "rounded-xl p-6")}>
+
         {/* Header */}
-        {title && (
+        {!isMinimized && title && (
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               {title}

@@ -17,14 +17,21 @@ interface HeaderUploadProps {
 }
 
 export function HeaderUpload({ isOpen, onClose, categories = [] }: HeaderUploadProps) {
+  const [isMinimized, setIsMinimized] = React.useState(false);
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Upload Media"
       size="lg"
+      isMinimized={isMinimized}
     >
-      <UploadForm onSuccess={onClose} categories={categories} />
+      <UploadForm 
+        onSuccess={onClose} 
+        categories={categories} 
+        onMinimizedChange={setIsMinimized} 
+      />
     </Modal>
   );
 }

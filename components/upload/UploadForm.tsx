@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 interface UploadFormProps {
   onSuccess?: () => void;
   categories?: { id: number; name: string; slug: string }[];
+  onMinimizedChange?: (minimized: boolean) => void;
 }
 
 interface SelectedFile {
@@ -19,7 +20,7 @@ interface SelectedFile {
   preview: string;
 }
 
-export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
+export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: UploadFormProps) {
   const router = useRouter();
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +39,11 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const [albumMode, setAlbumMode] = useState(false);
   const [windowDragOver, setWindowDragOver] = useState(false);
   const dragCounter = useRef(0);
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  useEffect(() => {
+    onMinimizedChange?.(isMinimized);
+  }, [isMinimized, onMinimizedChange]);
 
   const [statusText, setStatusText] = useState("");
 
@@ -79,6 +85,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
       setCategory("");
       setTags([]);
       setUploading(false);
+      setIsMinimized(false);
       setUploadProgress(0);
       setTotalProgress(undefined);
       setIsBulk(false);
@@ -94,6 +101,7 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
   const doUpload = async (filesToUpload: SelectedFile[], quick: boolean) => {
     if (filesToUpload.length === 0) return;
     setUploading(true);
+    setIsMinimized(true);
     setUploadProgress(0);
     setTotalProgress(undefined);
     setIsBulk(filesToUpload.length > 1 && !albumMode);
@@ -164,13 +172,13 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     };
 
     try {
+      let successCount = 0;
       if (albumMode) {
         // Album mode: stream files one by one but group them into the same Post
         setStatusText(`Uploading Album: 0 of ${totalFiles} file(s)...`);
         setTotalProgress(0);
 
         let createdPostId: string | null = null;
-        let successCount = 0;
 
         for (let i = 0; i < filesToUpload.length; i++) {
           const sf = filesToUpload[i];
@@ -191,10 +199,11 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           });
 
           if (!success) {
-             throw new Error(`Failed at file ${i + 1}. Uploaded ${successCount} of ${totalFiles}.`);
+             addToast("error", `Failed to upload: ${sf.file.name}`);
+             continue;
           }
           
-          if (i === 0 && postId) {
+          if (!createdPostId && postId) {
             createdPostId = postId;
           }
 
@@ -204,7 +213,6 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         }
       } else {
         // Default: 1 file = 1 post
-        let successCount = 0;
         setTotalProgress(0);
 
         for (let i = 0; i < filesToUpload.length; i++) {
@@ -228,9 +236,8 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
           });
 
           if (!success) {
-            addToast("error", `Failed at file ${i + 1}. Uploaded ${successCount} of ${totalFiles}.`);
-            setUploading(false);
-            return;
+            addToast("error", `Failed to upload: ${sf.file.name}`);
+            continue;
           }
           
           setSelectedFiles((prev) => { URL.revokeObjectURL(sf.preview); return prev.filter((x) => x.id !== sf.id); });
@@ -239,15 +246,35 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
         }
       }
 
-      setSelectedFiles((prev) => { prev.forEach((sf) => URL.revokeObjectURL(sf.preview)); return []; });
-      setUploadProgress(100);
-      if (totalFiles > 1) setTotalProgress(100);
-      setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
-      finalizeUpload(quick ? "Completed!" : "Published successfully!");
+      if (successCount === totalFiles) {
+        setSelectedFiles((prev) => { prev.forEach((sf) => URL.revokeObjectURL(sf.preview)); return []; });
+        setUploadProgress(100);
+        if (totalFiles > 1) setTotalProgress(100);
+        setStatusText(`Uploaded ${totalFiles} of ${totalFiles} file(s)`);
+        finalizeUpload(quick ? "Completed!" : "Published successfully!");
+      } else if (successCount > 0) {
+        setUploading(false);
+        setIsMinimized(false);
+        setUploadProgress(0);
+        setTotalProgress(undefined);
+        setStatusText("");
+        addToast("warning", `Completed with errors. Uploaded ${successCount} of ${totalFiles} file(s).`);
+        router.refresh();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("post-created"));
+        }
+      } else {
+        setUploading(false);
+        setIsMinimized(false);
+        setUploadProgress(0);
+        setTotalProgress(undefined);
+        setStatusText("");
+      }
     } catch (error) {
       console.error("Upload error:", error);
       addToast("error", error instanceof Error ? error.message : "Upload failed");
       setUploading(false);
+      setIsMinimized(false);
     }
   };
 
@@ -481,6 +508,26 @@ export function UploadForm({ onSuccess, categories = [] }: UploadFormProps) {
     }
     doUpload(selectedFiles, false);
   };
+
+  if (isMinimized) {
+    return (
+      <div 
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-[9999] w-[90vw] sm:w-96 cursor-pointer hover:scale-[1.02] sm:hover:scale-105 transition-transform group" 
+        onClick={() => setIsMinimized(false)}
+      >
+        <UploadProgress
+          progress={uploadProgress}
+          totalProgress={totalProgress}
+          isBulk={isBulk}
+          statusText={statusText}
+          className="shadow-2xl ring-1 ring-zinc-900/5 dark:ring-white/10 m-0 backdrop-blur-xl bg-white/90 dark:bg-zinc-900/90"
+        />
+        <div className="absolute -top-2 -right-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full p-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handlePublish} className="relative space-y-6">

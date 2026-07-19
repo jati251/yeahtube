@@ -1,7 +1,5 @@
 /* eslint-disable */
-import "dotenv/config";
-import dotenv from "dotenv";
-import path from "path";
+import "./env";
 import fs from "fs/promises";
 import { existsSync } from "fs";
 import os from "os";
@@ -10,8 +8,6 @@ import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import { eq, asc } from "drizzle-orm";
 
-// Load .env.local on top of .env
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 import { getDb, schema } from "./index";
 import { getS3Client, getStorageConfig } from "../lib/storage";

@@ -134,9 +134,6 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
     countQuery = applyCondition(countQuery) as typeof countQuery;
   }
 
-  const [countResult] = await countQuery;
-  const total = countResult?.count ?? 0;
-
   // --- Main data query ---
   let query: any = db
     .select(baseSelect)
@@ -207,7 +204,9 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
 
   query = query.orderBy(...activeSort.orderBy).offset(offset).limit(limit + 1);
 
-  const posts = await query;
+  // Execute both queries in parallel to halve database latency
+  const [[countResult], posts] = await Promise.all([countQuery, query]);
+  const total = countResult?.count ?? 0;
 
   // Get media info for each post
   const postIds = posts.slice(0, limit).map((p: any) => p.id);

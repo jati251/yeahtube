@@ -1,12 +1,8 @@
 /* eslint-disable */
-import "dotenv/config";
-import dotenv from "dotenv";
-import path from "path";
+import "./env";
 import { eq, asc } from "drizzle-orm";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 
-// Load .env.local on top of .env
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 import { getDb, schema } from "./index";
 import { getS3Client, getStorageConfig } from "../lib/storage";

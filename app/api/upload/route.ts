@@ -316,7 +316,7 @@ export async function POST(request: NextRequest) {
 
       // Process tags (only for new posts, on first file)
       if (isNew) {
-        processTags(db, postId, tagNames);
+        await processTags(db, postId, tagNames);
       }
 
       return NextResponse.json(
