@@ -21,7 +21,8 @@ interface ReelsFeedProps {
 export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }: ReelsFeedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeVideoId, setActiveVideoId] = useState<number | null>(posts[0]?.id || null);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const forceMute = useCallback(() => setIsMuted(true), []);
 
   const activeIndex = React.useMemo(() => {
     const idx = posts.findIndex(p => p.id === activeVideoId);
@@ -104,6 +105,7 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
             isNearActive={Math.abs(index - activeIndex) <= 1}
             isMuted={isMuted} 
             getObserver={getObserver}
+            onForceMute={forceMute}
           />
         ))}
         {/* Invisible trigger node for infinite scroll */}
@@ -125,13 +127,15 @@ const ReelItem = React.memo(function ReelItem({
   isActive, 
   isNearActive, 
   isMuted,
-  getObserver 
+  getObserver,
+  onForceMute
 }: { 
   post: PostItem; 
   isActive: boolean; 
   isNearActive: boolean; 
   isMuted: boolean;
   getObserver: () => IntersectionObserver;
+  onForceMute: () => void;
 }) {
   const itemRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -167,14 +171,20 @@ const ReelItem = React.memo(function ReelItem({
     if (isActive && !isPaused) {
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Play was interrupted or blocked by browser, safely ignore
+        playPromise.catch((err) => {
+          if (err.name === 'NotAllowedError') {
+            if (videoRef.current) videoRef.current.muted = true;
+            onForceMute();
+            videoRef.current?.play().catch(() => setIsPaused(true));
+          } else {
+            setIsPaused(true);
+          }
         });
       }
     } else {
       videoRef.current.pause();
     }
-  }, [isActive, isPaused]);
+  }, [isActive, isPaused, onForceMute]);
 
   const handleTimeUpdate = () => {
     if (videoRef.current && progressRef.current) {
@@ -229,7 +239,7 @@ const ReelItem = React.memo(function ReelItem({
               loop
               playsInline
               muted={isMuted}
-              preload="none"
+              preload="auto"
               onTimeUpdate={handleTimeUpdate}
             />
             {/* Play Overlay Indicator */}
@@ -287,31 +297,25 @@ const ReelItem = React.memo(function ReelItem({
 
         <button 
           onClick={() => setShowComments(true)}
-          className="flex flex-col items-center gap-1 group"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg"
         >
-          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
-            <MessageCircle className="h-6 w-6" />
-          </div>
+          <MessageCircle className="h-8 w-8 text-white transition group-hover:scale-110 group-hover:text-zinc-300" />
           <span className="text-white text-xs font-medium drop-shadow-md">Comment</span>
         </button>
 
         <button 
           onClick={() => setShowSaveModal(true)}
-          className="flex flex-col items-center gap-1 group"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg"
         >
-          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
-            <BookmarkPlus className="h-6 w-6" />
-          </div>
+          <BookmarkPlus className="h-8 w-8 text-white transition group-hover:scale-110 group-hover:text-zinc-300" />
           <span className="text-white text-xs font-medium drop-shadow-md">Save</span>
         </button>
         
         <Link 
           href={post.mediaType === 'video' ? `/watch/${post.id}` : `/view/${post.id}`}
-          className="flex flex-col items-center gap-1 group"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg"
         >
-          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
-            <Share2 className="h-6 w-6" />
-          </div>
+          <Share2 className="h-8 w-8 text-white transition group-hover:scale-110 group-hover:text-zinc-300" />
           <span className="text-white text-xs font-medium drop-shadow-md">Share</span>
         </Link>
       </div>

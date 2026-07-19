@@ -83,21 +83,17 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
       <div className="flex flex-col items-center gap-5">
         <button
           onClick={() => handleAction("like")}
-          className="flex flex-col items-center gap-1 group"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg"
         >
-          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
-            <ThumbsUp className={`h-6 w-6 ${userAction === "like" ? "fill-white" : ""}`} />
-          </div>
+          <ThumbsUp className={`h-8 w-8 text-white transition group-hover:scale-110 group-hover:text-zinc-300 ${userAction === "like" ? "fill-white" : ""}`} />
           <span className="text-white text-xs font-medium drop-shadow-md">{likes > 0 ? likes : "Like"}</span>
         </button>
 
         <button
           onClick={() => handleAction("dislike")}
-          className="flex flex-col items-center gap-1 group"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg"
         >
-          <div className="p-3 bg-black/40 backdrop-blur-md rounded-full text-white transition shadow-lg border border-white/10 group-hover:bg-black/60">
-            <ThumbsDown className={`h-6 w-6 ${userAction === "dislike" ? "fill-white" : ""}`} />
-          </div>
+          <ThumbsDown className={`h-8 w-8 text-white transition group-hover:scale-110 group-hover:text-zinc-300 ${userAction === "dislike" ? "fill-white" : ""}`} />
           <span className="text-white text-xs font-medium drop-shadow-md">{dislikes > 0 ? dislikes : "Dislike"}</span>
         </button>
       </div>
