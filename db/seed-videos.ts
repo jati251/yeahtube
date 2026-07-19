@@ -3,6 +3,7 @@ import "./env";
 import fs from "fs/promises";
 import { existsSync } from "fs";
 import os from "os";
+import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
