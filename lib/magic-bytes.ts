@@ -14,6 +14,9 @@ const MAGIC_BYTES: Record<string, string[]> = {
   "video/quicktime": ["0000001c66747970", "0000002066747970"], // ftyp (similar to mp4)
   "video/x-msvideo": ["52494646"], // RIFF....AVI
   "video/webm": ["1a45dfa3"],
+  "video/mp2t": ["47"], // 0x47 sync byte for MPEG-TS
+  "video/ts": ["47"],
+  "video/x-mpegts": ["47"],
 };
 
 // Map of extensions to MIME types for extension-to-content validation
@@ -28,6 +31,16 @@ const EXTENSION_MIME_MAP: Record<string, string[]> = {
   ".mov": ["video/quicktime"],
   ".avi": ["video/x-msvideo"],
   ".webm": ["video/webm"],
+  ".ts": [
+    "video/mp2t",
+    "video/ts",
+    "video/x-mpegts",
+    "application/typescript",
+    "text/typescript",
+    "text/x-typescript",
+    "video/mp4",
+    "application/octet-stream",
+  ],
 };
 
 /**

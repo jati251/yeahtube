@@ -19,6 +19,7 @@ import {
 
 import { getQualityLabel } from "@/lib/media-utils";
 import { useAppStore } from "@/stores/appStore";
+import { attachHlsOrNative } from "@/lib/hls-helper";
 
 interface QualityOption {
   label: string;
@@ -155,9 +156,8 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     setPipSupported(typeof document !== "undefined" && "pictureInPictureEnabled" in document);
   }, []);
 
-  // Whenever src is set (mount or change), explicitly assign it to the
-  // video element and call load().  This ensures the browser always
-  // initiates loading regardless of how the component was mounted.
+  // Whenever src is set (mount or change), attach HLS or assign native src.
+  // This ensures TS and HLS files play across all browsers including Chrome/Edge.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
@@ -177,10 +177,27 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     setBuffered(0);
     setWaiting(true);
 
-    // Assign src + force load
-    video.src = src;
-    video.load();
-  }, [src]);
+    const handle = attachHlsOrNative(video, src, {
+      mimeType: type,
+      duration: duration || undefined,
+      onError: (err) => {
+        console.error("HLS playback error:", err);
+        if (hasQualityOptions && qualityOptions && onQualityChange) {
+          const fallbackOption = qualityOptions.find((opt) => opt.src !== src);
+          if (fallbackOption) {
+            console.warn(
+              `Video playback failed for ${src?.slice(0, 40)}..., auto-falling back to ${fallbackOption.label}`
+            );
+            onQualityChange(fallbackOption);
+          }
+        }
+      },
+    });
+
+    return () => {
+      handle.destroy();
+    };
+  }, [src, type]);
 
   // Cleanup video resources on unmount to prevent memory/decoder leaks
   useEffect(() => {
@@ -510,7 +527,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       <video
         ref={videoRef}
         className="h-full w-full object-contain cursor-pointer"
-        src={src}
         poster={poster || undefined}
         onClick={togglePlay}
         onError={(e) => {

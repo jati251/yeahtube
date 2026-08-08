@@ -68,7 +68,7 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
   const isVideoFile = useCallback((file: File) => {
     if (file.type && file.type.startsWith("video/")) return true;
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
-    return ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v"].includes(ext);
+    return ["mp4", "webm", "mov", "avi", "mkv", "3gp", "3gpp", "m4v", "ts"].includes(ext);
   }, []);
 
   const getCsrfToken = () => {
@@ -150,9 +150,20 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
           xhr.setRequestHeader("x-csrf-token", decodeURIComponent(csrfToken));
         }
         
+        let fileType = file.type || "application/octet-stream";
+        if (
+          file.name.toLowerCase().endsWith(".ts") &&
+          (fileType === "application/octet-stream" ||
+            fileType.includes("typescript") ||
+            !fileType ||
+            fileType === "text/plain")
+        ) {
+          fileType = "video/mp2t";
+        }
+
         // Pass metadata as custom headers
         xhr.setRequestHeader("x-file-name", encodeURIComponent(file.name));
-        xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
+        xhr.setRequestHeader("x-file-type", fileType);
         xhr.setRequestHeader("x-quick-post", quick ? "true" : "false");
         xhr.setRequestHeader("x-order-index", idx.toString());
         

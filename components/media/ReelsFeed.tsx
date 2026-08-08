@@ -9,6 +9,7 @@ import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
 import { clsx } from "clsx";
+import { attachHlsOrNative } from "@/lib/hls-helper";
 
 interface ReelsFeedProps {
   posts: PostItem[];
@@ -154,6 +155,20 @@ const ReelItem = React.memo(function ReelItem({
     }
   }, [getObserver]);
 
+  // Attach HLS or native playback when near active
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isNearActive || post.mediaType !== "video" || !post.videoUrl) return;
+
+    const handle = attachHlsOrNative(video, post.videoUrl, {
+      duration: post.duration || undefined,
+    });
+
+    return () => {
+      handle.destroy();
+    };
+  }, [isNearActive, post.mediaType, post.videoUrl, post.duration]);
+
   // Reset video when it becomes active
   useEffect(() => {
     if (isActive) {
@@ -233,7 +248,6 @@ const ReelItem = React.memo(function ReelItem({
           >
             <video
               ref={videoRef}
-              src={post.videoUrl}
               poster={post.thumbnailUrl || undefined}
               className="h-full w-full object-contain pointer-events-none"
               loop

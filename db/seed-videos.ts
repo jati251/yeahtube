@@ -15,7 +15,15 @@ import { getS3Client, getStorageConfig } from "../lib/storage";
 import { enqueueTranscode } from "../lib/transcode-queue";
 
 // Helper to check video mime/type
-const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
+const ALLOWED_VIDEO_TYPES = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/mp2t",
+  "video/ts",
+  "video/x-mpegts",
+];
 
 async function generateVideoAssets(
   buffer: Buffer,
@@ -212,7 +220,7 @@ async function main() {
   const files = await fs.readdir(seedDir);
   const videoFiles = files.filter((f) => {
     const ext = path.extname(f).toLowerCase();
-    return [".mp4", ".webm", ".mov", ".avi"].includes(ext) && !f.endsWith(".part");
+    return [".mp4", ".webm", ".mov", ".avi", ".ts"].includes(ext) && !f.endsWith(".part");
   });
 
   if (videoFiles.length === 0) {
@@ -291,6 +299,7 @@ async function main() {
       if (ext === ".webm") mimeType = "video/webm";
       if (ext === ".mov") mimeType = "video/quicktime";
       if (ext === ".avi") mimeType = "video/x-msvideo";
+      if (ext === ".ts") mimeType = "video/mp2t";
 
       const storageId = uuidv4();
       const storageFilename = `${storageId}${ext}`;

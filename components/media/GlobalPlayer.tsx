@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAppStore } from "@/stores/appStore";
+import { attachHlsOrNative } from "@/lib/hls-helper";
 
 /**
  * Persistent hidden video element rendered in the root layout.
@@ -21,18 +22,17 @@ export function GlobalPlayer() {
 
   // ── Activate / switch video ──────────────────────────
   useEffect(() => {
-    if (!globalPiP.isActive) return;
+    if (!globalPiP.isActive || !globalPiP.videoUrl) return;
     const video = videoRef.current;
     if (!video) return;
 
     const key = ++setupKeyRef.current;
 
-    // Clear any previous video state and set new src
+    // Clear any previous video state
     video.pause();
     video.removeAttribute("src");
     video.load();
 
-    video.src = globalPiP.videoUrl;
     if (globalPiP.poster) {
       video.poster = globalPiP.poster;
     }
@@ -65,13 +65,20 @@ export function GlobalPlayer() {
     video.addEventListener("loadedmetadata", onLoadedMetadata, { once: true });
     video.addEventListener("leavepictureinpicture", onLeavePictureInPicture);
 
-    video.load();
+    const handle = attachHlsOrNative(video, globalPiP.videoUrl, {
+      duration: undefined,
+      onError: (err) => {
+        console.error("GlobalPlayer HLS error:", err);
+        deactivateGlobalPiP();
+      },
+    });
 
     return () => {
       video.removeEventListener("loadedmetadata", onLoadedMetadata);
       video.removeEventListener("leavepictureinpicture", onLeavePictureInPicture);
+      handle.destroy();
     };
-  }, [globalPiP.isActive, globalPiP.videoUrl, deactivateGlobalPiP]);
+  }, [globalPiP.isActive, globalPiP.videoUrl, globalPiP.currentTime, globalPiP.poster, deactivateGlobalPiP]);
 
   // ── Deactivate: exit PiP and clean up ─────────────────
   useEffect(() => {

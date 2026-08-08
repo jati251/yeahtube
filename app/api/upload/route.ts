@@ -28,6 +28,10 @@ const ALLOWED_VIDEO_TYPES = [
   "video/webm",
   "video/quicktime",
   "video/x-msvideo",
+  "video/mp2t",
+  "video/ts",
+  "video/x-mpegts",
+  "video/mp2p",
 ];
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
@@ -113,7 +117,16 @@ export async function POST(request: NextRequest) {
 
     // Header extraction
     const filename = decodeURIComponent(request.headers.get("x-file-name") || "");
-    const mimeType = request.headers.get("x-file-type") || "application/octet-stream";
+    let mimeType = request.headers.get("x-file-type") || "application/octet-stream";
+    if (
+      filename.toLowerCase().endsWith(".ts") &&
+      (mimeType === "application/octet-stream" ||
+        mimeType.includes("typescript") ||
+        !mimeType ||
+        mimeType === "text/plain")
+    ) {
+      mimeType = "video/mp2t";
+    }
     const title = decodeURIComponent(request.headers.get("x-post-title") || "");
     const categorySlug = request.headers.get("x-post-category") || null;
     const tagsRaw = decodeURIComponent(request.headers.get("x-post-tags") || "[]");
