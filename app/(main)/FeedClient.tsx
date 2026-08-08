@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
 import { FilterSidebar } from "@/components/filters/FilterSidebar";
@@ -38,6 +38,7 @@ export function FeedClient({
   categories,
 }: FeedClientProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { addToast } = useToast();
 
   // Zustand global store (sessionStorage-backed)
@@ -169,8 +170,9 @@ export function FeedClient({
 
     if (window.location.search !== (qs ? `?${qs}` : "")) {
       window.history.replaceState(null, "", newUrl);
+      router.replace(newUrl, { scroll: false });
     }
-  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, initialSort]);
+  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, initialSort, router]);
 
   // ---- Browser back/forward + custom events (registered once via refs) ----
   const goToPageRef = useRef(goToPage);

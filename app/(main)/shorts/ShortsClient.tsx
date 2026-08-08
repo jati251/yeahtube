@@ -37,7 +37,13 @@ export function ShortsClient({ initialPosts, initialTotal }: ShortsClientProps) 
   return (
     <ReelsFeed 
       posts={posts} 
-      onClose={() => router.push("/")} 
+      onClose={() => {
+        if (typeof window !== "undefined" && window.history.length > 1) {
+          router.back();
+        } else {
+          router.push("/");
+        }
+      }} 
       onLoadMore={() => {
         if (page < totalPages && !loading) {
           goToPage(page + 1);

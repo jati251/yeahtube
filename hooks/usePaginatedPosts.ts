@@ -114,6 +114,10 @@ export function usePaginatedPosts({
   const prevPageRef = useRef(initialPage);
   useEffect(() => {
     if (initialPage !== prevPageRef.current) {
+      if (skipRef.current) {
+        prevPageRef.current = initialPage;
+        return;
+      }
       setPosts(initialPosts);
       setTotal(initialTotal);
       setPage(initialPage);
