@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
+import { EditPostModal, EditablePost } from "@/components/media/EditPostModal";
 import { FilterSidebar } from "@/components/filters/FilterSidebar";
 import { MobileFilters } from "@/components/filters/MobileFilters";
 import { ActiveFilters } from "@/components/filters/ActiveFilters";
@@ -64,6 +65,7 @@ export function FeedClient({
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
 
   const hasFilters = Boolean(
     activeMediaType || activeTags.length > 0 || activeSearchQuery || activeCategory || activeYear,
@@ -501,6 +503,7 @@ export function FeedClient({
                   selected={selectedIds.has(post.id)}
                   onToggleSelect={toggleSelect}
                   onDelete={handleDelete}
+                  onEdit={(p) => setEditingPost(p)}
                   deleting={deletingId === post.id}
                 />
               ))}
@@ -516,6 +519,7 @@ export function FeedClient({
                   selected={selectedIds.has(post.id)}
                   onToggleSelect={toggleSelect}
                   onDelete={handleDelete}
+                  onEdit={(p) => setEditingPost(p)}
                   deleting={deletingId === post.id}
                 />
               ))}
@@ -569,6 +573,28 @@ export function FeedClient({
               variant={confirmState.variant}
               confirmLabel={confirmState.confirmLabel}
               loading={deleting}
+            />
+          )}
+
+          {editingPost && (
+            <EditPostModal
+              isOpen={!!editingPost}
+              onClose={() => setEditingPost(null)}
+              post={editingPost}
+              onSuccess={(updated) => {
+                setPosts((prev) =>
+                  prev.map((p) =>
+                    p.id === updated.id
+                      ? {
+                          ...p,
+                          title: updated.title,
+                          description: updated.description,
+                          category: updated.category,
+                        }
+                      : p
+                  )
+                );
+              }}
             />
           )}
         </div>

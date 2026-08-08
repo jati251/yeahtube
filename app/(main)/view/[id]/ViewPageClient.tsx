@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NextImage from "next/image";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, Pencil } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaCard } from "@/components/media/MediaCard";
 import { RecommendedPost } from "@/lib/recommendations";
+import { EditPostModal } from "@/components/media/EditPostModal";
 
 interface ImageData {
   id: number;
@@ -33,10 +34,12 @@ interface PostData {
   title: string;
   description: string | null;
   createdAt: string;
+  categoryId?: number | null;
 }
 
 interface ViewPageClientProps {
   post: PostData;
+  canEdit?: boolean;
   images: ImageData[];
   videos: VideoData[];
   tags: { id: number; name: string; slug: string }[];
@@ -45,12 +48,15 @@ interface ViewPageClientProps {
 
 export function ViewPageClient({
   post,
+  canEdit = false,
   images,
   videos,
   tags,
   recommendations = [],
 }: ViewPageClientProps) {
   const router = useRouter();
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [postData, setPostData] = useState(post);
 
   // Fire-and-forget tracking
   useEffect(() => {
@@ -87,13 +93,24 @@ export function ViewPageClient({
         </div>
 
         <div className="mt-6 lg:mt-0 lg:w-72 lg:flex-shrink-0">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
-            {post.title}
-          </h1>
+          <div className="flex items-start justify-between gap-2">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
+              {postData.title}
+            </h1>
+            {canEdit && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </button>
+            )}
+          </div>
 
           <div className="mt-2 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
             <Calendar className="h-4 w-4" />
-            {formatDate(post.createdAt)}
+            {formatDate(postData.createdAt)}
           </div>
 
           {tags.length > 0 && (
@@ -110,13 +127,13 @@ export function ViewPageClient({
             </div>
           )}
 
-          {post.description && (
+          {postData.description && (
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
               <h3 className="mb-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 Description
               </h3>
               <p className="whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">
-                {post.description}
+                {postData.description}
               </p>
             </div>
           )}
@@ -170,6 +187,22 @@ export function ViewPageClient({
             ))}
           </div>
         </div>
+      )}
+
+      {showEditModal && (
+        <EditPostModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          post={postData}
+          onSuccess={(updated) => {
+            setPostData((prev) => ({
+              ...prev,
+              title: updated.title,
+              description: updated.description,
+              categoryId: updated.categoryId,
+            }));
+          }}
+        />
       )}
     </div>
   );

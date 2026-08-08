@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, Pencil, BookmarkPlus } from "lucide-react";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaListItem } from "@/components/media/MediaListItem";
@@ -11,7 +11,7 @@ import { RecommendedPost } from "@/lib/recommendations";
 import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
-import { BookmarkPlus } from "lucide-react";
+import { EditPostModal } from "@/components/media/EditPostModal";
 import { getQualityLabel } from "@/lib/media-utils";
 
 interface VideoData {
@@ -41,10 +41,12 @@ interface PostData {
   title: string;
   description: string | null;
   createdAt: string;
+  categoryId?: number | null;
 }
 
 interface WatchPageClientProps {
   post: PostData;
+  canEdit?: boolean;
   videos: VideoData[];
   images: ImageData[];
   tags: { id: number; name: string; slug: string }[];
@@ -53,6 +55,7 @@ interface WatchPageClientProps {
 
 export function WatchPageClient({
   post,
+  canEdit = false,
   videos,
   images,
   tags,
@@ -64,6 +67,8 @@ export function WatchPageClient({
   const initialIndex = videos.findIndex((v) => (v.orderIndex ?? 0) > 0);
   const [currentVideoIndex, setCurrentVideoIndex] = React.useState(initialIndex >= 0 ? initialIndex : 0);
   const [showSaveModal, setShowSaveModal] = React.useState(false);
+  const [showEditModal, setShowEditModal] = React.useState(false);
+  const [postData, setPostData] = React.useState(post);
   const currentVideo = videos[currentVideoIndex];
 
   // Fire-and-forget tracking
@@ -127,15 +132,24 @@ export function WatchPageClient({
 
           <div className="mt-4">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
-              {post.title}
+              {postData.title}
             </h1>
 
             <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                 <Calendar className="h-4 w-4" />
-                {formatDate(post.createdAt)}
+                {formatDate(postData.createdAt)}
               </div>
               <div className="flex items-center gap-2">
+                {canEdit && (
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </button>
+                )}
                 <button
                   onClick={() => setShowSaveModal(true)}
                   className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-350 dark:hover:bg-zinc-800"
@@ -161,10 +175,10 @@ export function WatchPageClient({
               </div>
             )}
 
-            {post.description && (
+            {postData.description && (
               <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-850 dark:bg-zinc-900/40">
                 <p className="whitespace-pre-wrap text-sm text-zinc-750 dark:text-zinc-300">
-                  {post.description}
+                  {postData.description}
                 </p>
               </div>
             )}
@@ -202,6 +216,22 @@ export function WatchPageClient({
 
       {showSaveModal && (
         <SaveToPlaylist postId={post.id} onClose={() => setShowSaveModal(false)} />
+      )}
+
+      {showEditModal && (
+        <EditPostModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          post={postData}
+          onSuccess={(updated) => {
+            setPostData((prev) => ({
+              ...prev,
+              title: updated.title,
+              description: updated.description,
+              categoryId: updated.categoryId,
+            }));
+          }}
+        />
       )}
     </div>
   );

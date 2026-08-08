@@ -2,6 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { getDb, schema } from "@/db";
 import { eq } from "drizzle-orm";
+import { getCurrentUser } from "@/lib/auth";
 import { WatchPageClient } from "./WatchPageClient";
 import { getRecommendations } from "@/lib/recommendations";
 import { getPresignedUrl, getStreamUrl } from "@/lib/storage";
@@ -15,6 +16,7 @@ interface PageProps {
 export default async function WatchPage({ params }: PageProps) {
   const { id } = await params;
   const db = getDb();
+  const user = await getCurrentUser();
 
   const posts = await db
     .select()
@@ -25,6 +27,8 @@ export default async function WatchPage({ params }: PageProps) {
   if (!post) {
     notFound();
   }
+
+  const canEdit = Boolean(user && (user.isAdmin || user.id === post.userId));
 
   const media = await db
     .select()
@@ -81,7 +85,9 @@ export default async function WatchPage({ params }: PageProps) {
         title: post.title,
         description: post.description,
         createdAt: post.createdAt,
+        categoryId: post.categoryId,
       }}
+      canEdit={canEdit}
       videos={videosWithUrls}
       images={imagesWithUrls}
       tags={postTags}

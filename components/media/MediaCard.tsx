@@ -29,10 +29,11 @@ interface MediaCardProps {
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
   onDelete?: (id: number) => void;
+  onEdit?: (post: any) => void;
   deleting?: boolean;
 }
 
-export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, deleting }: MediaCardProps) {
+export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, onEdit, deleting }: MediaCardProps) {
   const quality = getQualityLabel(post.width, post.height);
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
@@ -304,6 +305,19 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
                 onClick={() => setMenuOpen(false)}
               />
               <div className="absolute right-0 z-20 mt-1 w-32 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+                {onEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setMenuOpen(false);
+                      onEdit(post);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    Edit
+                  </button>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +147,86 @@ export async function DELETE(
     console.error("Delete error:", error);
     return NextResponse.json(
       { error: "Failed to delete post" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const csrfError = requireCsrf(request);
+    if (csrfError) return csrfError;
+
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const db = getDb();
+
+    const [post] = await db
+      .select()
+      .from(schema.posts)
+      .where(eq(schema.posts.id, Number(id)));
+
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    if (post.userId !== user.id && !user.isAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { title, description, categoryId } = body;
+
+    if (title !== undefined && (typeof title !== "string" || !title.trim())) {
+      return NextResponse.json({ error: "Title cannot be empty" }, { status: 400 });
+    }
+
+    const updateData: {
+      title?: string;
+      description?: string | null;
+      categoryId?: number | null;
+      updatedAt: any;
+    } = {
+      updatedAt: sql`now()`,
+    };
+
+    if (title !== undefined) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description ? description.trim() : null;
+    if (categoryId !== undefined) updateData.categoryId = categoryId ? Number(categoryId) : null;
+
+    const [updatedPost] = await db
+      .update(schema.posts)
+      .set(updateData)
+      .where(eq(schema.posts.id, Number(id)))
+      .returning();
+
+    let categoryName: string | null = null;
+    if (updatedPost.categoryId) {
+      const [cat] = await db
+        .select()
+        .from(schema.categories)
+        .where(eq(schema.categories.id, updatedPost.categoryId));
+      categoryName = cat?.name ?? null;
+    }
+
+    return NextResponse.json({
+      success: true,
+      post: {
+        ...updatedPost,
+        category: categoryName,
+      },
+    });
+  } catch (error) {
+    console.error("Edit post error:", error);
+    return NextResponse.json(
+      { error: "Failed to update post" },
       { status: 500 },
     );
   }
