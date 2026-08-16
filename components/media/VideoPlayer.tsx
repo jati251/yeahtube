@@ -138,20 +138,67 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     };
   }, [seekToClientX]);
 
-  // Tap-to-skip overlay state
-  const [skipOverlay, setSkipOverlay] = useState<"back" | "forward" | null>(null);
-  const skipOverlayTimeout = useRef<NodeJS.Timeout | null>(null);
-  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  // ── Hold-for-2X Fast Forward ──────────────────────
+  const [isFastForwarding, setIsFastForwarding] = useState(false);
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoldingRef = useRef(false);
 
-  const showSkipOverlay = useCallback((direction: "back" | "forward") => {
-    setSkipOverlay(direction);
-    if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
-    skipOverlayTimeout.current = setTimeout(() => {
-      setSkipOverlay(null);
-    }, 600);
+  const startHold2X = useCallback(() => {
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(() => {
+      if (videoRef.current && playing) {
+        isHoldingRef.current = true;
+        videoRef.current.playbackRate = 2;
+        setIsFastForwarding(true);
+        try { navigator.vibrate?.(10); } catch {}
+      }
+    }, 250);
+  }, [playing]);
+
+  const endHold2X = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (isHoldingRef.current) {
+      isHoldingRef.current = false;
+      setIsFastForwarding(false);
+      if (videoRef.current) {
+        videoRef.current.playbackRate = playbackSpeed;
+      }
+    }
+  }, [playbackSpeed]);
+
+  // ── Double-Tap Skip Accumulator ────────────────────
+  const [skipInfo, setSkipInfo] = useState<{ side: "left" | "right"; amount: number } | null>(null);
+  const skipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tapAccumulatorRef = useRef<{ time: number; side: "left" | "right" | null; count: number }>({
+    time: 0,
+    side: null,
+    count: 0,
+  });
+
+  // ── Center Play/Pause Flash Overlay ────────────────
+  const [playPauseFlash, setPlayPauseFlash] = useState<"play" | "pause" | null>(null);
+  const flashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerPlayPauseFlash = useCallback((type: "play" | "pause") => {
+    setPlayPauseFlash(type);
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    flashTimeoutRef.current = setTimeout(() => {
+      setPlayPauseFlash(null);
+    }, 500);
   }, []);
 
+  // ── Floating Volume / Speed Notification Badge ─────
+  const [toastBadge, setToastBadge] = useState<string | null>(null);
+  const toastBadgeTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  const showToastBadge = useCallback((msg: string) => {
+    setToastBadge(msg);
+    if (toastBadgeTimeout.current) clearTimeout(toastBadgeTimeout.current);
+    toastBadgeTimeout.current = setTimeout(() => setToastBadge(null), 1000);
+  }, []);
 
   // Pause video when browser is minimized or tab is hidden
   useEffect(() => {
@@ -168,7 +215,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   }, [playing]);
 
   // Whenever src is set (mount or change), attach HLS or assign native src.
-  // This ensures TS and HLS files play across all browsers including Chrome/Edge.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
@@ -234,23 +280,28 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
 
     if (playing) {
       videoRef.current.pause();
+      triggerPlayPauseFlash("pause");
     } else {
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          if (error.name !== "AbortError") {
-            console.error("Playback failed:", error.message, error.name, `src: ${src?.slice(0,60)}...`);
-          }
-        });
+        playPromise
+          .then(() => triggerPlayPauseFlash("play"))
+          .catch((error) => {
+            if (error.name !== "AbortError") {
+              console.error("Playback failed:", error.message, error.name, `src: ${src?.slice(0,60)}...`);
+            }
+          });
       }
     }
-  }, [playing, src]);
+  }, [playing, src, triggerPlayPauseFlash]);
 
   const toggleMute = useCallback(() => {
     if (!videoRef.current) return;
-    videoRef.current.muted = !muted;
-    setMuted(!muted);
-  }, [muted]);
+    const newMuted = !muted;
+    videoRef.current.muted = newMuted;
+    setMuted(newMuted);
+    showToastBadge(newMuted ? "Muted 🔇" : `Volume ${Math.round(volume * 100)}% 🔊`);
+  }, [muted, volume, showToastBadge]);
 
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -267,7 +318,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     }
   }, [muted]);
 
-
   const toggleFullscreen = useCallback(async () => {
     if (!containerRef.current) return;
     if (fullscreen) {
@@ -277,14 +327,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     }
   }, [fullscreen]);
 
-  /**
-   * Toggle global PiP.
-   *
-   * - If PiP is already active for this same video → deactivate it & resume
-   *   page playback.
-   * - If PiP is active for a different video → switch to the new video.
-   * - Otherwise → activate global PiP and pause the page player.
-   */
   const togglePiP = useCallback(async () => {
     const video = videoRef.current;
     if (!video) return;
@@ -292,19 +334,15 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     const { globalPiP, activateGlobalPiP, deactivateGlobalPiP } =
       useAppStore.getState();
 
-    // ── Already active ──────────────────────────────
     if (globalPiP.isActive) {
       if (globalPiP.videoUrl === src) {
-        // Same video → exit PiP and resume page player
         deactivateGlobalPiP();
         video.currentTime = globalPiP.currentTime;
         video.play().catch(() => {});
         return;
       }
-      // Different video → fall through to switch (no early return)
     }
 
-    // ── Stale PiP window (non-global, edge case) ────
     if (document.pictureInPictureElement) {
       try {
         await document.exitPictureInPicture();
@@ -313,12 +351,11 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       }
     }
 
-    // ── Metadata not loaded yet → wait & retry ──────
     if (video.readyState < 1) {
       console.warn("PiP: video metadata not loaded yet");
       const onLoadedMetadata = () => {
         video.removeEventListener("loadedmetadata", onLoadedMetadata);
-        video.pause(); // pause page player — PiP takes over
+        video.pause();
         activateGlobalPiP({
           videoUrl: src,
           poster,
@@ -333,7 +370,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       return;
     }
 
-    // ── Normal: pause page player, activate PiP ─────
     video.pause();
     activateGlobalPiP({
       videoUrl: src,
@@ -343,21 +379,19 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     });
   }, [src, poster]);
 
-  const skipForward = useCallback(() => {
+  const skipForward = useCallback((seconds = 10) => {
     if (!videoRef.current || !duration) return;
-    const newTime = Math.min(videoRef.current.currentTime + 10, duration);
+    const newTime = Math.min(videoRef.current.currentTime + seconds, duration);
     videoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
-    showSkipOverlay("forward");
-  }, [duration, showSkipOverlay]);
+  }, [duration]);
 
-  const skipBackward = useCallback(() => {
+  const skipBackward = useCallback((seconds = 10) => {
     if (!videoRef.current) return;
-    const newTime = Math.max(videoRef.current.currentTime - 10, 0);
+    const newTime = Math.max(videoRef.current.currentTime - seconds, 0);
     videoRef.current.currentTime = newTime;
     setCurrentTime(newTime);
-    showSkipOverlay("back");
-  }, [showSkipOverlay]);
+  }, []);
 
   // Auto-hide controls
   const showControlsTemporarily = useCallback(() => {
@@ -375,7 +409,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     }
   }, [showSettings]);
 
-  // Mobile tap zones: double click/tap on left/right to skip 10s, single click/tap to toggle controls
+  // Enhanced Tap & Double-Tap detection with accumulating skip ripples
   const handleTapZone = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!containerRef.current || !videoRef.current) return;
@@ -385,29 +419,33 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       const widthRatio = x / rect.width;
       const yRatio = y / rect.height;
 
-      // Ignore if clicking on controls area (bottom 15%)
+      // Ignore controls bar area
       if (yRatio > 0.85) return;
 
       const now = Date.now();
-      const DOUBLE_TAP_DELAY = 300; // ms
+      const currentSide = widthRatio < 0.35 ? "left" : widthRatio > 0.65 ? "right" : null;
 
-      if (
-        lastTapRef.current &&
-        now - lastTapRef.current.time < DOUBLE_TAP_DELAY &&
-        Math.abs(x - lastTapRef.current.x) < 40 &&
-        Math.abs(y - lastTapRef.current.y) < 40
-      ) {
-        // Double tap/click detected!
-        if (widthRatio < 0.35) {
-          skipBackward();
-        } else if (widthRatio > 0.65) {
-          skipForward();
+      if (currentSide && currentSide === tapAccumulatorRef.current.side && now - tapAccumulatorRef.current.time < 400) {
+        // Double/multi-tap detected on left or right!
+        tapAccumulatorRef.current.count += 1;
+        tapAccumulatorRef.current.time = now;
+        const totalSkip = tapAccumulatorRef.current.count * 10;
+
+        if (currentSide === "left") {
+          skipBackward(10);
         } else {
-          togglePlay();
+          skipForward(10);
         }
-        lastTapRef.current = null;
+
+        setSkipInfo({ side: currentSide, amount: totalSkip });
+        if (skipTimeoutRef.current) clearTimeout(skipTimeoutRef.current);
+        skipTimeoutRef.current = setTimeout(() => {
+          setSkipInfo(null);
+          tapAccumulatorRef.current = { time: 0, side: null, count: 0 };
+        }, 650);
       } else {
-        // Single tap/click
+        // Single tap
+        tapAccumulatorRef.current = { time: now, side: currentSide, count: 1 };
         const isTouch = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
         if (isTouch) {
           setShowControls((prev) => !prev);
@@ -419,20 +457,56 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         } else {
           togglePlay();
         }
-        lastTapRef.current = { time: now, x, y };
       }
     },
     [playing, skipBackward, skipForward, togglePlay, showControlsTemporarily],
   );
 
-  // Keyboard shortcuts
+  // Universal YouTube Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
       switch (e.code) {
         case "Space":
+        case "KeyK":
           e.preventDefault();
           togglePlay();
+          break;
+        case "KeyJ":
+          skipBackward(10);
+          showToastBadge("-10s ⏪");
+          break;
+        case "KeyL":
+          skipForward(10);
+          showToastBadge("+10s ⏩");
+          break;
+        case "ArrowLeft":
+          skipBackward(5);
+          showToastBadge("-5s ⏪");
+          break;
+        case "ArrowRight":
+          skipForward(5);
+          showToastBadge("+5s ⏩");
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          if (videoRef.current) {
+            const newVol = Math.min(1, videoRef.current.volume + 0.05);
+            videoRef.current.volume = newVol;
+            setVolume(newVol);
+            setMuted(false);
+            showToastBadge(`Volume ${Math.round(newVol * 100)}% 🔊`);
+          }
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          if (videoRef.current) {
+            const newVol = Math.max(0, videoRef.current.volume - 0.05);
+            videoRef.current.volume = newVol;
+            setVolume(newVol);
+            showToastBadge(newVol === 0 ? "Muted 🔇" : `Volume ${Math.round(newVol * 100)}% 🔉`);
+          }
           break;
         case "KeyM":
           toggleMute();
@@ -440,17 +514,58 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
         case "KeyF":
           toggleFullscreen();
           break;
-        case "ArrowLeft":
-          skipBackward();
+        case "KeyI":
+        case "KeyP":
+          togglePiP();
           break;
-        case "ArrowRight":
-          skipForward();
+        case "Comma": // < key
+          if (videoRef.current) {
+            const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+            const currentIdx = speeds.indexOf(playbackSpeed);
+            if (currentIdx > 0) {
+              const newSpd = speeds[currentIdx - 1];
+              videoRef.current.playbackRate = newSpd;
+              setPlaybackSpeed(newSpd);
+              showToastBadge(`Speed ${newSpd}x ⏱️`);
+            }
+          }
           break;
+        case "Period": // > key
+          if (videoRef.current) {
+            const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+            const currentIdx = speeds.indexOf(playbackSpeed);
+            if (currentIdx < speeds.length - 1) {
+              const newSpd = speeds[currentIdx + 1];
+              videoRef.current.playbackRate = newSpd;
+              setPlaybackSpeed(newSpd);
+              showToastBadge(`Speed ${newSpd}x ⏱️`);
+            }
+          }
+          break;
+        case "Digit0":
+        case "Digit1":
+        case "Digit2":
+        case "Digit3":
+        case "Digit4":
+        case "Digit5":
+        case "Digit6":
+        case "Digit7":
+        case "Digit8":
+        case "Digit9": {
+          const digit = parseInt(e.code.replace("Digit", ""), 10);
+          if (duration > 0 && videoRef.current) {
+            const target = (digit / 10) * duration;
+            videoRef.current.currentTime = target;
+            setCurrentTime(target);
+            showToastBadge(`${digit * 10}% ⏱️`);
+          }
+          break;
+        }
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlay, toggleMute, toggleFullscreen, skipBackward, skipForward]);
+  }, [togglePlay, toggleMute, toggleFullscreen, togglePiP, skipBackward, skipForward, playbackSpeed, duration, showToastBadge]);
 
   // Fullscreen & PiP change handler
   useEffect(() => {
@@ -484,11 +599,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (skipOverlayTimeout.current) clearTimeout(skipOverlayTimeout.current);
-    };
-  }, []);
+
 
   // ── Track previous PiP videoUrl & currentTime for deactivation detection ──
   useEffect(() => {
@@ -597,10 +708,73 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       </div>
 
       {/* Tap zones overlay — left: skip back, center: play/pause, right: skip forward */}
+      {/* Tap zones overlay with Hold-for-2X and Double Tap seek */}
       <div
-        className="absolute inset-0 z-[5] cursor-pointer rounded-xl overflow-hidden"
+        className="absolute inset-0 z-[5] cursor-pointer rounded-xl overflow-hidden select-none"
         onClick={handleTapZone}
+        onMouseDown={startHold2X}
+        onMouseUp={endHold2X}
+        onMouseLeave={endHold2X}
+        onTouchStart={startHold2X}
+        onTouchEnd={endHold2X}
+        onTouchCancel={endHold2X}
       />
+
+      {/* 2X Fast Forward Top Badge */}
+      {isFastForwarding && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/75 px-4 py-1.5 backdrop-blur-md border border-white/20 shadow-xl animate-in fade-in zoom-in duration-150">
+          <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+          <span className="text-xs font-bold tracking-wide text-white uppercase">2X Fast Forwarding ⏩</span>
+        </div>
+      )}
+
+      {/* Floating Toast Notification (Volume / Speed / Skip) */}
+      {toastBadge && !isFastForwarding && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 rounded-full bg-black/75 px-4 py-1.5 backdrop-blur-md border border-white/20 text-xs font-bold text-white shadow-xl animate-in fade-in zoom-in duration-150">
+          {toastBadge}
+        </div>
+      )}
+
+      {/* Center Play/Pause Flash Animation */}
+      {playPauseFlash && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md animate-out fade-out zoom-out-50 duration-500 shadow-2xl">
+            {playPauseFlash === "play" ? (
+              <Play className="ml-1 h-10 w-10 text-white fill-white" />
+            ) : (
+              <Pause className="h-10 w-10 text-white fill-white" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Double-Tap Skip Ripple Feedback */}
+      {skipInfo && (
+        <div
+          className={`
+            absolute top-0 bottom-0 z-25 flex items-center px-10 pointer-events-none rounded-xl overflow-hidden
+            animate-in fade-in duration-150
+            ${skipInfo.side === "left" ? "left-0 bg-gradient-to-r from-black/60 to-transparent justify-start" : "right-0 bg-gradient-to-l from-black/60 to-transparent justify-end"}
+          `}
+        >
+          <div className="flex flex-col items-center gap-1.5 text-white">
+            <div className="flex items-center gap-1">
+              {skipInfo.side === "left" ? (
+                <>
+                  <ChevronLeft className="h-8 w-8 animate-pulse" />
+                  <ChevronLeft className="h-8 w-8 -ml-5 animate-pulse" />
+                </>
+              ) : (
+                <>
+                  <ChevronRight className="h-8 w-8 animate-pulse" />
+                  <ChevronRight className="h-8 w-8 -ml-5 animate-pulse" />
+                </>
+              )}
+            </div>
+            <span className="text-xs font-bold tracking-wider">{skipInfo.amount}s</span>
+          </div>
+        </div>
+      )}
 
       {/* PiP Active Overlay — matches existing video player design */}
       {isPipActive && (
@@ -633,31 +807,6 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       {waiting && !isPipActive && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-blue-500" />
-        </div>
-      )}
-
-      {/* Skip overlay feedback */}
-      {skipOverlay && (
-        <div
-          className={`
-            absolute top-0 bottom-0 z-20 flex items-center px-6 pointer-events-none rounded-xl overflow-hidden
-            animate-in fade-in duration-150
-            ${skipOverlay === "back" ? "left-0 bg-gradient-to-r from-black/40 to-transparent justify-start" : "right-0 bg-gradient-to-l from-black/40 to-transparent justify-end"}
-          `}
-        >
-          <div className="flex flex-col items-center gap-1 text-white/90">
-            {skipOverlay === "back" ? (
-              <>
-                <ChevronLeft className="h-10 w-10" />
-                <span className="text-xs font-medium">-10s</span>
-              </>
-            ) : (
-              <>
-                <ChevronRight className="h-10 w-10" />
-                <span className="text-xs font-medium">+10s</span>
-              </>
-            )}
-          </div>
         </div>
       )}
 
@@ -730,7 +879,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
           </button>
 
           <button
-            onClick={skipBackward}
+            onClick={() => skipBackward(10)}
             className="text-white/80 hover:text-white transition-colors"
             aria-label="Skip 10s back"
           >
@@ -738,7 +887,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
           </button>
 
           <button
-            onClick={skipForward}
+            onClick={() => skipForward(10)}
             className="text-white/80 hover:text-white transition-colors"
             aria-label="Skip 10s forward"
           >

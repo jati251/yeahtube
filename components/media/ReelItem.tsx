@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { MessageCircle, Share2, BookmarkPlus, Play, FastForward, Rewind } from "lucide-react";
@@ -143,11 +143,83 @@ export const ReelItem = React.memo(function ReelItem({
     }
   };
 
+  // ── Hold for 2X Fast Forward ──────────────────────
+  const [isFastForwarding, setIsFastForwarding] = useState(false);
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoldingRef = useRef(false);
+
+  const startHold2X = useCallback(() => {
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(() => {
+      if (videoRef.current && isActive && !isPaused) {
+        isHoldingRef.current = true;
+        videoRef.current.playbackRate = 2;
+        setIsFastForwarding(true);
+        try { navigator.vibrate?.(10); } catch {}
+      }
+    }, 250);
+  }, [isActive, isPaused]);
+
+  const endHold2X = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (isHoldingRef.current) {
+      isHoldingRef.current = false;
+      setIsFastForwarding(false);
+      if (videoRef.current) {
+        videoRef.current.playbackRate = 1;
+      }
+    }
+  }, []);
+
+  // Keyboard navigation for active reel
+  useEffect(() => {
+    if (!isActive) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      switch (e.code) {
+        case "Space":
+        case "KeyK":
+          e.preventDefault();
+          setIsPaused((prev) => !prev);
+          break;
+        case "KeyJ":
+        case "ArrowLeft":
+          if (videoRef.current) {
+            videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+            setSkipInfo({ side: "left", amount: 10 });
+            setTimeout(() => setSkipInfo(null), 600);
+          }
+          break;
+        case "KeyL":
+        case "ArrowRight":
+          if (videoRef.current) {
+            videoRef.current.currentTime = Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + 10);
+            setSkipInfo({ side: "right", amount: 10 });
+            setTimeout(() => setSkipInfo(null), 600);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isActive]);
+
   const handleVideoClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) {
       return;
     }
     
+    // If we just ended a 2X hold, do not toggle pause
+    if (isHoldingRef.current) {
+      return;
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const side = x < rect.width / 2 ? 'left' : 'right';
@@ -161,7 +233,7 @@ export const ReelItem = React.memo(function ReelItem({
       lastTapRef.current.time = now;
       
       const skipSeconds = 10;
-      const totalAmount = (lastTapRef.current.count - 1) * skipSeconds;
+      const totalAmount = lastTapRef.current.count * skipSeconds;
       setSkipInfo({ side, amount: totalAmount });
       
       if (videoRef.current) {
@@ -172,11 +244,10 @@ export const ReelItem = React.memo(function ReelItem({
         }
       }
       
-      // Clear skip info after no taps for 800ms
       lastTapRef.current.timeout = setTimeout(() => {
         setSkipInfo(null);
         lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
-      }, 800);
+      }, 700);
       
     } else {
       // First tap
@@ -185,14 +256,8 @@ export const ReelItem = React.memo(function ReelItem({
       lastTapRef.current = { time: now, side, count: 1, timeout: null };
       
       lastTapRef.current.timeout = setTimeout(() => {
-        // Handle single tap logic
-        const effectiveControls = showControls || isPaused || showComments || showSaveModal;
         onUserActivity();
-        if (!effectiveControls) {
-          // If controls were hidden, first tap brings controls back without pausing
-        } else {
-          setIsPaused((prev) => !prev);
-        }
+        setIsPaused((prev) => !prev);
         lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
       }, 300);
     }
@@ -206,11 +271,25 @@ export const ReelItem = React.memo(function ReelItem({
       className="reel-item relative h-[100dvh] w-full snap-center snap-always flex items-center justify-center bg-zinc-950 overflow-hidden"
       data-post-id={post.id}
     >
+      {/* 2X Fast Forward Top Badge */}
+      {isFastForwarding && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/80 px-4 py-1.5 backdrop-blur-md border border-white/20 shadow-xl animate-in fade-in zoom-in duration-150">
+          <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+          <span className="text-xs font-bold tracking-wide text-white uppercase">2X Fast Forwarding ⏩</span>
+        </div>
+      )}
+
       {/* Media Content */}
       {post.mediaType === "video" && post.videoUrl ? (
         isNearActive ? (
           <div
             onClick={handleVideoClick}
+            onMouseDown={startHold2X}
+            onMouseUp={endHold2X}
+            onMouseLeave={endHold2X}
+            onTouchStart={startHold2X}
+            onTouchEnd={endHold2X}
+            onTouchCancel={endHold2X}
             className="absolute inset-0 h-full w-full flex items-center justify-center cursor-pointer select-none"
           >
             <video
@@ -235,9 +314,9 @@ export const ReelItem = React.memo(function ReelItem({
             {/* Skip Info Overlay */}
             {skipInfo && (
               <div className={`absolute inset-0 flex items-center ${skipInfo.side === 'left' ? 'justify-start pl-12' : 'justify-end pr-12'} transition-opacity pointer-events-none`}>
-                <div className="bg-black/40 rounded-full p-4 flex flex-col items-center backdrop-blur-md animate-scale-up">
+                <div className="bg-black/60 rounded-full px-5 py-3 flex flex-col items-center backdrop-blur-md border border-white/20 shadow-2xl animate-in fade-in zoom-in duration-150">
                   {skipInfo.side === 'left' ? <Rewind className="h-8 w-8 text-white mb-1" fill="currentColor" /> : <FastForward className="h-8 w-8 text-white mb-1" fill="currentColor" />}
-                  <span className="text-white font-bold">{skipInfo.amount}s</span>
+                  <span className="text-white font-bold tracking-wider">{skipInfo.amount}s</span>
                 </div>
               </div>
             )}
