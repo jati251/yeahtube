@@ -417,6 +417,16 @@ async function main() {
     }
   }
 
+  // Invalidate Redis feed & taxonomy cache so newly seeded posts appear immediately
+  try {
+    const { invalidateFeedCache, invalidateTaxonomyCache } = await import("../lib/cache");
+    await invalidateFeedCache();
+    await invalidateTaxonomyCache();
+    console.log("  ⚡ Redis cache purged successfully.");
+  } catch {
+    // Silently continue if Redis is not running
+  }
+
   console.log("\n🎉 Seeding complete!");
   process.exit(0);
 }

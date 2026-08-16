@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx db/seed.ts",
+    "seed:videos": "tsx db/seed-videos.ts",
     "worker": "tsx worker.ts",
     "retranscode": "tsx scripts/retranscode-all.ts"
   },
