@@ -176,9 +176,9 @@ export default async function AdminPage() {
     largestFiles = lf.map((f) => ({ filename: f.filename, fileSize: f.fileSize, postTitle: f.postTitle }));
   } catch { /* fallback */ }
 
-  // Total storage capacity calculation (default: 500GB or configurable via STORAGE_CAPACITY_GB)
-  const storageCapacityGb = parseInt(process.env.STORAGE_CAPACITY_GB || "500", 10);
-  const storageCapacity = storageCapacityGb * 1024 * 1024 * 1024;
+  // MinIO S3 storage capacity calculation (default: 50.5GB based on YeahTube usable ceiling on Worker 3, or configurable via STORAGE_CAPACITY_GB)
+  const minioCapacityGb = parseFloat(process.env.STORAGE_CAPACITY_GB || "50.5");
+  const storageCapacity = (isNaN(minioCapacityGb) || minioCapacityGb <= 0 ? 50.5 : minioCapacityGb) * 1024 * 1024 * 1024;
   const totalMediaBytes = Number(mediaStats?.totalMediaSize) || 0;
   const storageFree = Math.max(0, storageCapacity - totalMediaBytes);
   const storageUsedPercentage = Math.min(100, Math.round((totalMediaBytes / storageCapacity) * 1000) / 10);

@@ -397,63 +397,72 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
           <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                YeahTube Storage Footprint
+                MinIO Storage (Worker 3)
               </h2>
-              <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                <span className="font-semibold text-zinc-900 dark:text-zinc-200">
-                  {formatBytes(stats.totalMediaSize)}
-                </span>
-                <span>/</span>
-                <span>{formatBytes(stats.storageCapacity)} Total</span>
-                <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-500">
-                  {stats.storageUsedPercentage}% Used
-                </span>
-              </div>
-            </div>
-
-            {/* Storage Progress Bar */}
-            <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="flex items-center justify-between mb-2 text-xs">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">Videos ({formatBytes(stats.videoSize)})</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">Images ({formatBytes(stats.imageSize)})</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">DB ({formatBytes(stats.databaseSize)})</span>
-                  </div>
+              {stats.storageCapacity > 0 ? (
+                <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-200">
+                    {formatBytes(stats.totalMediaSize)}
+                  </span>
+                  <span>/</span>
+                  <span>{formatBytes(stats.storageCapacity)} Total</span>
+                  <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-500">
+                    {stats.storageUsedPercentage}% Used
+                  </span>
                 </div>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                  {formatBytes(stats.storageFree)} Free ({Math.max(0, Math.round((100 - stats.storageUsedPercentage) * 10) / 10)}%)
-                </span>
-              </div>
-
-              {/* Progress Track */}
-              <div className="h-3 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800 flex">
-                <div
-                  style={{ width: `${Math.min(100, (stats.videoSize / stats.storageCapacity) * 100)}%` }}
-                  className="h-full bg-blue-500 transition-all duration-500"
-                  title={`Videos: ${formatBytes(stats.videoSize)}`}
-                />
-                <div
-                  style={{ width: `${Math.min(100, (stats.imageSize / stats.storageCapacity) * 100)}%` }}
-                  className="h-full bg-emerald-500 transition-all duration-500"
-                  title={`Images: ${formatBytes(stats.imageSize)}`}
-                />
-                <div
-                  style={{ width: `${Math.min(100, (stats.databaseSize / stats.storageCapacity) * 100)}%` }}
-                  className="h-full bg-amber-500 transition-all duration-500"
-                  title={`Database: ${formatBytes(stats.databaseSize)}`}
-                />
-              </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <span>Bucket:</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-200">yeahtube</span>
+                </div>
+              )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Storage Progress Bar (When Quota is Configured) */}
+            {stats.storageCapacity > 0 && (
+              <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex items-center justify-between mb-2 text-xs">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">Videos ({formatBytes(stats.videoSize)})</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">Images ({formatBytes(stats.imageSize)})</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">DB ({formatBytes(stats.databaseSize)})</span>
+                    </div>
+                  </div>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    {formatBytes(stats.storageFree)} Free ({Math.max(0, Math.round((100 - stats.storageUsedPercentage) * 10) / 10)}%)
+                  </span>
+                </div>
+
+                {/* Progress Track */}
+                <div className="h-3 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800 flex">
+                  <div
+                    style={{ width: `${Math.min(100, (stats.videoSize / stats.storageCapacity) * 100)}%` }}
+                    className="h-full bg-blue-500 transition-all duration-500"
+                    title={`Videos: ${formatBytes(stats.videoSize)}`}
+                  />
+                  <div
+                    style={{ width: `${Math.min(100, (stats.imageSize / stats.storageCapacity) * 100)}%` }}
+                    className="h-full bg-emerald-500 transition-all duration-500"
+                    title={`Images: ${formatBytes(stats.imageSize)}`}
+                  />
+                  <div
+                    style={{ width: `${Math.min(100, (stats.databaseSize / stats.storageCapacity) * 100)}%` }}
+                    className="h-full bg-amber-500 transition-all duration-500"
+                    title={`Database: ${formatBytes(stats.databaseSize)}`}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className={`grid gap-4 sm:grid-cols-2 ${stats.storageCapacity > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
               {/* Media size */}
               <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center gap-3">
@@ -461,7 +470,7 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                     <Film className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Media Used (S3/MinIO)</p>
+                    <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">MinIO Media Storage</p>
                     <p className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
                       {formatBytes(stats.totalMediaSize)}
                     </p>
@@ -472,23 +481,25 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                 </div>
               </div>
 
-              {/* Free Space */}
-              <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
-                    <Database className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Available Free Space</p>
-                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatBytes(stats.storageFree)}
-                    </p>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                      Capacity: {formatBytes(stats.storageCapacity)}
-                    </p>
+              {/* Free Space (If Quota Configured) */}
+              {stats.storageCapacity > 0 && (
+                <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+                      <Database className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Available Quota</p>
+                      <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                        {formatBytes(stats.storageFree)}
+                      </p>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                        Quota: {formatBytes(stats.storageCapacity)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* PostgreSQL Database storage */}
               <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
