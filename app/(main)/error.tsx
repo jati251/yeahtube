@@ -1,29 +1,39 @@
 "use client";
 
-import React from "react";
-import { Button } from "@/components/ui/Button";
-import { AlertTriangle } from "lucide-react";
+import React, { useEffect } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
-interface ErrorProps {
+export default function MainLayoutError({
+  error,
+  reset,
+}: {
   error: Error & { digest?: string };
   reset: () => void;
-}
+}) {
+  useEffect(() => {
+    console.error("Main layout error:", error);
+  }, [error]);
 
-export default function Error({ error, reset }: ErrorProps) {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center justify-center px-4 py-20 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/50">
-        <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500 mb-4 border border-red-500/20">
+        <AlertCircle className="h-8 w-8" />
       </div>
-      <h2 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-        Something went wrong
+
+      <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
+        Unable to load content
       </h2>
-      <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-        {error.message || "An unexpected error occurred. Please try again."}
+      <p className="max-w-md text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-6">
+        There was a problem loading this feed. Please try again.
       </p>
-      <Button onClick={reset} variant="primary">
+
+      <button
+        onClick={() => reset()}
+        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-md transition-colors hover:bg-blue-500 cursor-pointer"
+      >
+        <RefreshCw className="h-4 w-4" />
         Try again
-      </Button>
+      </button>
     </div>
   );
 }

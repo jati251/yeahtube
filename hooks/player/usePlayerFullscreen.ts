@@ -8,45 +8,62 @@ export function usePlayerFullscreen(containerRef: RefObject<HTMLDivElement | nul
 
   const isFullscreenActive = fullscreen || isMobileFullscreen;
 
-  const isTouchDevice = useCallback(() => {
-    return (
-      typeof window !== "undefined" &&
-      (window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window)
-    );
-  }, []);
-
   const toggleFullscreen = useCallback(async () => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    if (isTouchDevice()) {
-      // Mobile / Touch: Use CSS Viewport Fullscreen (eliminates Chrome OS drag toast)
-      if (isMobileFullscreen) {
-        setIsMobileFullscreen(false);
-        document.body.style.overflow = "";
-        try {
-          const orient = screen.orientation as unknown as { unlock?: () => void };
-          orient?.unlock?.();
-        } catch {}
-      } else {
-        setIsMobileFullscreen(true);
-        document.body.style.overflow = "hidden";
-        try {
-          const orient = screen.orientation as unknown as { lock?: (o: string) => Promise<void> };
-          orient?.lock?.("landscape")?.catch(() => {});
-        } catch {}
+    // 1. If in mobile viewport fullscreen, exit it
+    if (isMobileFullscreen) {
+      setIsMobileFullscreen(false);
+      document.body.style.overflow = "";
+      try {
+        const orient = screen.orientation as unknown as { unlock?: () => void };
+        orient?.unlock?.();
+      } catch {}
+      return;
+    }
+
+    // 2. If in native HTML5 fullscreen, exit it
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      webkitExitFullscreen?: () => Promise<void>;
+    };
+
+    if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+      if (doc.exitFullscreen) {
+        await doc.exitFullscreen().catch(() => {});
+      } else if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen().catch(() => {});
       }
       return;
     }
 
-    // Desktop: Standard HTML5 Fullscreen
-    if (fullscreen) {
-      await document.exitFullscreen().catch(() => {});
-    } else {
-      await containerRef.current.requestFullscreen().catch(() => {});
+    // 3. Request native HTML5 fullscreen
+    try {
+      const el = container as HTMLDivElement & {
+        webkitRequestFullscreen?: () => Promise<void>;
+      };
+      if (el.requestFullscreen) {
+        await el.requestFullscreen();
+        return;
+      } else if (el.webkitRequestFullscreen) {
+        await el.webkitRequestFullscreen();
+        return;
+      }
+    } catch (e) {
+      console.warn("Native fullscreen request failed, falling back to viewport fullscreen:", e);
     }
-  }, [containerRef, fullscreen, isMobileFullscreen, isTouchDevice]);
 
-  // Support Android / Mobile hardware Back Button to exit mobile fullscreen smoothly
+    // 4. Fallback: CSS Viewport Fullscreen (iOS / restricted browsers)
+    setIsMobileFullscreen(true);
+    document.body.style.overflow = "hidden";
+    try {
+      const orient = screen.orientation as unknown as { lock?: (o: string) => Promise<void> };
+      orient?.lock?.("landscape")?.catch(() => {});
+    } catch {}
+  }, [containerRef, isMobileFullscreen]);
+
+  // Support Android / Mobile hardware Back Button to exit mobile CSS fullscreen
   useEffect(() => {
     if (!isMobileFullscreen) return;
 
@@ -64,13 +81,24 @@ export function usePlayerFullscreen(containerRef: RefObject<HTMLDivElement | nul
     };
   }, [isMobileFullscreen]);
 
-  // Sync native desktop fullscreen changes
+  // Sync native desktop fullscreen changes (standard + webkit)
   useEffect(() => {
     const handleFsChange = () => {
-      setFullscreen(!!document.fullscreenElement);
+      const doc = document as Document & { webkitFullscreenElement?: Element };
+      const isFs = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
+      setFullscreen(isFs);
+      if (!isFs) {
+        document.body.style.overflow = "";
+      }
     };
+
     document.addEventListener("fullscreenchange", handleFsChange);
-    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+    document.addEventListener("webkitfullscreenchange", handleFsChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      document.removeEventListener("webkitfullscreenchange", handleFsChange);
+    };
   }, []);
 
   return {

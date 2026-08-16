@@ -82,7 +82,7 @@ export function EditPostModal({
               id: data.post.id,
               title: data.post.title,
               description: data.post.description,
-              category: data.post.category ? data.post.category.name : null,
+              category: data.post.category ?? null,
               categoryId: data.post.categoryId ?? null,
             });
           }

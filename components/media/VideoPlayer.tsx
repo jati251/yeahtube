@@ -75,7 +75,7 @@ export function VideoPlayer({
   }, []);
 
   // ── Custom Hook: Fullscreen (Mobile Viewport + Desktop Fullscreen) ──
-  const { isMobileFullscreen, isFullscreenActive, toggleFullscreen } = usePlayerFullscreen(containerRef);
+  const { isFullscreenActive, toggleFullscreen } = usePlayerFullscreen(containerRef);
 
   // ── Custom Hook: Progress Scrub & Drag ─────────────────────────────
   const { isDragging, isDraggingState, handleSeek, handleSeekStart } = usePlayerScrub({
@@ -339,16 +339,16 @@ export function VideoPlayer({
   return (
     <div
       ref={containerRef}
-      className={`group relative bg-black transition-all ${
-        isMobileFullscreen
-          ? "fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none"
+      className={`group relative bg-black select-none ${
+        isFullscreenActive
+          ? "!fixed !inset-0 !z-[9999] !h-screen !h-[100dvh] !w-screen !rounded-none !aspect-auto"
           : "aspect-video rounded-xl"
       }`}
       onMouseMove={showControlsTemporarily}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => playing && setShowControls(false)}
     >
-      <div className={`absolute inset-0 overflow-hidden ${isMobileFullscreen ? "rounded-none" : "rounded-xl"}`}>
+      <div className={`absolute inset-0 overflow-hidden ${isFullscreenActive ? "rounded-none" : "rounded-xl"}`}>
         <video
           ref={videoRef}
           className="h-full w-full object-contain cursor-pointer"

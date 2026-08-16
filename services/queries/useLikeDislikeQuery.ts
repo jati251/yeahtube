@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api-client";
 
 export interface LikeData {
   likes: number;
@@ -11,16 +12,7 @@ export interface LikeData {
 export function useLikeQuery(postId: number) {
   return useQuery<LikeData>({
     queryKey: ["post-like", postId],
-    queryFn: async () => {
-      const res = await fetch(`/api/posts/${postId}/like`);
-      if (!res.ok) return { likes: 0, dislikes: 0, userAction: null };
-      const json = await res.json();
-      return {
-        likes: json.likes || 0,
-        dislikes: json.dislikes || 0,
-        userAction: json.userAction || null,
-      };
-    },
+    queryFn: () => api.get<LikeData>(`/api/posts/${postId}/like`),
   });
 }
 
@@ -28,15 +20,8 @@ export function useLikeMutation(postId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (action: "like" | "dislike" | "none") => {
-      const res = await fetch(`/api/posts/${postId}/like`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (!res.ok) throw new Error("Failed to update like status");
-      return res.json();
-    },
+    mutationFn: (action: "like" | "dislike" | "none") =>
+      api.post<LikeData>(`/api/posts/${postId}/like`, { action }),
     onSuccess: (resData) => {
       queryClient.setQueryData<LikeData>(["post-like", postId], (old) => ({
         likes: resData.likes ?? (old?.likes || 0),

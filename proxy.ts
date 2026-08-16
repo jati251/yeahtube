@@ -11,7 +11,7 @@ export const config = {
 
 /**
  * Ensure the CSRF token cookie is present on every response.
- * This is needed for the double-submit cookie CSRF pattern:
+ * Double-submit cookie CSRF pattern:
  * the client reads the cookie and sends it as the x-csrf-token header.
  */
 function ensureCsrfCookie(
@@ -33,37 +33,68 @@ function ensureCsrfCookie(
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths
+  // 1. Check if user is logged in
+  const sessionCookie = request.cookies.get("yeahtube_session");
+  let sessionPayload: { sub: string; username: string; isAdmin: boolean } | null = null;
+
+  if (sessionCookie) {
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "fallback-secret-key-change-in-production");
+      const { payload } = await jwtVerify(sessionCookie.value, secret);
+      sessionPayload = {
+        sub: String(payload.sub),
+        username: payload.username as string,
+        isAdmin: Boolean(payload.isAdmin),
+      };
+    } catch {
+      sessionPayload = null;
+    }
+  }
+
+  // 2. Redirect logged-in user away from /login
+  if (pathname === "/login") {
+    if (sessionPayload) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    const response = NextResponse.next();
+    return ensureCsrfCookie(request, response);
+  }
+
+  // 3. Allow other public paths
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     const response = NextResponse.next();
     return ensureCsrfCookie(request, response);
   }
 
-  // Check session cookie
-  const sessionCookie = request.cookies.get("yeahtube_session");
-  if (!sessionCookie) {
+  // 4. Protect private routes: require session
+  if (!sessionPayload) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return redirectToLogin(request);
   }
 
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-    const { payload } = await jwtVerify(sessionCookie.value, secret);
-
-    // Attach user info to request headers for downstream use
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-user-id", String(payload.sub));
-    requestHeaders.set("x-user-name", payload.username as string);
-    requestHeaders.set("x-user-admin", String(payload.isAdmin));
-
-    const response = NextResponse.next({
-      request: { headers: requestHeaders },
-    });
-
-    return ensureCsrfCookie(request, response);
-  } catch {
-    // JWT invalid or expired
-    return redirectToLogin(request);
+  // 5. Protect admin routes (/admin and /api/admin/*)
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    if (!sessionPayload.isAdmin) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+      }
+      return redirectToLogin(request);
+    }
   }
+
+  // 6. Attach authenticated user headers for downstream Server Components & Handlers
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-user-id", sessionPayload.sub);
+  requestHeaders.set("x-user-name", sessionPayload.username);
+  requestHeaders.set("x-user-admin", String(sessionPayload.isAdmin));
+
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+
+  return ensureCsrfCookie(request, response);
 }
 
 function redirectToLogin(request: NextRequest) {
