@@ -8,6 +8,7 @@
  *   npx tsx --env-file=.env.local scripts/retranscode-all.ts [--force] [--limit 50]
  */
 
+import "../db/env";
 import { Pool } from "pg";
 import { Queue } from "bullmq";
 
