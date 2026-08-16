@@ -191,7 +191,7 @@ export const MediaListItem = React.memo(function MediaListItem({ post, isAdmin, 
       {selectMode ? (
         <div className="flex flex-1 gap-4 min-w-0">{ItemContent}</div>
       ) : (
-        <Link href={href} className="flex flex-1 gap-4 min-w-0">
+        <Link href={href} prefetch={true} className="flex flex-1 gap-4 min-w-0">
           {ItemContent}
         </Link>
       )}

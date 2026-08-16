@@ -174,7 +174,9 @@ export async function getSession(): Promise<SessionPayload | null> {
   }
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+import { cache } from "react";
+
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<CurrentUser | null> {
   const session = await getSession();
   if (!session) return null;
 
@@ -183,7 +185,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     username: session.username,
     isAdmin: session.isAdmin,
   };
-}
+});
 
 export async function requireAuth(): Promise<CurrentUser> {
   const user = await getCurrentUser();

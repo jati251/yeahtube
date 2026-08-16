@@ -345,10 +345,13 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
   return response;
 }
 
+import { cache } from "react";
+
 /**
  * Fetches full details for a post (media, tags, recommendations, edit permissions, presigned URLs).
+ * Wrapped in React cache to deduplicate metadata + page execution within the same request lifecycle.
  */
-export async function getPostDetail(
+export const getPostDetail = cache(async function getPostDetail(
   postId: number,
   user: { id: number; isAdmin: boolean } | null,
 ) {
@@ -484,4 +487,4 @@ export async function getPostDetail(
     ...payload,
     canEdit,
   };
-}
+});

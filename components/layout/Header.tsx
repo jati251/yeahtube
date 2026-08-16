@@ -304,6 +304,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
         <nav className="flex flex-col gap-2">
           <Link
             href="/"
+            prefetch={true}
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname === "/"
@@ -324,6 +325,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
 
           <Link
             href="/upload"
+            prefetch={true}
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname === "/upload"
@@ -337,6 +339,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
           </Link>
           <Link
             href="/history"
+            prefetch={true}
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname === "/history"
@@ -350,6 +353,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
           </Link>
           <Link
             href="/playlists"
+            prefetch={true}
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname?.startsWith("/playlists")
@@ -363,6 +367,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
           </Link>
           <Link
             href="/trending"
+            prefetch={true}
             className={clsx(
               "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
               pathname === "/trending"
@@ -377,6 +382,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
           {isAdmin && (
             <Link
               href="/admin"
+              prefetch={true}
               className={clsx(
                 "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
                 pathname?.startsWith("/admin")

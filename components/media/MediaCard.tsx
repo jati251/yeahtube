@@ -277,7 +277,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
       {selectMode ? (
         <div className="block">{CardContent}</div>
       ) : (
-        <Link href={href} className="block">
+        <Link href={href} prefetch={true} className="block">
           {CardContent}
         </Link>
       )}

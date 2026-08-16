@@ -34,6 +34,7 @@ export function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               onClick={(e) => {
                 if (item.href === "/" && pathname === "/") {
                   e.preventDefault();

@@ -1,6 +1,7 @@
 import { getDb, schema } from "@/db";
 import { eq, ne, or, inArray, and, desc, notInArray } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
+import { getCache, setCache } from "@/lib/cache";
 
 export interface RecommendedPost {
   id: number;
@@ -23,6 +24,12 @@ export async function getRecommendations(
   categoryId: number | null,
   tagIds: number[]
 ): Promise<RecommendedPost[]> {
+  const cacheKey = `cache:recommendations:${currentPostId}`;
+  const cached = await getCache<RecommendedPost[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const db = getDb();
 
   let recommendedPosts: { id: number; title: string; description: string | null; createdAt: string | Date; views: number }[] = [];
@@ -109,19 +116,25 @@ export async function getRecommendations(
     .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
     .where(inArray(schema.postTags.postId, postIds));
 
-  return Promise.all(recommendedPosts.map(async (post) => {
-    const postMedia = allMedia.filter((m) => m.postId === post.id);
-    const postTags = allPostTags
-      .filter((pt) => pt.postId === post.id)
-      .map((pt) => ({ id: pt.tagId, name: pt.tagName, slug: pt.tagSlug }));
+  const result = await Promise.all(
+    recommendedPosts.map(async (post) => {
+      const postMedia = allMedia.filter((m) => m.postId === post.id);
+      const postTags = allPostTags
+        .filter((pt) => pt.postId === post.id)
+        .map((pt) => ({ id: pt.tagId, name: pt.tagName, slug: pt.tagSlug }));
 
-    const postDate = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
+      const postDate = typeof post.createdAt === "string" ? new Date(post.createdAt) : post.createdAt;
 
-    return formatPostItem(
-      { ...post, createdAt: postDate },
-      postMedia,
-      postTags,
-      null
-    ) as Promise<RecommendedPost>;
-  }));
+      return formatPostItem(
+        { ...post, createdAt: postDate },
+        postMedia,
+        postTags,
+        null
+      ) as Promise<RecommendedPost>;
+    })
+  );
+
+  await setCache(cacheKey, result, 300);
+
+  return result;
 }
