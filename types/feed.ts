@@ -1,4 +1,5 @@
-import { PostItem, TagItem, CategoryItem } from "@/types/post";
+import { PostItem, TagItem } from "@/types/post";
+import { CategoryItem } from "@/types/category";
 import { SortValue } from "@/lib/constants";
 
 export interface FeedClientProps {

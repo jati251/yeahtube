@@ -48,12 +48,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // --- Stable refs for event handlers ---
-
   const isPlayingRef = useRef(isPlaying);
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
-
   const isDispatchingRef = useRef(false);
 
   // Register "stop-all-previews" listener once, using stable refs
@@ -63,8 +58,9 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
       return;
     }
     if (isPlayingRef.current) {
-      // We can't call setIsPlaying here directly since this is an external
-      // callback; instead we rely on the video ref to stop playback.
+      isPlayingRef.current = false;
+      setIsPlaying(false);
+      setPreviewTriggered(false);
       if (videoRef.current) {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
@@ -79,6 +75,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
 
   // Auto-stop mobile preview after 3 seconds (consolidated timer logic)
   const startPlaying = useCallback(() => {
+    isPlayingRef.current = true;
     setIsPlaying(true);
     // Dispatch event to stop other previews
     isDispatchingRef.current = true;
@@ -88,6 +85,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
     if (window.matchMedia("(pointer: coarse)").matches) {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
       previewTimerRef.current = setTimeout(() => {
+        isPlayingRef.current = false;
         setIsPlaying(false);
         setPreviewTriggered(false);
         if (videoRef.current) {
@@ -99,6 +97,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
   }, []);
 
   const stopPlaying = useCallback(() => {
+    isPlayingRef.current = false;
     setIsPlaying(false);
     setPreviewTriggered(false);
     if (previewTimerRef.current) {

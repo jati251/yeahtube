@@ -5,18 +5,9 @@ import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FolderPlus, Pencil, Trash2, X, Check } from "lucide-react";
+import { CategoryItem, CategoryManagerProps } from "@/types";
 
-export interface CategoryItem {
-  id: number;
-  name: string;
-  slug: string;
-  description: string | null;
-  createdAt?: string;
-}
-
-interface CategoryManagerProps {
-  initialCategories: CategoryItem[];
-}
+export type { CategoryItem, CategoryManagerProps };
 
 export function CategoryManager({ initialCategories }: CategoryManagerProps) {
   const { addToast } = useToast();

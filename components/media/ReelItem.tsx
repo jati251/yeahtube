@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { MessageCircle, Share2, BookmarkPlus, Play, FastForward, Rewind } from "lucide-react";
@@ -10,6 +10,7 @@ import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
 import { clsx } from "clsx";
 import { attachHlsOrNative } from "@/lib/hls-helper";
+import { useReelItem } from "@/hooks/player/useReelItem";
 
 export const ReelItem = React.memo(function ReelItem({
   post,
@@ -37,29 +38,26 @@ export const ReelItem = React.memo(function ReelItem({
   const progressRef = useRef<HTMLDivElement>(null);
   const [showComments, setShowComments] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [skipInfo, setSkipInfo] = useState<{ side: 'left' | 'right', amount: number } | null>(null);
-  
-  const lastTapRef = useRef<{ time: number, side: 'left' | 'right' | null, count: number, timeout: NodeJS.Timeout | null }>({
-    time: 0, side: null, count: 0, timeout: null
+
+  const {
+    isPaused,
+    setIsPaused,
+    skipInfo,
+    isFastForwarding,
+    handleTimeUpdate,
+    handleTimelineClick,
+    startHold2X,
+    endHold2X,
+    handleVideoClick,
+  } = useReelItem({
+    itemRef,
+    videoRef,
+    progressRef,
+    isActive,
+    onUserActivity,
+    onPauseChange,
+    getObserver,
   });
-
-  // Notify parent of pause state change
-  useEffect(() => {
-    if (isActive) {
-      onPauseChange(isPaused);
-    }
-  }, [isActive, isPaused, onPauseChange]);
-
-  // Bind element to global active video observer
-  useEffect(() => {
-    const el = itemRef.current;
-    if (el) {
-      const observer = getObserver();
-      observer.observe(el);
-      return () => observer.unobserve(el);
-    }
-  }, [getObserver]);
 
   // Attach HLS or native playback when near active
   useEffect(() => {
@@ -74,16 +72,6 @@ export const ReelItem = React.memo(function ReelItem({
       handle.destroy();
     };
   }, [isNearActive, post.mediaType, post.videoUrl, post.duration]);
-
-  // Reset video when it becomes active
-  useEffect(() => {
-    if (isActive) {
-      setIsPaused(false);
-      if (videoRef.current) {
-        videoRef.current.currentTime = 0;
-      }
-    }
-  }, [isActive]);
 
   // Handle play/pause based on combined state
   useEffect(() => {
@@ -105,163 +93,7 @@ export const ReelItem = React.memo(function ReelItem({
     } else {
       videoRef.current.pause();
     }
-  }, [isActive, isPaused, onForceMute]);
-
-  // Pause video when browser is minimized or tab is hidden
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden" && isActive && !isPaused) {
-        setIsPaused(true);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isActive, isPaused]);
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current && progressRef.current) {
-      const { currentTime, duration } = videoRef.current;
-      if (duration > 0) {
-        const percent = (currentTime / duration) * 100;
-        progressRef.current.style.width = `${percent}%`;
-      }
-    }
-  };
-
-  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    onUserActivity();
-    if (videoRef.current) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const percent = clickX / rect.width;
-      videoRef.current.currentTime = videoRef.current.duration * percent;
-
-      if (progressRef.current) {
-        progressRef.current.style.width = `${percent * 100}%`;
-      }
-    }
-  };
-
-  // ── Hold for 2X Fast Forward ──────────────────────
-  const [isFastForwarding, setIsFastForwarding] = useState(false);
-  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isHoldingRef = useRef(false);
-
-  const startHold2X = useCallback(() => {
-    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    holdTimerRef.current = setTimeout(() => {
-      if (videoRef.current && isActive && !isPaused) {
-        isHoldingRef.current = true;
-        videoRef.current.playbackRate = 2;
-        setIsFastForwarding(true);
-        try { navigator.vibrate?.(10); } catch {}
-      }
-    }, 250);
-  }, [isActive, isPaused]);
-
-  const endHold2X = useCallback(() => {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-    if (isHoldingRef.current) {
-      isHoldingRef.current = false;
-      setIsFastForwarding(false);
-      if (videoRef.current) {
-        videoRef.current.playbackRate = 1;
-      }
-    }
-  }, []);
-
-  // Keyboard navigation for active reel
-  useEffect(() => {
-    if (!isActive) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      switch (e.code) {
-        case "Space":
-        case "KeyK":
-          e.preventDefault();
-          setIsPaused((prev) => !prev);
-          break;
-        case "KeyJ":
-        case "ArrowLeft":
-          if (videoRef.current) {
-            videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
-            setSkipInfo({ side: "left", amount: 10 });
-            setTimeout(() => setSkipInfo(null), 600);
-          }
-          break;
-        case "KeyL":
-        case "ArrowRight":
-          if (videoRef.current) {
-            videoRef.current.currentTime = Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + 10);
-            setSkipInfo({ side: "right", amount: 10 });
-            setTimeout(() => setSkipInfo(null), 600);
-          }
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isActive]);
-
-  const handleVideoClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) {
-      return;
-    }
-    
-    // If we just ended a 2X hold, do not toggle pause
-    if (isHoldingRef.current) {
-      return;
-    }
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const side = x < rect.width / 2 ? 'left' : 'right';
-    const now = Date.now();
-    
-    // Multi-tap detection (within 300ms)
-    if (now - lastTapRef.current.time < 300 && lastTapRef.current.side === side) {
-      if (lastTapRef.current.timeout) clearTimeout(lastTapRef.current.timeout);
-      
-      lastTapRef.current.count += 1;
-      lastTapRef.current.time = now;
-      
-      const skipSeconds = 10;
-      const totalAmount = lastTapRef.current.count * skipSeconds;
-      setSkipInfo({ side, amount: totalAmount });
-      
-      if (videoRef.current) {
-        if (side === 'left') {
-          videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - skipSeconds);
-        } else {
-          videoRef.current.currentTime = Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + skipSeconds);
-        }
-      }
-      
-      lastTapRef.current.timeout = setTimeout(() => {
-        setSkipInfo(null);
-        lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
-      }, 700);
-      
-    } else {
-      // First tap
-      if (lastTapRef.current.timeout) clearTimeout(lastTapRef.current.timeout);
-      
-      lastTapRef.current = { time: now, side, count: 1, timeout: null };
-      
-      lastTapRef.current.timeout = setTimeout(() => {
-        onUserActivity();
-        setIsPaused((prev) => !prev);
-        lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
-      }, 300);
-    }
-  };
+  }, [isActive, isPaused, onForceMute, setIsPaused]);
 
   const effectiveShowControls = showControls || isPaused || showComments || showSaveModal || skipInfo !== null;
 
@@ -273,7 +105,7 @@ export const ReelItem = React.memo(function ReelItem({
     >
       {/* 2X Fast Forward Top Badge */}
       {isFastForwarding && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/80 px-4 py-1.5 backdrop-blur-md border border-white/20 shadow-xl animate-in fade-in zoom-in duration-150">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/80 px-4 py-1.5 backdrop-blur-md border border-white/20 shadow-xl animate-in fade-in zoom-in duration-150 pointer-events-none">
           <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
           <span className="text-xs font-bold tracking-wide text-white uppercase">2X Fast Forwarding ⏩</span>
         </div>
@@ -304,18 +136,26 @@ export const ReelItem = React.memo(function ReelItem({
             />
             {/* Play Overlay Indicator */}
             {isPaused && !skipInfo && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-opacity">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-opacity pointer-events-none">
                 <div className="bg-black/60 p-5 rounded-full text-white backdrop-blur-sm animate-scale-up shadow-xl border border-white/10">
                   <Play className="h-10 w-10 fill-white" />
                 </div>
               </div>
             )}
-            
+
             {/* Skip Info Overlay */}
             {skipInfo && (
-              <div className={`absolute inset-0 flex items-center ${skipInfo.side === 'left' ? 'justify-start pl-12' : 'justify-end pr-12'} transition-opacity pointer-events-none`}>
+              <div
+                className={`absolute inset-0 flex items-center ${
+                  skipInfo.side === "left" ? "justify-start pl-12" : "justify-end pr-12"
+                } transition-opacity pointer-events-none`}
+              >
                 <div className="bg-black/60 rounded-full px-5 py-3 flex flex-col items-center backdrop-blur-md border border-white/20 shadow-2xl animate-in fade-in zoom-in duration-150">
-                  {skipInfo.side === 'left' ? <Rewind className="h-8 w-8 text-white mb-1" fill="currentColor" /> : <FastForward className="h-8 w-8 text-white mb-1" fill="currentColor" />}
+                  {skipInfo.side === "left" ? (
+                    <Rewind className="h-8 w-8 text-white mb-1" fill="currentColor" />
+                  ) : (
+                    <FastForward className="h-8 w-8 text-white mb-1" fill="currentColor" />
+                  )}
                   <span className="text-white font-bold tracking-wider">{skipInfo.amount}s</span>
                 </div>
               </div>
@@ -325,7 +165,7 @@ export const ReelItem = React.memo(function ReelItem({
             <div
               className={clsx(
                 "absolute bottom-16 lg:bottom-0 left-0 right-0 h-6 cursor-pointer z-20 flex items-end group transition-opacity duration-300",
-                isActive ? "opacity-100" : "opacity-0 pointer-events-none"
+                isActive ? "opacity-100" : "opacity-0 pointer-events-none",
               )}
               onClick={handleTimelineClick}
             >
@@ -365,7 +205,7 @@ export const ReelItem = React.memo(function ReelItem({
       <div
         className={clsx(
           "absolute right-4 bottom-24 z-10 flex flex-col items-center gap-5 transition-opacity duration-500",
-          effectiveShowControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          effectiveShowControls ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
         <LikeDislike postId={post.id} variant="vertical" />
@@ -375,10 +215,12 @@ export const ReelItem = React.memo(function ReelItem({
             onUserActivity();
             setShowComments(true);
           }}
-          className="flex flex-col items-center gap-1 group drop-shadow-lg"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer"
         >
-          <MessageCircle className="h-8 w-8 text-white transition group-hover:scale-110 group-hover:text-zinc-300" />
-          <span className="text-white text-xs font-medium drop-shadow-md">Comment</span>
+          <div className="p-3 bg-zinc-900/60 backdrop-blur-md rounded-full text-white group-hover:bg-zinc-800 transition-colors border border-white/10">
+            <MessageCircle className="h-6 w-6" />
+          </div>
+          <span className="text-xs text-white font-medium drop-shadow">Comments</span>
         </button>
 
         <button
@@ -386,78 +228,84 @@ export const ReelItem = React.memo(function ReelItem({
             onUserActivity();
             setShowSaveModal(true);
           }}
-          className="flex flex-col items-center gap-1 group drop-shadow-lg"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer"
         >
-          <BookmarkPlus className="h-8 w-8 text-white transition group-hover:scale-110 group-hover:text-zinc-300" />
-          <span className="text-white text-xs font-medium drop-shadow-md">Save</span>
+          <div className="p-3 bg-zinc-900/60 backdrop-blur-md rounded-full text-white group-hover:bg-zinc-800 transition-colors border border-white/10">
+            <BookmarkPlus className="h-6 w-6" />
+          </div>
+          <span className="text-xs text-white font-medium drop-shadow">Save</span>
         </button>
 
-        <Link
-          href={post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`}
-          onClick={onUserActivity}
-          className="flex flex-col items-center gap-1 group drop-shadow-lg"
+        <button
+          onClick={() => {
+            onUserActivity();
+            if (typeof navigator !== "undefined" && navigator.share) {
+              navigator
+                .share({
+                  title: post.title,
+                  url: window.location.origin + `/watch/${post.id}`,
+                })
+                .catch(() => {});
+            } else if (typeof navigator !== "undefined") {
+              navigator.clipboard.writeText(window.location.origin + `/watch/${post.id}`);
+            }
+          }}
+          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer"
         >
-          <Share2 className="h-8 w-8 text-white transition group-hover:scale-110 group-hover:text-zinc-300" />
-          <span className="text-white text-xs font-medium drop-shadow-md">Share</span>
-        </Link>
+          <div className="p-3 bg-zinc-900/60 backdrop-blur-md rounded-full text-white group-hover:bg-zinc-800 transition-colors border border-white/10">
+            <Share2 className="h-6 w-6" />
+          </div>
+          <span className="text-xs text-white font-medium drop-shadow">Share</span>
+        </button>
       </div>
 
-      {/* Bottom Info Overlay */}
+      {/* Video Info Bottom Overlay */}
       <div
         className={clsx(
-          "absolute bottom-0 left-0 right-0 z-0 p-4 pb-24 lg:pb-6 pt-32 bg-gradient-to-t from-black via-black/80 to-transparent pr-20 transition-opacity duration-500",
-          effectiveShowControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          "absolute left-0 right-16 bottom-16 lg:bottom-6 p-4 z-10 flex flex-col gap-2 transition-opacity duration-500 bg-gradient-to-t from-black/80 via-black/30 to-transparent",
+          effectiveShowControls ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
-        <Link
-          href={post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`}
-          onClick={onUserActivity}
-          className="group inline-block"
-        >
-          <h2 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:underline">
-            {post.title}
-          </h2>
+        <Link href={`/watch/${post.id}`} className="hover:underline">
+          <h2 className="text-white font-bold text-base md:text-lg line-clamp-2 drop-shadow-md">{post.title}</h2>
         </Link>
         {post.description && (
-          <p className="text-sm text-zinc-300 line-clamp-2 mb-3">{post.description}</p>
+          <p className="text-white/80 text-xs md:text-sm line-clamp-2 drop-shadow">{post.description}</p>
         )}
-        {post.tags && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            {post.tags.slice(0, 3).map((tag) => (
-              <Link
-                key={tag.id}
-                href={`/?tags=${tag.slug}`}
-                onClick={onUserActivity}
-                className="px-2 py-1 bg-white/10 backdrop-blur-md rounded text-xs font-medium text-white hover:bg-white/20 transition-colors"
-              >
-                #{tag.name}
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2 mt-1">
+          {post.tags && post.tags.length > 0 && (
+            <Link href={`/search?tag=${post.tags[0].name}`} className="text-white/90 text-xs font-semibold hover:underline drop-shadow">
+              #{post.tags[0].name}
+            </Link>
+          )}
+          {post.category && (
+            <span className="text-[10px] bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded-full">
+              {post.category}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Modals */}
-      {showSaveModal && (
-        <SaveToPlaylist postId={post.id} onClose={() => setShowSaveModal(false)} />
-      )}
-
-      {/* Basic Comments slide-up */}
+      {/* Comments Drawer / Modal */}
       {showComments && (
-        <div className="absolute inset-0 z-30 bg-black/60 flex flex-col justify-end transition-all">
-          <div className="h-[60%] bg-zinc-950 rounded-t-2xl p-4 flex flex-col relative">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg text-white">Comments</h3>
-              <button onClick={() => setShowComments(false)} className="p-2 text-zinc-400 hover:text-white">
-                Close
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <Comments postId={post.id} />
-            </div>
+        <div className="absolute inset-x-0 bottom-0 top-1/4 bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-30 flex flex-col p-4 animate-in slide-in-from-bottom duration-300">
+          <div className="flex justify-between items-center pb-3 border-b border-zinc-800">
+            <h3 className="text-white font-semibold text-sm">Comments</h3>
+            <button
+              onClick={() => setShowComments(false)}
+              className="text-zinc-400 hover:text-white text-xs px-2 py-1 bg-zinc-800 rounded-md cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto py-2">
+            <Comments postId={post.id} />
           </div>
         </div>
       )}
+
+      {/* Save to Playlist Modal */}
+      {showSaveModal && <SaveToPlaylist postId={post.id} onClose={() => setShowSaveModal(false)} />}
     </div>
   );
 });

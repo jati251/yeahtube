@@ -1,15 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
-import { Loader2 } from "lucide-react";
-
-interface CategoryItem {
-  id: number;
-  name: string;
-  slug: string;
-}
+import { useCategoriesQuery, useUpdatePostMutation } from "@/services/queries";
 
 export interface EditablePost {
   id: number;
@@ -19,203 +12,165 @@ export interface EditablePost {
   category?: string | null;
 }
 
-interface EditPostModalProps {
+export interface EditPostModalProps {
+  post: EditablePost | null;
   isOpen: boolean;
   onClose: () => void;
-  post: EditablePost | null;
   onSuccess?: (updated: {
     id: number;
     title: string;
     description: string | null;
-    categoryId: number | null;
     category: string | null;
+    categoryId?: number | null;
   }) => void;
 }
 
 export function EditPostModal({
+  post,
   isOpen,
   onClose,
-  post,
   onSuccess,
 }: EditPostModalProps) {
-  const { addToast } = useToast();
-
-  const [prevPost, setPrevPost] = useState(post);
+  const [prevPost, setPrevPost] = useState<EditablePost | null>(post);
   const [title, setTitle] = useState(post?.title || "");
   const [description, setDescription] = useState(post?.description || "");
-  const [categoryId, setCategoryId] = useState<number | null>(post?.categoryId ?? null);
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [fetchingCategories, setFetchingCategories] = useState(false);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
-  // Adjust state during render when post prop changes (React recommended pattern)
+  const { data: categoriesData, isLoading: fetchingCategories } = useCategoriesQuery(isOpen);
+  const categories = categoriesData?.categories || [];
+
+  const updateMutation = useUpdatePostMutation(post?.id || 0);
+
+  // Adjust state during render when post prop changes (official React recommended pattern)
   if (post !== prevPost) {
     setPrevPost(post);
     setTitle(post?.title || "");
     setDescription(post?.description || "");
-    setCategoryId(post?.categoryId ?? null);
+
+    // Match category
+    let matchedCatId: number | null = null;
+    if (post?.categoryId !== undefined && post?.categoryId !== null) {
+      matchedCatId = post.categoryId;
+    } else if (post?.category && categories.length > 0) {
+      const matched = categories.find((c) => c.name === post.category);
+      if (matched) matchedCatId = matched.id;
+    }
+    setCategoryId(matchedCatId);
   }
-
-  // Fetch categories list
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let isMounted = true;
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => {
-        if (isMounted && data.categories) {
-          setCategories(data.categories);
-          // If post has category name but categoryId is null, try matching by name
-          if (post && (post.categoryId === undefined || post.categoryId === null) && post.category) {
-            const matched = data.categories.find(
-              (c: CategoryItem) => c.name === post.category
-            );
-            if (matched) setCategoryId(matched.id);
-          }
-        }
-      })
-      .catch((err) => console.error("Failed to load categories:", err))
-      .finally(() => {
-        if (isMounted) setFetchingCategories(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen, post]);
 
   if (!post) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      addToast("error", "Title is required");
+      setError("Title is required");
       return;
     }
 
-    setLoading(true);
-    try {
-      const csrfToken = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`)
-      )?.[1];
-      const res = await fetch(`/api/posts/${post.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
+    setError("");
+    updateMutation.mutate(
+      {
+        title: title.trim(),
+        description: description.trim(),
+        categoryId,
+      },
+      {
+        onSuccess: (data) => {
+          if (onSuccess && data.post) {
+            onSuccess({
+              id: data.post.id,
+              title: data.post.title,
+              description: data.post.description,
+              category: data.post.category ? data.post.category.name : null,
+              categoryId: data.post.categoryId ?? null,
+            });
+          }
+          onClose();
         },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || null,
-          categoryId: categoryId || null,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to update post");
-      }
-
-      addToast("success", "Post updated successfully!");
-      if (onSuccess) {
-        onSuccess({
-          id: post.id,
-          title: title.trim(),
-          description: description.trim() || null,
-          categoryId: categoryId || null,
-          category:
-            data.post?.category ||
-            categories.find((c) => c.id === categoryId)?.name ||
-            null,
-        });
-      }
-      onClose();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      addToast("error", msg);
-    } finally {
-      setLoading(false);
-    }
+        onError: (err) => {
+          setError(err.message || "Failed to update post");
+        },
+      },
+    );
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Media Post" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Post">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Title */}
+        {error && (
+          <div className="rounded-lg bg-red-500/10 p-3 text-sm text-red-500 border border-red-500/20">
+            {error}
+          </div>
+        )}
+
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
-            Title <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            Title
           </label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter media title..."
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+            placeholder="Enter title"
             required
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
           />
         </div>
 
-        {/* Category */}
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
-            Category
-          </label>
-          <select
-            value={categoryId ?? ""}
-            onChange={(e) =>
-              setCategoryId(e.target.value ? Number(e.target.value) : null)
-            }
-            disabled={fetchingCategories}
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all disabled:opacity-50"
-          >
-            <option value="">No Category</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
             Description
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            placeholder="Add a description..."
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+            placeholder="Enter description (optional)"
           />
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            Category
+          </label>
+          {fetchingCategories ? (
+            <div className="h-10 w-full animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />
+          ) : (
+            <select
+              value={categoryId ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCategoryId(val === "" ? null : Number(val));
+              }}
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+            >
+              <option value="">None (Uncategorized)</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            disabled={loading}
-            className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-colors disabled:opacity-50"
+            disabled={updateMutation.isPending}
+            className="rounded-xl px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
-            disabled={loading || !title.trim()}
-            className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 shadow-sm"
+            disabled={updateMutation.isPending}
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
+            {updateMutation.isPending ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </form>
