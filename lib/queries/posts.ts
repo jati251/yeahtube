@@ -349,6 +349,52 @@ export async function getPostDetail(
   postId: number,
   user: { id: number; isAdmin: boolean } | null,
 ) {
+  const cacheKey = `cache:post:${postId}`;
+  const cached = await getCache<{
+    post: {
+      id: number;
+      title: string;
+      description: string | null;
+      createdAt: string;
+      categoryId: number | null;
+      userId: number;
+    };
+    videos: {
+      id: number;
+      streamUrl: string;
+      filename: string;
+      mimeType: string;
+      duration: number | null;
+      thumbnailUrl: string | null;
+      width: number | null;
+      height: number | null;
+      orderIndex: number;
+    }[];
+    images: {
+      id: number;
+      imageUrl: string;
+      filename: string;
+      mimeType: string;
+      width: number | null;
+      height: number | null;
+      thumbnailUrl: string | null;
+    }[];
+    tags: { id: number; name: string; slug: string }[];
+    recommendations: Awaited<ReturnType<typeof import("@/lib/recommendations").getRecommendations>>;
+  }>(cacheKey);
+
+  if (cached) {
+    const canEdit = Boolean(user && (user.isAdmin || user.id === cached.post.userId));
+    return {
+      post: cached.post,
+      canEdit,
+      videos: cached.videos,
+      images: cached.images,
+      tags: cached.tags,
+      recommendations: cached.recommendations,
+    };
+  }
+
   const db = getDb();
 
   const [post] = await db
@@ -411,18 +457,25 @@ export async function getPostDetail(
     }))
   );
 
-  return {
+  const payload = {
     post: {
       id: post.id,
       title: post.title,
       description: post.description,
       createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt),
       categoryId: post.categoryId,
+      userId: post.userId,
     },
-    canEdit,
     videos: videosWithUrls,
     images: imagesWithUrls,
     tags: postTags,
     recommendations,
+  };
+
+  await setCache(cacheKey, payload, 120);
+
+  return {
+    ...payload,
+    canEdit,
   };
 }

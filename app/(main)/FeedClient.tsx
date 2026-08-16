@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useFeedFilters } from "@/hooks/useFeedFilters";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
-import { EditPostModal, EditablePost } from "@/components/media/EditPostModal";
+import type { EditablePost } from "@/components/media/EditPostModal";
 import { FilterSidebar } from "@/components/filters/FilterSidebar";
 import { MobileFilters } from "@/components/filters/MobileFilters";
 import { ActiveFilters } from "@/components/filters/ActiveFilters";
 import { TagCloud } from "@/components/filters/TagCloud";
 import { PaginationControls } from "@/components/ui/PaginationControls";
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import { SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 import { FeedClientProps } from "@/types/feed";
@@ -18,6 +18,16 @@ import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
 import { useAppStore } from "@/stores/appStore";
 import { SORT_OPTIONS } from "@/lib/constants";
+
+const EditPostModal = dynamic(
+  () => import("@/components/media/EditPostModal").then((m) => m.EditPostModal),
+  { ssr: false },
+);
+
+const ConfirmModal = dynamic(
+  () => import("@/components/ui/ConfirmModal").then((m) => m.ConfirmModal),
+  { ssr: false },
+);
 
 export function FeedClient({
   isAdmin,

@@ -4,11 +4,16 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NextImage from "next/image";
+import dynamic from "next/dynamic";
 import { ArrowLeft, Calendar, Pencil } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaCard } from "@/components/media/MediaCard";
-import { EditPostModal } from "@/components/media/EditPostModal";
 import { ViewPageClientProps } from "@/types/view";
+
+const EditPostModal = dynamic(
+  () => import("@/components/media/EditPostModal").then((m) => m.EditPostModal),
+  { ssr: false },
+);
 
 export function ViewPageClient({
   post,

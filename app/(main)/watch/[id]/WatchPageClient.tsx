@@ -11,8 +11,13 @@ import { RecommendedPost } from "@/lib/recommendations";
 import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
-import { EditPostModal } from "@/components/media/EditPostModal";
+import dynamic from "next/dynamic";
 import { getQualityLabel } from "@/lib/media-utils";
+
+const EditPostModal = dynamic(
+  () => import("@/components/media/EditPostModal").then((m) => m.EditPostModal),
+  { ssr: false },
+);
 
 interface VideoData {
   id: number;
