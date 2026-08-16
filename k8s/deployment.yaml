@@ -25,6 +25,10 @@ spec:
       - env:
         - name: NODE_ENV
           value: production
+        - name: WORKER_CONCURRENCY
+          value: "1"
+        - name: WORKER_ENCODER
+          value: "svtav1"
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:

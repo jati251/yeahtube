@@ -48,7 +48,7 @@ async function main() {
     ? `SELECT id, post_id, storage_key, filename, mime_type, thumbnail_key, preview_key, width, height, duration 
        FROM media WHERE media_type = 'video' ORDER BY id ASC ${limit ? `LIMIT ${limit}` : ""}`
     : `SELECT id, post_id, storage_key, filename, mime_type, thumbnail_key, preview_key, width, height, duration 
-       FROM media WHERE media_type = 'video' AND (thumbnail_key IS NULL OR preview_key IS NULL OR width IS NULL OR duration IS NULL) 
+       FROM media WHERE media_type = 'video' AND (storage_key NOT LIKE '%_av1.mp4' OR thumbnail_key IS NULL OR preview_key IS NULL OR width IS NULL OR duration IS NULL) 
        ORDER BY id ASC ${limit ? `LIMIT ${limit}` : ""}`;
 
   const { rows } = await pool.query(query);
