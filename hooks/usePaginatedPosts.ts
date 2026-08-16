@@ -39,29 +39,32 @@ export function usePaginatedPosts({
   const limitVal = fetchParams.limit || DEFAULT_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(total / limitVal));
 
-  // Latest params always available via ref
-  const paramsRef = useRef(fetchParams);
-  useEffect(() => {
-    paramsRef.current = fetchParams;
-  }, [fetchParams]);
+  const sortVal = fetchParams.sort;
+  const typeVal = fetchParams.type;
+  const tagsVal = fetchParams.tags;
+  const qVal = fetchParams.q;
+  const categoryVal = fetchParams.category;
+  const yearVal = fetchParams.year;
 
   // Prevent fetch on mount / after cache restore
   const skipRef = useRef(false);
   const mountedRef = useRef(false);
 
-  const buildUrl = (pageNum: number) => {
-    const fp = paramsRef.current;
-    const p = new URLSearchParams();
-    p.set("offset", String((pageNum - 1) * limitVal));
-    p.set("limit", String(limitVal));
-    p.set("sort", fp.sort || "newest");
-    if (fp.type) p.set("type", fp.type);
-    if (fp.tags) p.set("tags", fp.tags);
-    if (fp.q) p.set("q", fp.q);
-    if (fp.category) p.set("category", fp.category);
-    if (fp.year) p.set("year", fp.year);
-    return `/api/posts?${p.toString()}`;
-  };
+  const buildUrl = useCallback(
+    (pageNum: number) => {
+      const p = new URLSearchParams();
+      p.set("offset", String((pageNum - 1) * limitVal));
+      p.set("limit", String(limitVal));
+      p.set("sort", sortVal || "newest");
+      if (typeVal) p.set("type", typeVal);
+      if (tagsVal) p.set("tags", tagsVal);
+      if (qVal) p.set("q", qVal);
+      if (categoryVal) p.set("category", categoryVal);
+      if (yearVal) p.set("year", yearVal);
+      return `/api/posts?${p.toString()}`;
+    },
+    [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal],
+  );
 
   const fetchPage = useCallback(
     async (pageNum: number) => {
@@ -88,8 +91,7 @@ export function usePaginatedPosts({
         setLoading(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [limitVal],
+    [appendMode, buildUrl],
   );
 
   const fetchPageRef = useRef(fetchPage);
@@ -113,40 +115,40 @@ export function usePaginatedPosts({
   );
 
   // Sync from server props (soft navigation)
-  const prevPageRef = useRef(initialPage);
+  const prevServerPropsRef = useRef({ initialPosts, initialTotal, initialPage });
   useEffect(() => {
-    if (initialPage !== prevPageRef.current) {
+    if (
+      initialPage !== prevServerPropsRef.current.initialPage ||
+      initialPosts !== prevServerPropsRef.current.initialPosts ||
+      initialTotal !== prevServerPropsRef.current.initialTotal
+    ) {
+      prevServerPropsRef.current = { initialPosts, initialTotal, initialPage };
       if (skipRef.current) {
-        prevPageRef.current = initialPage;
+        skipRef.current = false;
         return;
       }
       setPosts(initialPosts);
       setTotal(initialTotal);
       setPage(initialPage);
-      prevPageRef.current = initialPage;
-      mountedRef.current = false;
     }
   }, [initialPosts, initialTotal, initialPage]);
 
-  // Auto-fetch: only used when autoFetch=true, or on param change after mount.
-  // For FeedClient (autoFetch=false), fetch is driven by goToPage directly.
-  const sortVal = fetchParams.sort;
-  const typeVal = fetchParams.type;
-  const tagsVal = fetchParams.tags;
-  const qVal = fetchParams.q;
-  const categoryVal = fetchParams.category;
-  const yearVal = fetchParams.year;
-
+  // Auto-fetch: triggered when filter/sort params change after initial mount
+  const prevFilterKeyRef = useRef("");
   useEffect(() => {
+    const currentKey = `${limitVal}|${sortVal}|${typeVal}|${tagsVal}|${qVal}|${categoryVal}|${yearVal}`;
     if (skipRef.current) {
       skipRef.current = false;
+      prevFilterKeyRef.current = currentKey;
       return;
     }
     if (!mountedRef.current) {
       mountedRef.current = true;
+      prevFilterKeyRef.current = currentKey;
       return;
     }
-    if (autoFetch) {
+    if (autoFetch && currentKey !== prevFilterKeyRef.current) {
+      prevFilterKeyRef.current = currentKey;
       fetchPageRef.current(page);
     }
   }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, page, autoFetch]);

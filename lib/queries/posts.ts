@@ -1,6 +1,7 @@
 import { getDb, schema } from "@/db";
 import { eq, desc, sql, ilike, inArray, and, SQL } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/lib/constants";
 
 /**
  * Builds filter conditions for both the main query and count query.
@@ -32,6 +33,8 @@ export async function buildFilterConditions(
         .where(eq(schema.categories.slug, category));
       if (cat) {
         conditions.push(eq(schema.posts.categoryId, cat.id));
+      } else {
+        conditions.push(sql`1 = 0`);
       }
     } catch {
       // Categories table doesn't exist yet
@@ -50,7 +53,7 @@ export async function buildFilterConditions(
 
   // Tag filter
   if (tagSlugs) {
-    const slugs = tagSlugs.split(",").map((s) => s.trim());
+    const slugs = tagSlugs.split(",").map((s) => s.trim()).filter(Boolean);
     if (slugs.length > 0) {
       const matchingTags = await db
         .select({ id: schema.tags.id })
@@ -112,8 +115,14 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
 
   // Pagination — supports offset-based (page numbers) and cursor-based
   const cursor = searchParams.get("cursor");
-  const offset = Math.max(0, Number(searchParams.get("offset")) || 0);
-  const limit = Math.min(Number(searchParams.get("limit")) || 20, 50);
+  const limit = Math.min(
+    Math.max(1, Number(searchParams.get("limit")) || DEFAULT_PAGE_SIZE),
+    MAX_PAGE_SIZE,
+  );
+  const pageParam = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+  const offset = searchParams.has("offset")
+    ? Math.max(0, Number(searchParams.get("offset")) || 0)
+    : (pageParam - 1) * limit;
 
   // Filters
   const sort = searchParams.get("sort") || "newest";

@@ -59,7 +59,7 @@ export function FeedClient({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
 
-  const { posts, setPosts, loading, page, total, totalPages, setPage, restoreFromCache } =
+  const { posts, setPosts, loading, page, total, totalPages, goToPage, restoreFromCache } =
     usePaginatedPosts({
       initialPosts,
       initialTotal,
@@ -72,7 +72,7 @@ export function FeedClient({
         category: activeCategory,
         year: activeYear,
       },
-      autoFetch: true,
+      autoFetch: !disableFiltersAndPagination,
     });
 
   // ---- Restore from Zustand cache on mount (prevents flash of page 1) ----
@@ -80,6 +80,8 @@ export function FeedClient({
   React.useLayoutEffect(() => {
     if (cacheRestoredRef.current) return;
     cacheRestoredRef.current = true;
+
+    if (disableFiltersAndPagination) return;
 
     // Fix cache getting stuck on hard refresh
     const isReload =
@@ -94,17 +96,18 @@ export function FeedClient({
       return;
     }
 
-    if (store.cachedFeedPage > 0 && store.cachedFeedPosts.length > 0) {
+    const hasSearch = typeof window !== "undefined" && window.location.search.length > 0;
+    if (!hasSearch && store.cachedFeedPage > 1 && store.cachedFeedPosts.length > 0) {
       restoreFromCache(store.cachedFeedPosts, store.cachedFeedPage, store.cachedFeedTotal);
     }
-  }, [restoreFromCache]);
+  }, [restoreFromCache, disableFiltersAndPagination]);
 
   // ---- Save to Zustand cache whenever feed data changes ----
   useEffect(() => {
-    if (posts.length > 0 && page > 0) {
+    if (!disableFiltersAndPagination && posts.length > 0 && page > 0) {
       setCachedFeed(page, posts, total);
     }
-  }, [posts, page, total, setCachedFeed]);
+  }, [posts, page, total, setCachedFeed, disableFiltersAndPagination]);
 
   // ---- Scroll: restore position on back-navigation ----
   const scrollRestoredRef = useRef(false);
@@ -144,22 +147,19 @@ export function FeedClient({
     prevPageRef.current = page;
   }, [page, setFeedScrollY]);
 
-  
-
-  
-    
   // Sync the goToPage function to the ref so the hook can call it
-  useEffect(() => { goToPageRef.current = setPage; }, [setPage, goToPageRef]);
+  useEffect(() => { goToPageRef.current = goToPage; }, [goToPage, goToPageRef]);
 
   // Sync URL when dependencies change
   useEffect(() => {
+    if (disableFiltersAndPagination) return;
     syncUrl(page);
-  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, syncUrl]);
+  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, syncUrl, disableFiltersAndPagination]);
 
   // ---- Handlers ----
   const handleMediaTypeChange = (type: string | null) => {
     setActiveMediaType(type);
-    setPage(1);
+    goToPage(1);
   };
 
   const handleTagToggle = (slug: string) => {
@@ -169,22 +169,22 @@ export function FeedClient({
       else next.add(slug);
       return Array.from(next);
     });
-    setPage(1);
+    goToPage(1);
   };
 
   const handleCategoryChange = (slug: string | null) => {
     setActiveCategory(slug);
-    setPage(1);
+    goToPage(1);
   };
 
   const handleYearChange = (yearVal: string | null) => {
     setActiveYear(yearVal);
-    setPage(1);
+    goToPage(1);
   };
 
   const handleSortChange = (newSort: string) => {
     setActiveSort(newSort);
-    setPage(1);
+    goToPage(1);
   };
 
   const clearAll = () => {
@@ -194,11 +194,11 @@ export function FeedClient({
     setActiveSort(initialSort);
     setActiveCategory(null);
     setActiveYear(null);
-    setPage(1);
+    goToPage(1);
   };
 
   const navigateToPage = (newPage: number) => {
-    setPage(newPage);
+    goToPage(newPage);
   };
 
   // ---- Admin post selection ----
@@ -229,11 +229,11 @@ export function FeedClient({
           onRemoveMediaType={() => handleMediaTypeChange(null)}
           onRemoveTag={(slug) => {
             setActiveTags((prev) => prev.filter((t) => t !== slug));
-            setPage(1);
+            goToPage(1);
           }}
           onRemoveSearch={() => {
             setActiveSearchQuery("");
-            setPage(1);
+            goToPage(1);
           }}
           onRemoveCategory={() => handleCategoryChange(null)}
           onRemoveYear={() => handleYearChange(null)}
@@ -327,7 +327,7 @@ export function FeedClient({
                     activeTag={activeTags[0] || null}
                     onTagSelect={(slug) => {
                       setActiveTags(slug ? [slug] : []);
-                      setPage(1);
+                      goToPage(1);
                     }}
                   />
                 )}
@@ -367,7 +367,7 @@ export function FeedClient({
                 activeTag={activeTags[0] || null}
                 onTagSelect={(slug) => {
                   setActiveTags(slug ? [slug] : []);
-                  setPage(1);
+                  goToPage(1);
                 }}
               />
             )}
