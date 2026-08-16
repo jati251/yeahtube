@@ -266,6 +266,17 @@ const ReelItem = React.memo(function ReelItem({
     }
   }, [isActive, isPaused, onForceMute]);
 
+  // Pause video when browser is minimized or tab is hidden
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden" && isActive && !isPaused) {
+        setIsPaused(true);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [isActive, isPaused]);
+
   const handleTimeUpdate = () => {
     if (videoRef.current && progressRef.current) {
       const { currentTime, duration } = videoRef.current;
