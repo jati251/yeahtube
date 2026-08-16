@@ -39,7 +39,7 @@ export async function POST(
       // Update watchedAt
       await db
         .update(schema.watchHistory)
-        .set({ watchedAt: new Date().toISOString() })
+        .set({ watchedAt: new Date() })
         .where(eq(schema.watchHistory.id, existing.id));
     } else {
       // Insert new

@@ -7,44 +7,8 @@ import NextImage from "next/image";
 import { ArrowLeft, Calendar, Pencil } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaCard } from "@/components/media/MediaCard";
-import { RecommendedPost } from "@/lib/recommendations";
 import { EditPostModal } from "@/components/media/EditPostModal";
-
-interface ImageData {
-  id: number;
-  imageUrl: string;
-  filename: string;
-  mimeType: string;
-  width: number | null;
-  height: number | null;
-  thumbnailUrl: string | null;
-}
-
-interface VideoData {
-  id: number;
-  streamUrl: string;
-  filename: string;
-  mimeType: string;
-  duration: number | null;
-  thumbnailUrl: string | null;
-}
-
-interface PostData {
-  id: number;
-  title: string;
-  description: string | null;
-  createdAt: string;
-  categoryId?: number | null;
-}
-
-interface ViewPageClientProps {
-  post: PostData;
-  canEdit?: boolean;
-  images: ImageData[];
-  videos: VideoData[];
-  tags: { id: number; name: string; slug: string }[];
-  recommendations: RecommendedPost[];
-}
+import { ViewPageClientProps } from "@/types/view";
 
 export function ViewPageClient({
   post,

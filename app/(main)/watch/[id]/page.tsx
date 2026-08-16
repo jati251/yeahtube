@@ -84,7 +84,7 @@ export default async function WatchPage({ params }: PageProps) {
         id: post.id,
         title: post.title,
         description: post.description,
-        createdAt: post.createdAt,
+        createdAt: post.createdAt.toISOString(),
         categoryId: post.categoryId,
       }}
       canEdit={canEdit}

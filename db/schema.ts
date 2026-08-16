@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, primaryKey, serial, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, primaryKey, serial, index, timestamp } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // ── Media Type enum ────────────────────────────────────
@@ -16,7 +16,7 @@ export const users = pgTable("users", {
     .notNull()
     .default(0),
   isAdmin: integer("is_admin").notNull().default(0),
-  createdAt: text("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 });
@@ -28,7 +28,7 @@ export const categories = pgTable("categories", {
   name: text("name").notNull().unique(),
   slug: text("slug").notNull().unique(),
   description: text("description").default(""),
-  createdAt: text("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 });
@@ -45,10 +45,10 @@ export const posts = pgTable("posts", {
   title: text("title").notNull(),
   description: text("description").default(""),
   views: integer("views").notNull().default(0),
-  createdAt: text("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-  updatedAt: text("updated_at")
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 }, (table) => ({
@@ -77,7 +77,7 @@ export const media = pgTable("media", {
   thumbnailKey: text("thumbnail_key"),
   previewKey: text("preview_key"),
   orderIndex: integer("order_index").notNull().default(0),
-  createdAt: text("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 }, (table) => ({
@@ -91,7 +91,7 @@ export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   slug: text("slug").notNull().unique(),
-  createdAt: text("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 });
@@ -139,7 +139,7 @@ export const likes = pgTable("likes", {
     .notNull()
     .references(() => posts.id, { onDelete: "cascade" }),
   isLike: integer("is_like").notNull(), // 1 for like, 0 for dislike
-  createdAt: text("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 }, (table) => ({
@@ -161,7 +161,7 @@ export const comments = pgTable("comments", {
     .notNull()
     .references(() => posts.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
-  createdAt: text("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 }, (table) => ({
@@ -181,7 +181,7 @@ export const watchHistory = pgTable("watch_history", {
   postId: integer("post_id")
     .notNull()
     .references(() => posts.id, { onDelete: "cascade" }),
-  watchedAt: text("watched_at")
+  watchedAt: timestamp("watched_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 }, (table) => ({
@@ -200,7 +200,7 @@ export const playlists = pgTable("playlists", {
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   isPublic: integer("is_public").notNull().default(0),
-  createdAt: text("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 });
@@ -216,7 +216,7 @@ export const playlistItems = pgTable("playlist_items", {
   postId: integer("post_id")
     .notNull()
     .references(() => posts.id, { onDelete: "cascade" }),
-  addedAt: text("added_at")
+  addedAt: timestamp("added_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 }, (table) => ({

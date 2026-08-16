@@ -110,9 +110,9 @@ export default async function AdminPage() {
         email: u.email,
         isWhitelisted: !!u.isWhitelisted,
         isAdmin: !!u.isAdmin,
-        createdAt: u.createdAt,
+        createdAt: u.createdAt.toISOString(),
       }))}
-      categories={categories}
+      categories={categories.map(c => ({ ...c, createdAt: c.createdAt.toISOString() }))}
       stats={{
         totalMediaSize,
         vmFreeStorage,

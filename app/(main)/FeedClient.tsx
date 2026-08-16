@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useFeedFilters } from "@/hooks/useFeedFilters";
 import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
 import { EditPostModal, EditablePost } from "@/components/media/EditPostModal";
@@ -14,20 +14,11 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import { SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 import { PostItem, TagItem, CategoryItem } from "@/types/post";
+import { FeedClientProps } from "@/types/feed";
 import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
 import { useAppStore } from "@/stores/appStore";
-import { SORT_OPTIONS, CUSTOM_EVENTS } from "@/lib/constants";
-
-interface FeedClientProps {
-  isAdmin: boolean;
-  initialPosts: PostItem[];
-  initialTotal: number;
-  initialPage: number;
-  initialSort: "newest" | "oldest" | "popular";
-  tags: TagItem[];
-  categories: CategoryItem[];
-}
+import { SORT_OPTIONS } from "@/lib/constants";
 
 export function FeedClient({
   isAdmin,
@@ -38,38 +29,35 @@ export function FeedClient({
   tags,
   categories,
 }: FeedClientProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const { addToast } = useToast();
 
-  // Zustand global store (sessionStorage-backed)
+// Zustand global store (sessionStorage-backed)
   const feedScrollY = useAppStore((s) => s.feedScrollY);
   const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
   const setCachedFeed = useAppStore((s) => s.setCachedFeed);
 
-  // ---- Derive initial state from URL ----
-  const initialMediaType = searchParams.get("type");
-  const initialSelectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
-  const initialSearchQuery = searchParams.get("q") || "";
-  const initialActiveSort = searchParams.get("sort") || initialSort;
-  const initialCategory = searchParams.get("category");
-  const initialYear = searchParams.get("year");
-
-  // ---- Local filter state ----
-  const [activeMediaType, setActiveMediaType] = useState<string | null>(initialMediaType);
-  const [activeTags, setActiveTags] = useState<string[]>(initialSelectedTags);
-  const [activeSearchQuery, setActiveSearchQuery] = useState(initialSearchQuery);
-  const [activeSort, setActiveSort] = useState(initialActiveSort);
-  const [activeCategory, setActiveCategory] = useState<string | null>(initialCategory);
-  const [activeYear, setActiveYear] = useState<string | null>(initialYear);
+// ---- Derive initial state from URL ----
+  const {
+    activeMediaType,
+    setActiveMediaType,
+    activeTags,
+    setActiveTags,
+    activeSearchQuery,
+    setActiveSearchQuery,
+    activeSort,
+    setActiveSort,
+    activeCategory,
+    setActiveCategory,
+    activeYear,
+    setActiveYear,
+    hasFilters,
+    goToPageRef,
+    syncUrl,
+  } = useFeedFilters({ initialSort });
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
-
-  const hasFilters = Boolean(
-    activeMediaType || activeTags.length > 0 || activeSearchQuery || activeCategory || activeYear,
-  );
 
   const { posts, setPosts, loading, page, total, totalPages, goToPage, restoreFromCache } =
     usePaginatedPosts({
@@ -156,70 +144,17 @@ export function FeedClient({
     prevPageRef.current = page;
   }, [page, setFeedScrollY]);
 
-  // ---- URL sync: replaceState (not pushState) to avoid history pollution ----
+  
+
+  
+    
+  // Sync the goToPage function to the ref so the hook can call it
+  useEffect(() => { goToPageRef.current = goToPage; }, [goToPage, goToPageRef]);
+
+  // Sync URL when dependencies change
   useEffect(() => {
-    const sp = new URLSearchParams();
-    if (activeMediaType) sp.set("type", activeMediaType);
-    if (activeTags.length > 0) sp.set("tags", activeTags.join(","));
-    if (activeSearchQuery) sp.set("q", activeSearchQuery);
-    if (activeSort !== initialSort) sp.set("sort", activeSort);
-    if (activeCategory) sp.set("category", activeCategory);
-    if (activeYear) sp.set("year", activeYear);
-    if (page > 1) sp.set("page", String(page));
-
-    const qs = sp.toString();
-    const newUrl = qs ? `/?${qs}` : "/";
-
-    if (window.location.search !== (qs ? `?${qs}` : "")) {
-      window.history.replaceState(null, "", newUrl);
-      router.replace(newUrl, { scroll: false });
-    }
-  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, initialSort, router]);
-
-  // ---- Browser back/forward + custom events (registered once via refs) ----
-  const goToPageRef = useRef(goToPage);
-  useEffect(() => { goToPageRef.current = goToPage; }, [goToPage]);
-
-  const initialSortRef = useRef(initialSort);
-  useEffect(() => { initialSortRef.current = initialSort; }, [initialSort]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const sp = new URLSearchParams(window.location.search);
-      setActiveMediaType(sp.get("type"));
-      setActiveTags(sp.get("tags")?.split(",").filter(Boolean) || []);
-      setActiveSearchQuery(sp.get("q") || "");
-      setActiveSort(sp.get("sort") || initialSortRef.current);
-      setActiveCategory(sp.get("category"));
-      setActiveYear(sp.get("year"));
-      const p = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
-      goToPageRef.current(p);
-    };
-
-    const handleSearch = (e: Event) => {
-      setActiveSearchQuery((e as CustomEvent<string>).detail);
-      goToPageRef.current(1);
-    };
-
-    const handleReset = () => {
-      setActiveMediaType(null);
-      setActiveTags([]);
-      setActiveSearchQuery("");
-      setActiveSort(initialSortRef.current);
-      setActiveCategory(null);
-      setActiveYear(null);
-      goToPageRef.current(1);
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    window.addEventListener(CUSTOM_EVENTS.FEED_SEARCH, handleSearch);
-    window.addEventListener(CUSTOM_EVENTS.FEED_RESET, handleReset);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener(CUSTOM_EVENTS.FEED_SEARCH, handleSearch);
-      window.removeEventListener(CUSTOM_EVENTS.FEED_RESET, handleReset);
-    };
-  }, []);
+    syncUrl(page);
+  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, syncUrl]);
 
   // ---- Handlers ----
   const handleMediaTypeChange = (type: string | null) => {

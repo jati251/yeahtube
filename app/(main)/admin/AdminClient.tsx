@@ -7,38 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Shield, ShieldOff, Check, X, UserPlus, HardDrive, Database, Server, FileText, Users, Film, MessageCircle, Heart, Tag, FolderOpen, ListVideo, Upload, TrendingUp, FileWarning } from "lucide-react";
 import { formatBytes } from "@/lib/media-utils";
-import { CategoryManager, CategoryItem } from "@/components/admin/CategoryManager";
-
-interface UserItem {
-  id: number;
-  username: string;
-  email: string | null;
-  isWhitelisted: boolean;
-  isAdmin: boolean;
-  createdAt: string;
-}
-
-interface AdminClientProps {
-  currentUserId: number;
-  users: UserItem[];
-  categories?: CategoryItem[];
-  stats?: {
-    totalMediaSize: number;
-    vmFreeStorage: number;
-    vmTotalStorage: number;
-    totalPosts: number;
-    totalUsers: number;
-    totalMediaFiles: number;
-    totalComments: number;
-    totalLikes: number;
-    totalTags: number;
-    totalCategories: number;
-    totalPlaylists: number;
-    recentUploads: number;
-    mostActiveUser: { username: string; postCount: number } | null;
-    largestFiles: { filename: string; fileSize: number; postTitle: string }[];
-  };
-}
+import { CategoryManager } from "@/components/admin/CategoryManager";
+import { UserItem, AdminClientProps } from "@/types/admin";
 
 const colorMap: Record<string, string> = {
   blue:   "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
@@ -90,8 +60,9 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
   const [newIsAdmin, setNewIsAdmin] = useState(false);
   const [adding, setAdding] = useState(false);
 
-  const toggleWhitelist = async (userId: number, current: boolean) => {
+  const updateUserField = async (userId: number, field: "isWhitelisted" | "isAdmin", currentValue: boolean) => {
     try {
+      const newValue = !currentValue;
       const csrfToken = document.cookie.match(
         new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
       )?.[1];
@@ -101,45 +72,22 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
           "Content-Type": "application/json",
           ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
         },
-        body: JSON.stringify({ isWhitelisted: !current }),
+        body: JSON.stringify({ [field]: newValue }),
       });
 
       if (!res.ok) throw new Error("Failed to update");
 
       setUserList((prev) =>
         prev.map((u) =>
-          u.id === userId ? { ...u, isWhitelisted: !current } : u,
+          u.id === userId ? { ...u, [field]: newValue } : u,
         ),
       );
-      addToast("success", `User ${current ? "removed from" : "added to"} whitelist`);
-      router.refresh();
-    } catch {
-      addToast("error", "Failed to update user");
-    }
-  };
-
-  const toggleAdmin = async (userId: number, current: boolean) => {
-    try {
-      const csrfToken = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
-      )?.[1];
-      const res = await fetch(`/api/admin/users/${userId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-        body: JSON.stringify({ isAdmin: !current }),
-      });
-
-      if (!res.ok) throw new Error("Failed to update");
-
-      setUserList((prev) =>
-        prev.map((u) =>
-          u.id === userId ? { ...u, isAdmin: !current } : u,
-        ),
-      );
-      addToast("success", `Admin status ${current ? "removed" : "granted"}`);
+      
+      const message = field === "isWhitelisted" 
+        ? `User ${currentValue ? "removed from" : "added to"} whitelist`
+        : `Admin status ${currentValue ? "removed" : "granted"}`;
+        
+      addToast("success", message);
       router.refresh();
     } catch {
       addToast("error", "Failed to update user");
@@ -293,7 +241,7 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => toggleWhitelist(u.id, u.isWhitelisted)}
+                        onClick={() => updateUserField(u.id, "isWhitelisted", u.isWhitelisted)}
                         disabled={u.id === currentUserId}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                           u.isWhitelisted
@@ -311,7 +259,7 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => toggleAdmin(u.id, u.isAdmin)}
+                        onClick={() => updateUserField(u.id, "isAdmin", u.isAdmin)}
                         disabled={u.id === currentUserId}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
                           u.isAdmin
