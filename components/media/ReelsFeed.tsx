@@ -44,6 +44,17 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
   }, [activeVideoId, resetControlsTimer]);
+  
+  const activeVideoIdRef = useRef<number | null>(activeVideoId);
+  useEffect(() => {
+    activeVideoIdRef.current = activeVideoId;
+  }, [activeVideoId]);
+
+  const handlePauseChange = useCallback((id: number, paused: boolean) => {
+    if (activeVideoIdRef.current === id) {
+      setIsCurrentPaused(paused);
+    }
+  }, []);
 
   const activeIndex = React.useMemo(() => {
     const idx = posts.findIndex((p) => p.id === activeVideoId);
@@ -101,10 +112,10 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
 
   return (
     <div
-      className="fixed inset-0 z-30 bg-black text-white flex justify-center overflow-hidden pb-16 lg:pb-0"
+      className="fixed inset-0 z-50 bg-black text-white flex justify-center overflow-hidden"
       onMouseMove={resetControlsTimer}
-      onTouchStart={resetControlsTimer}
-      onClick={resetControlsTimer}
+      onTouchMove={resetControlsTimer}
+      onWheel={resetControlsTimer}
     >
       {/* Top Navigation Overlay */}
       <div
@@ -142,11 +153,7 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
             isMuted={isMuted}
             showControls={showControls}
             onUserActivity={resetControlsTimer}
-            onPauseChange={(paused) => {
-              if (activeVideoId === post.id) {
-                setIsCurrentPaused(paused);
-              }
-            }}
+            onPauseChange={(paused) => handlePauseChange(post.id, paused)}
             getObserver={getObserver}
             onForceMute={forceMute}
           />
