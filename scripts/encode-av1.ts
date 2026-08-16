@@ -280,8 +280,9 @@ async function transcodeToAv1(row: MediaRow, s3: S3Client, bucket: string) {
     } catch {}
 
     console.log(`🎉 Media #${row.id} successfully transcoded to AV1 and replaced!`);
-  } catch (err: any) {
-    console.error(`❌ Transcode failed for Media #${row.id}:`, err.message);
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`❌ Transcode failed for Media #${row.id}:`, errorMsg);
     throw err;
   } finally {
     // Cleanup temporary files
@@ -295,7 +296,7 @@ async function main() {
   const { s3, bucket } = getS3Client();
 
   let query = "";
-  let params: any[] = [];
+  let params: (number | string)[] = [];
 
   if (targetId) {
     query = `SELECT * FROM media WHERE id = $1 AND media_type = 'video'`;

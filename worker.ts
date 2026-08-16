@@ -81,6 +81,9 @@ const worker = new Worker<TranscodeJobData>(
     const thumbBasename = `yt-thumb-${uniqueId}`;
     const tmpThumbPng = path.join(tmpDir, `${thumbBasename}.png`);
     const tmpPreview = path.join(tmpDir, `yt-preview-${uniqueId}.mp4`);
+    const tmpAv1Output = path.join(tmpDir, `yt-av1-${uniqueId}.mp4`);
+
+    const newStorageKey = `uploads/videos/${folderPath}/${uniqueId}_av1.mp4`;
 
     try {
       console.log(`[Worker] Generating presigned URL for HTTP Range Streaming...`);
@@ -90,99 +93,120 @@ const worker = new Worker<TranscodeJobData>(
         { expiresIn: 3600 }
       );
 
-      console.log(`[Worker] Extracting metadata and generating assets via HTTP streaming...`);
+      console.log(`[Worker] [1/5] Probing video metadata...`);
       
       let actualDuration = 0;
       let videoWidth: number | null = null;
       let videoHeight: number | null = null;
+      let hasAudio = false;
 
-      await new Promise<void>((resolve, reject) => {
-        ffmpeg.ffprobe(presignedUrl, (err: Error | null, metadata: FfprobeData) => {
-          if (err) return reject(err);
-
-          actualDuration = metadata.format.duration || 0;
-          const videoStream = metadata.streams?.find((s) => s.codec_type === "video");
-          if (videoStream) {
-            if (videoStream.width) videoWidth = videoStream.width;
-            if (videoStream.height) videoHeight = videoStream.height;
-          }
-          
-          const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
-
-          const generatePreview = (onDone: () => void) => {
-            if (actualDuration < 0.5) {
-              onDone();
-              return;
-            }
-            const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
-
-            ffmpeg(presignedUrl)
-              .setStartTime(seekTime)
-              .setDuration(previewDuration)
-              .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale='min(360,iw)':-2")
-              .noAudio()
-              .videoCodec("libx264")
-              .outputOptions([
-                "-preset ultrafast",
-                "-crf 32",
-                "-movflags +faststart",
-                "-pix_fmt yuv420p",
-              ])
-              .save(tmpPreview)
-              .on("end", onDone)
-              .on("error", (previewErr: Error) => {
-                console.error("[Worker] Preview generation failed:", previewErr.message);
-                onDone();
-              });
-          };
-
-          const tryThumbnail = (time: number, onSuccess: () => void, onFail: () => void) => {
-            ffmpeg(presignedUrl)
-              .seekInput(time)
-              .frames(1)
-              .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale=400:-2")
-              .output(tmpThumbPng)
-              .outputOptions(["-update", "1"])
-              .on("end", onSuccess)
-              .on("error", (e: Error) => {
-                console.error(`[Worker] Thumbnail at t=${time} failed:`, e.message);
-                onFail();
-              })
-              .run();
-          };
-
-          tryThumbnail(
-            seekTime,
-            () => generatePreview(() => resolve()),
-            () => {
-              tryThumbnail(
-                0,
-                () => generatePreview(() => resolve()),
-                () => {
-                  console.error("[Worker] All thumbnail attempts failed");
-                  resolve();
-                },
-              );
-            },
-          );
-        });
+      const metadata: FfprobeData = await new Promise((resolve, reject) => {
+        ffmpeg.ffprobe(presignedUrl, (err, meta) => (err ? reject(err) : resolve(meta)));
       });
 
-      // Convert PNG to WebP
+      actualDuration = metadata.format.duration || 0;
+      const videoStream = metadata.streams?.find((s) => s.codec_type === "video");
+      const audioStream = metadata.streams?.find((s) => s.codec_type === "audio");
+      if (videoStream) {
+        if (videoStream.width) videoWidth = videoStream.width;
+        if (videoStream.height) videoHeight = videoStream.height;
+      }
+      hasAudio = Boolean(audioStream);
+
+      console.log(`[Worker] [2/5] ⚡ Full SVT-AV1 transcoding (preset 8, CRF 30)...`);
+      const startEncode = Date.now();
+
+      await new Promise<void>((resolve, reject) => {
+        const cmd = ffmpeg(presignedUrl)
+          .videoCodec("libsvtav1")
+          .outputOptions([
+            "-preset 8",
+            "-crf 30",
+            "-pix_fmt yuv420p10le",
+            "-svtav1-params tune=0:fast-decode=1",
+            "-movflags +faststart",
+          ]);
+
+        if (hasAudio) {
+          cmd.audioCodec("aac").audioBitrate("128k");
+        } else {
+          cmd.noAudio();
+        }
+
+        cmd
+          .output(tmpAv1Output)
+          .on("end", () => {
+            const elapsed = ((Date.now() - startEncode) / 1000).toFixed(1);
+            console.log(`[Worker]       ✅ SVT-AV1 encode finished in ${elapsed}s`);
+            resolve();
+          })
+          .on("error", (err) => {
+            console.error(`[Worker]       ❌ SVT-AV1 encode error:`, err.message);
+            reject(err);
+          })
+          .run();
+      });
+
+      console.log(`[Worker] [3/5] 🖼️  Generating WebP thumbnail & preview clip...`);
+      const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
+
+      // Extract Thumbnail
+      await new Promise<void>((resolve) => {
+        ffmpeg(tmpAv1Output)
+          .seekInput(seekTime)
+          .frames(1)
+          .videoFilters("scale=400:-2")
+          .output(tmpThumbPng)
+          .outputOptions(["-update", "1"])
+          .on("end", () => resolve())
+          .on("error", () => resolve())
+          .run();
+      });
+
       let thumbnailBuffer: Buffer;
       try {
         const pngBuffer = await fs.readFile(tmpThumbPng);
         thumbnailBuffer = await sharp(pngBuffer)
-          .webp({ quality: 75 })
+          .webp({ quality: 80 })
           .toBuffer();
       } catch {
-        console.error("[Worker] Could not read/convert thumbnail PNG, generating fallback");
         thumbnailBuffer = await sharp({
           create: { width: 400, height: 225, channels: 3, background: { r: 30, g: 30, b: 30 } },
         }).webp({ quality: 50 }).toBuffer();
       }
 
-      console.log(`[Worker] Uploading thumbnail...`);
+      // Extract Preview Clip
+      const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
+      await new Promise<void>((resolve) => {
+        ffmpeg(tmpAv1Output)
+          .setStartTime(seekTime)
+          .setDuration(previewDuration)
+          .videoFilters("scale='min(360,iw)':-2")
+          .noAudio()
+          .videoCodec("libx264")
+          .outputOptions(["-preset veryfast", "-crf 30", "-movflags +faststart", "-pix_fmt yuv420p"])
+          .output(tmpPreview)
+          .on("end", () => resolve())
+          .on("error", () => resolve())
+          .run();
+      });
+
+      console.log(`[Worker] [4/5] ☁️  Uploading AV1 master video, thumbnail & preview to S3...`);
+      const av1Stat = await fs.stat(tmpAv1Output);
+      const av1Buffer = await fs.readFile(tmpAv1Output);
+      const newFileSize = av1Stat.size;
+
+      // Upload AV1 Video
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: newStorageKey,
+          Body: av1Buffer,
+          ContentType: "video/mp4",
+        }),
+      );
+
+      // Upload Thumbnail
       await s3.send(
         new PutObjectCommand({
           Bucket: bucket,
@@ -192,10 +216,10 @@ const worker = new Worker<TranscodeJobData>(
         }),
       );
 
+      // Upload Preview
       let finalPreviewKey: string | null = null;
       try {
         const previewBuffer = await fs.readFile(tmpPreview);
-        console.log(`[Worker] Uploading preview...`);
         await s3.send(
           new PutObjectCommand({
             Bucket: bucket,
@@ -206,13 +230,34 @@ const worker = new Worker<TranscodeJobData>(
         );
         finalPreviewKey = previewKey;
       } catch {
-        console.error("[Worker] Could not read preview buffer (preview may not have been generated)");
+        console.error("[Worker] Preview upload skipped");
       }
 
-      console.log(`[Worker] Updating media record #${mediaId}...`);
+      console.log(`[Worker] [5/5] 🗄️  Updating database & purging old raw upload...`);
+
+      // Safely delete old raw uncompressed upload from S3 if key changed
+      if (storageKey !== newStorageKey) {
+        try {
+          const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+          await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: storageKey }));
+          console.log(`[Worker]       🗑️ Deleted uncompressed raw upload: ${storageKey}`);
+        } catch (delErr) {
+          console.warn(`[Worker]       ⚠️ Could not delete old raw upload:`, delErr);
+        }
+      }
+
+      // Update database record
       await pool.query(
-        `UPDATE media SET width = $1, height = $2, duration = $3, thumbnail_key = $4, preview_key = $5 WHERE id = $6`,
-        [videoWidth, videoHeight, actualDuration, thumbnailKey, finalPreviewKey, mediaId]
+        `UPDATE media SET 
+          storage_key = $1, 
+          file_size = $2, 
+          width = $3, 
+          height = $4, 
+          duration = $5, 
+          thumbnail_key = $6, 
+          preview_key = $7 
+         WHERE id = $8`,
+        [newStorageKey, newFileSize, videoWidth, videoHeight, actualDuration, thumbnailKey, finalPreviewKey, mediaId]
       );
 
       // Invalidate Redis feed & post cache so UI immediately reflects updated metadata
@@ -224,12 +269,12 @@ const worker = new Worker<TranscodeJobData>(
         // Silently continue if Redis helper is unavailable in standalone worker context
       }
 
-      console.log(`[Worker] ✅ Video assets generated successfully for media #${mediaId}`);
+      console.log(`[Worker] ✅ Video #${mediaId} successfully transcoded to AV1 and replaced! (Size: ${(newFileSize / (1024 * 1024)).toFixed(2)} MB)`);
     } catch (err) {
       console.error(`[Worker] ❌ Asset generation failed for media #${mediaId}:`, err);
       throw err;
     } finally {
-      for (const f of [tmpThumbPng, tmpPreview]) {
+      for (const f of [tmpAv1Output, tmpThumbPng, tmpPreview]) {
         try { await fs.unlink(f); } catch {}
       }
     }

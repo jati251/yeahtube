@@ -28,13 +28,21 @@ const ALLOWED_VIDEO_TYPES = [
 async function generateVideoAssets(
   buffer: Buffer,
   ext: string,
-): Promise<{ thumbnailBuffer: Buffer; previewBuffer: Buffer | null; duration: number; width: number | null; height: number | null }> {
+): Promise<{
+  av1Buffer: Buffer;
+  av1FileSize: number;
+  thumbnailBuffer: Buffer;
+  previewBuffer: Buffer | null;
+  duration: number;
+  width: number | null;
+  height: number | null;
+}> {
   const tmpDir = os.tmpdir();
   const uniqueId = uuidv4();
   const tmpInput = path.join(tmpDir, `yt-${uniqueId}${ext}`);
+  const tmpAv1 = path.join(tmpDir, `yt-av1-${uniqueId}.mp4`);
   const thumbBasename = `yt-thumb-${uniqueId}`;
   const tmpThumbPng = path.join(tmpDir, `${thumbBasename}.png`);
-  const tmpThumbWebp = path.join(tmpDir, `${thumbBasename}.webp`);
   const tmpPreview = path.join(tmpDir, `yt-preview-${uniqueId}.mp4`);
 
   try {
@@ -43,102 +51,115 @@ async function generateVideoAssets(
     let actualDuration = 0;
     let videoWidth: number | null = null;
     let videoHeight: number | null = null;
+    let hasAudio = false;
+
+    const ffmpeg = require("fluent-ffmpeg") as typeof import("fluent-ffmpeg");
 
     await new Promise<void>((resolve, reject) => {
-      const ffmpeg = require("fluent-ffmpeg") as any;
-
       ffmpeg.ffprobe(tmpInput, (err: any, metadata: any) => {
         if (err) return reject(err);
 
         actualDuration = metadata.format.duration || 0;
         const videoStream = metadata.streams?.find((s: any) => s.codec_type === "video");
+        const audioStream = metadata.streams?.find((s: any) => s.codec_type === "audio");
         if (videoStream) {
           if (videoStream.width) videoWidth = videoStream.width;
           if (videoStream.height) videoHeight = videoStream.height;
         }
-        const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
-
-        const generatePreview = (onDone: () => void) => {
-          if (actualDuration < 0.5) {
-            onDone();
-            return;
-          }
-
-          const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
-
-          ffmpeg(tmpInput)
-            .setStartTime(seekTime)
-            .setDuration(previewDuration)
-            .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale='min(360,iw)':-2")
-            .noAudio()
-            .videoCodec("libx264")
-            .outputOptions([
-              "-preset ultrafast",
-              "-crf 32",
-              "-movflags +faststart",
-              "-pix_fmt yuv420p",
-            ])
-            .save(tmpPreview)
-            .on("end", onDone)
-            .on("error", (previewErr: any) => {
-              console.error("Preview generation failed:", previewErr.message);
-              onDone();
-            });
-        };
-
-        const tryThumbnail = (time: number, onSuccess: () => void, onFail: () => void) => {
-          ffmpeg(tmpInput)
-            .seekInput(time)
-            .frames(1)
-            .videoFilters("setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,scale=400:-2")
-            .output(tmpThumbPng)
-            .outputOptions(["-update", "1"])
-            .on("end", onSuccess)
-            .on("error", (e: any) => {
-              console.error(`Thumbnail at t=${time} failed:`, e.message);
-              onFail();
-            })
-            .run();
-        };
-
-        tryThumbnail(
-          seekTime,
-          () => generatePreview(() => resolve()),
-          () => {
-            tryThumbnail(
-              0,
-              () => generatePreview(() => resolve()),
-              () => {
-                console.error("All thumbnail attempts failed");
-                resolve();
-              },
-            );
-          },
-        );
+        hasAudio = Boolean(audioStream);
+        resolve();
       });
+    });
+
+    console.log(`    ⚡ Encoding to SVT-AV1 (preset 8, CRF 30)...`);
+    const startEncode = Date.now();
+
+    await new Promise<void>((resolve, reject) => {
+      const cmd = ffmpeg(tmpInput)
+        .videoCodec("libsvtav1")
+        .outputOptions([
+          "-preset 8",
+          "-crf 30",
+          "-pix_fmt yuv420p10le",
+          "-svtav1-params tune=0:fast-decode=1",
+          "-movflags +faststart",
+        ]);
+
+      if (hasAudio) {
+        cmd.audioCodec("aac").audioBitrate("128k");
+      } else {
+        cmd.noAudio();
+      }
+
+      cmd
+        .output(tmpAv1)
+        .on("end", () => {
+          const elapsed = ((Date.now() - startEncode) / 1000).toFixed(1);
+          console.log(`    ✅ SVT-AV1 encode finished in ${elapsed}s`);
+          resolve();
+        })
+        .on("error", (err: any) => {
+          console.error(`    ❌ SVT-AV1 encode error:`, err.message);
+          reject(err);
+        })
+        .run();
+    });
+
+    console.log(`    🖼️  Generating thumbnail & preview clip...`);
+    const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
+
+    // Thumbnail
+    await new Promise<void>((resolve) => {
+      ffmpeg(tmpAv1)
+        .seekInput(seekTime)
+        .frames(1)
+        .videoFilters("scale=400:-2")
+        .output(tmpThumbPng)
+        .outputOptions(["-update", "1"])
+        .on("end", () => resolve())
+        .on("error", () => resolve())
+        .run();
     });
 
     let thumbnailBuffer: Buffer;
     try {
       const pngBuffer = await fs.readFile(tmpThumbPng);
       thumbnailBuffer = await sharp(pngBuffer)
-        .webp({ quality: 75 })
+        .webp({ quality: 80 })
         .toBuffer();
-    } catch (e) {
-      console.error("Could not read/convert thumbnail PNG, generating fallback");
+    } catch {
       thumbnailBuffer = await sharp({
         create: { width: 400, height: 225, channels: 3, background: { r: 30, g: 30, b: 30 } },
       }).webp({ quality: 50 }).toBuffer();
     }
 
+    // Preview
+    const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
+    await new Promise<void>((resolve) => {
+      ffmpeg(tmpAv1)
+        .setStartTime(seekTime)
+        .setDuration(previewDuration)
+        .videoFilters("scale='min(360,iw)':-2")
+        .noAudio()
+        .videoCodec("libx264")
+        .outputOptions(["-preset veryfast", "-crf 30", "-movflags +faststart", "-pix_fmt yuv420p"])
+        .output(tmpPreview)
+        .on("end", () => resolve())
+        .on("error", () => resolve())
+        .run();
+    });
+
     let previewBuffer: Buffer | null = null;
     try {
       previewBuffer = await fs.readFile(tmpPreview);
-    } catch (e) {
-      console.error("Could not read preview buffer");
-    }
+    } catch {}
+
+    const av1Stat = await fs.stat(tmpAv1);
+    const av1Buffer = await fs.readFile(tmpAv1);
 
     return {
+      av1Buffer,
+      av1FileSize: av1Stat.size,
       thumbnailBuffer,
       previewBuffer,
       duration: actualDuration,
@@ -146,7 +167,7 @@ async function generateVideoAssets(
       height: videoHeight,
     };
   } finally {
-    for (const f of [tmpInput, tmpThumbPng, tmpThumbWebp, tmpPreview]) {
+    for (const f of [tmpInput, tmpAv1, tmpThumbPng, tmpPreview]) {
       try { await fs.unlink(f); } catch {}
     }
   }
@@ -302,7 +323,6 @@ async function main() {
       if (ext === ".ts") mimeType = "video/mp2t";
 
       const storageId = uuidv4();
-      const storageFilename = `${storageId}${ext}`;
       const thumbnailFilename = `${storageId}_thumb.webp`;
 
       const now = new Date();
@@ -310,24 +330,24 @@ async function main() {
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const folderPath = `${year}/${month}`;
 
-      const storageKey = `uploads/videos/${folderPath}/${storageFilename}`;
+      const storageKey = `uploads/videos/${folderPath}/${storageId}_av1.mp4`;
       const thumbnailKey = `thumbnails/${folderPath}/${thumbnailFilename}`;
       const previewKey = `previews/${folderPath}/${storageId}_preview.mp4`;
-      
-      console.log(`  - Uploading original video to S3...`);
+
+      console.log(`  - Transcoding to AV1 & generating assets...`);
+      const { av1Buffer, av1FileSize, thumbnailBuffer, previewBuffer, duration, width, height } = 
+        await generateVideoAssets(fileBuffer, ext);
+
+      console.log(`  - Uploading AV1 video to S3 (${(av1FileSize / (1024 * 1024)).toFixed(2)} MB)...`);
       await s3.send(
         new PutObjectCommand({
           Bucket: storageConfig.bucket,
           Key: storageKey,
-          Body: fileBuffer,
-          ContentType: mimeType,
+          Body: av1Buffer,
+          ContentType: "video/mp4",
         }),
       );
       uploadedS3Keys.push(storageKey);
-
-      console.log(`  - Generating thumbnails & previews...`);
-      const { thumbnailBuffer, previewBuffer, duration, width, height } = 
-        await generateVideoAssets(fileBuffer, ext);
 
       console.log(`  - Uploading thumbnail to S3...`);
       await s3.send(
@@ -369,9 +389,9 @@ async function main() {
           postId: newPost.id,
           storageKey,
           filename,
-          mimeType,
+          mimeType: "video/mp4",
           mediaType: "video",
-          fileSize: fileBuffer.length,
+          fileSize: av1FileSize,
           width,
           height,
           duration,
@@ -380,24 +400,6 @@ async function main() {
           orderIndex: 0,
         })
         .returning();
-
-      try {
-        await enqueueTranscode({
-          mediaId: mediaResult.id,
-          postId: newPost.id,
-          storageKey,
-          filename,
-          mimeType,
-          bucket: storageConfig.bucket,
-          endpoint: storageConfig.endpoint,
-          region: storageConfig.region,
-          accessKey: storageConfig.accessKey,
-          secretKey: storageConfig.secretKey,
-          forcePathStyle: storageConfig.forcePathStyle ?? false,
-        });
-      } catch (queueErr: any) {
-        console.error(`  ⚠️ Failed to enqueue transcode for media ID ${mediaResult.id}:`, queueErr.message);
-      }
 
       console.log(`  ✅ Successfully seeded: "${title}" (Post ID: ${newPost.id})`);
     } catch (err) {
