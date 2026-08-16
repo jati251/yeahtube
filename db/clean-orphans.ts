@@ -1,12 +1,11 @@
-/* eslint-disable */
 import "./env";
 import { getDb, schema } from "./index";
 import { getS3Client, getStorageConfig } from "../lib/storage";
-import { ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
-
+import { ListObjectsV2Command, DeleteObjectCommand, ListObjectsV2CommandOutput, _Object } from "@aws-sdk/client-s3";
+import { invalidateFeedCache, invalidateTaxonomyCache } from "../lib/cache";
 
 async function main() {
-  console.log("🔍 Scanning for orphaned S3 objects...");
+  console.log("🔍 Scanning for orphaned S3 objects in MinIO/S3...");
   const db = getDb();
   const s3 = getS3Client();
   const storageConfig = getStorageConfig();
@@ -21,7 +20,7 @@ async function main() {
     if (m.previewKey) validKeys.add(m.previewKey);
   }
 
-  console.log(`📊 Found ${validKeys.size} valid S3 keys in the database.`);
+  console.log(`📊 Found ${validKeys.size} valid referenced S3 keys in PostgreSQL.`);
 
   // 2. List all objects in S3
   const orphanedKeys: string[] = [];
@@ -31,7 +30,7 @@ async function main() {
   console.log(`🌐 Fetching object list from MinIO bucket "${storageConfig.bucket}"...`);
   
   do {
-    const response: any = await s3.send(
+    const response: ListObjectsV2CommandOutput = await s3.send(
       new ListObjectsV2Command({
         Bucket: storageConfig.bucket,
         ContinuationToken: continuationToken,
@@ -39,7 +38,7 @@ async function main() {
     );
 
     if (response.Contents) {
-      for (const object of response.Contents) {
+      for (const object of response.Contents as _Object[]) {
         if (object.Key) {
           totalObjectsScanned++;
           if (!validKeys.has(object.Key)) {
@@ -71,7 +70,14 @@ async function main() {
     }
   }
 
-  console.log(`\n🎉 Orphan cleanup finished. Deleted ${deletedCount} orphaned objects.`);
+  if (deletedCount > 0) {
+    console.log("⚡ Purging Redis feed & taxonomy cache...");
+    await invalidateFeedCache();
+    await invalidateTaxonomyCache();
+    console.log("✅ Cache invalidated successfully!");
+  }
+
+  console.log(`\n🎉 Orphan cleanup finished. Deleted ${deletedCount} orphaned objects from S3.`);
   process.exit(0);
 }
 
