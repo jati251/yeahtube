@@ -34,7 +34,7 @@ async function main() {
     console.log("✅ Queue successfully flushed!");
   }
 
-  const counts = await queue.getJobCounts("waiting", "active", "completed", "failed", "delayed", "paused");
+  const counts = await queue.getJobCounts();
   
   console.log("\n==================================================");
   console.log("📊 BullMQ Queue Status (yeahtube-transcode):");

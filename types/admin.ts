@@ -9,10 +9,34 @@ export interface UserItem {
   createdAt: string;
 }
 
+export interface ServiceHealth {
+  name: string;
+  status: "online" | "offline" | "degraded";
+  latencyMs?: number;
+  info?: string;
+}
+
+export interface QueueHealth {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+}
+
 export interface AdminStats {
   totalMediaSize: number;
-  vmFreeStorage: number;
-  vmTotalStorage: number;
+  videoSize: number;
+  imageSize: number;
+  videoCount: number;
+  imageCount: number;
+  avgVideoSize: number;
+  databaseSize: number;
+  totalDuration: number;
+  hdCount: number;
+  sdCount: number;
+  unprocessedCount: number;
+  services: ServiceHealth[];
+  queueStats: QueueHealth;
   totalPosts: number;
   totalUsers: number;
   totalMediaFiles: number;

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Shield, ShieldOff, Check, X, UserPlus, HardDrive, Database, Server, FileText, Users, Film, MessageCircle, Heart, Tag, FolderOpen, ListVideo, Upload, TrendingUp, FileWarning } from "lucide-react";
+import { Shield, ShieldOff, Check, X, UserPlus, Database, Server, FileText, Users, Film, MessageCircle, Heart, Tag, ListVideo, Upload, TrendingUp, FileWarning } from "lucide-react";
 import { formatBytes } from "@/lib/media-utils";
 import { CategoryManager } from "@/components/admin/CategoryManager";
 import { AdminClientProps } from "@/types/admin";
@@ -287,70 +287,173 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
         <CategoryManager initialCategories={categories} />
       ) : activeTab === "system" && stats ? (
         <div className="space-y-6">
-          {/* Storage */}
+          {/* 1. Infrastructure Services Health */}
           <div>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              Storage
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Total media size */}
-              <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                    <Database className="h-5 w-5" />
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                Infrastructure Health & Services
+              </h2>
+              <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-medium">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                All Systems Operational
+              </span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {stats.services?.map((svc, i) => (
+                <div key={i} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">{svc.name}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${
+                      svc.status === "online" 
+                        ? "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300"
+                        : "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300"
+                    }`}>
+                      {svc.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mb-1">{svc.info}</p>
+                  {typeof svc.latencyMs !== "undefined" && svc.latencyMs > 0 && (
+                    <p className="text-[10px] font-mono text-zinc-400">Response: {svc.latencyMs}ms</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Video Library & Transcoding Engine */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Live BullMQ Queue Monitor */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
+                    <Server className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total Media Size</p>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Transcode Engine (BullMQ)</h3>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">SVT-AV1 • Sharp WebP • Concurrency: 4</p>
+                  </div>
+                </div>
+                <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-1 rounded-md">
+                  yeahtube-transcode
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-2.5">
+                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{stats.queueStats?.waiting ?? 0}</p>
+                  <p className="text-[10px] uppercase font-semibold text-zinc-400">Waiting</p>
+                </div>
+                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-2.5">
+                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{stats.queueStats?.active ?? 0}</p>
+                  <p className="text-[10px] uppercase font-semibold text-zinc-400">Active</p>
+                </div>
+                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-2.5">
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{stats.queueStats?.completed ?? 0}</p>
+                  <p className="text-[10px] uppercase font-semibold text-zinc-400">Done</p>
+                </div>
+                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-2.5">
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">{stats.queueStats?.failed ?? 0}</p>
+                  <p className="text-[10px] uppercase font-semibold text-zinc-400">Failed</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Video Library Playtime & Quality */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400">
+                    <Film className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Video Content & Quality</h3>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      Total Playtime: {Math.floor(stats.totalDuration / 3600)}h {Math.floor((stats.totalDuration % 3600) / 60)}m
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-2.5">
+                  <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{stats.hdCount}</p>
+                  <p className="text-[10px] uppercase font-semibold text-zinc-400">HD / 1080p</p>
+                </div>
+                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-2.5">
+                  <p className="text-lg font-bold text-zinc-700 dark:text-zinc-300">{stats.sdCount}</p>
+                  <p className="text-[10px] uppercase font-semibold text-zinc-400">SD / 480p</p>
+                </div>
+                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/60 p-2.5">
+                  <p className="text-lg font-bold text-zinc-400">{stats.unprocessedCount}</p>
+                  <p className="text-[10px] uppercase font-semibold text-zinc-400">Pending</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Dedicated YeahTube Storage Footprint */}
+          <div>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+              YeahTube Storage Footprint
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Media size */}
+              <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+                    <Film className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Media Storage (S3/MinIO)</p>
                     <p className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
                       {formatBytes(stats.totalMediaSize)}
                     </p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      {stats.videoCount} video{stats.videoCount !== 1 ? "s" : ""} (avg {formatBytes(stats.avgVideoSize)})
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* VM storage */}
+              {/* PostgreSQL Database storage */}
               <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
-                    <HardDrive className="h-5 w-5" />
+                    <Database className="h-5 w-5" />
                   </div>
-                  <div className="w-full min-w-0">
-                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">VM Storage Available</p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">PostgreSQL Database</p>
                     <p className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-                      {formatBytes(stats.vmFreeStorage)}{" "}
-                      <span className="text-sm font-normal text-zinc-500 dark:text-zinc-400">
-                        / {formatBytes(stats.vmTotalStorage)}
-                      </span>
+                      {stats.databaseSize > 0 ? formatBytes(stats.databaseSize) : "N/A"}
                     </p>
-                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
-                      <div
-                        className={`h-full ${stats.vmFreeStorage / stats.vmTotalStorage < 0.1 ? "bg-red-500" : "bg-green-500"}`}
-                        style={{ width: `${Math.max(0, Math.min(100, 100 - (stats.vmFreeStorage / stats.vmTotalStorage * 100)))}%` }}
-                      />
-                    </div>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      {stats.totalPosts} posts • {stats.totalUsers} users • {stats.totalCategories} categories
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Environment */}
+              {/* Runtime Environment */}
               <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400">
                     <Server className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Environment</p>
+                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Runtime Environment</p>
                     <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50 break-all">
                       Node {process.version}
                     </p>
-                    <p className="text-[10px] text-zinc-400">{process.platform}</p>
+                    <p className="text-[10px] text-zinc-400">Next.js Turbopack • Redis Cache</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Content Overview */}
+          {/* 4. Content Overview */}
           <div>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
               Content Overview
@@ -363,21 +466,20 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
             </div>
           </div>
 
-          {/* Community */}
+          {/* 5. Community */}
           <div>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              Community
+              Community & Taxonomies
             </h2>
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <StatCard icon={<Users className="h-5 w-5" />} label="Total Users" value={String(stats.totalUsers)} color="cyan" />
               <StatCard icon={<Heart className="h-5 w-5" />} label="Likes" value={String(stats.totalLikes)} color="red" />
               <StatCard icon={<ListVideo className="h-5 w-5" />} label="Playlists" value={String(stats.totalPlaylists)} color="violet" />
               <StatCard icon={<Tag className="h-5 w-5" />} label="Tags" value={String(stats.totalTags)} color="teal" />
-              <StatCard icon={<FolderOpen className="h-5 w-5" />} label="Categories" value={String(stats.totalCategories)} color="orange" />
             </div>
           </div>
 
-          {/* Highlights */}
+          {/* 6. Highlights */}
           <div>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
               Highlights
@@ -413,7 +515,7 @@ export function AdminClient({ currentUserId, users, categories = [], stats }: Ad
                       <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Top {Math.min(stats.largestFiles.length, 5)}</p>
                     </div>
                   </div>
-                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 w-full overflow-hidden">
+                  <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 w-full overflow-hidden">
                     {stats.largestFiles.slice(0, 5).map((f, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60">
                         <div className="min-w-0 flex-1 overflow-hidden">
