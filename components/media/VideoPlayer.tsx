@@ -156,6 +156,20 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     setPipSupported(typeof document !== "undefined" && "pictureInPictureEnabled" in document);
   }, []);
 
+  // Pause video when browser is minimized or tab is hidden
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden" && playing) {
+        if (videoRef.current) {
+          videoRef.current.pause();
+        }
+        setPlaying(false);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [playing]);
+
   // Whenever src is set (mount or change), attach HLS or assign native src.
   // This ensures TS and HLS files play across all browsers including Chrome/Edge.
   useEffect(() => {
