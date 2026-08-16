@@ -7,6 +7,7 @@ import { PlayerOverlaysProps } from "@/types";
 export type { PlayerOverlaysProps };
 
 export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
+  title,
   isFastForwarding,
   toastBadge,
   playPauseFlash,
@@ -23,9 +24,18 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
 
   return (
     <>
+      {/* Top Title Overlay (Visible when controls are shown) */}
+      {(showControls || showSettings) && title && !isPipActive && (
+        <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/85 via-black/40 to-transparent p-3.5 sm:p-4 pt-3 sm:pt-4 transition-opacity duration-200 pointer-events-none">
+          <h2 className="text-xs sm:text-sm md:text-base font-semibold text-white/95 line-clamp-2 drop-shadow-md pr-8">
+            {title}
+          </h2>
+        </div>
+      )}
+
       {/* 2X Fast Forward Top Badge */}
       {isFastForwarding && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/80 px-4 py-1.5 border border-white/20 shadow-xl animate-in fade-in zoom-in duration-150 pointer-events-none">
+        <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/80 px-4 py-1.5 border border-white/20 shadow-xl animate-in fade-in zoom-in duration-150 pointer-events-none">
           <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
           <span className="text-xs font-bold tracking-wide text-white uppercase">2X Fast Forwarding ⏩</span>
         </div>

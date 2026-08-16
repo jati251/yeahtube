@@ -127,6 +127,7 @@ export function WatchPageClient({
           <VideoPlayer
             key={post.id}
             src={currentVideo.streamUrl}
+            title={postData.title}
             poster={currentVideo.thumbnailUrl || undefined}
             type={currentVideo.mimeType}
             width={currentVideo.width}
@@ -136,7 +137,7 @@ export function WatchPageClient({
           />
 
           <div className="mt-4">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words whitespace-normal leading-snug">
               {postData.title}
             </h1>
 

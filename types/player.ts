@@ -11,6 +11,7 @@ export interface QualityOption {
 
 export interface VideoPlayerProps {
   src: string;
+  title?: string;
   poster?: string;
   type?: string;
   width?: number | null;
@@ -20,6 +21,7 @@ export interface VideoPlayerProps {
 }
 
 export interface PlayerOverlaysProps {
+  title?: string;
   isFastForwarding: boolean;
   toastBadge: string | null;
   playPauseFlash: "play" | "pause" | null;

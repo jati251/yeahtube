@@ -93,7 +93,7 @@ export const MediaListItem = React.memo(function MediaListItem({ post, isAdmin, 
       {/* Info */}
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 text-sm font-semibold tracking-tight sm:text-base text-zinc-900 dark:text-zinc-50 leading-snug break-words" title={post.title}>
+          <h3 className="line-clamp-2 sm:line-clamp-3 text-sm font-semibold tracking-tight sm:text-base text-zinc-900 dark:text-zinc-50 leading-snug break-words" title={post.title}>
             {post.title}
           </h3>
           {post.mediaCount > 1 && (

@@ -16,6 +16,7 @@ export type { QualityOption, VideoPlayerProps };
 
 export function VideoPlayer({
   src,
+  title,
   poster,
   type = "video/mp4",
   width,
@@ -434,6 +435,7 @@ export function VideoPlayer({
 
       {/* Overlays */}
       <PlayerOverlays
+        title={title}
         isFastForwarding={isFastForwarding}
         toastBadge={toastBadge}
         playPauseFlash={playPauseFlash}
