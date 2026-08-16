@@ -20,7 +20,9 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
   onResumeFromPiP,
   onTogglePlay,
 }) => {
-  const isCenterControlVisible = (!playing || showControls || showSettings) && !isPipActive;
+  // Only show center button when paused (not playing) — hide it while playing even if controls visible
+  // This prevents the center button from stealing tap events meant for the gesture overlay
+  const isCenterControlVisible = !playing && !isPipActive;
 
   return (
     <>
@@ -48,7 +50,7 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
         </div>
       )}
 
-      {/* Center Play/Pause Flash Feedback Animation */}
+      {/* Center Play/Pause Flash Feedback Animation (momentary, non-interactive) */}
       {playPauseFlash && (
         <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black/70 text-white animate-out fade-out zoom-out-50 duration-500 shadow-2xl border border-white/10">
@@ -115,7 +117,7 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
         </div>
       )}
 
-      {/* Center Play / Pause Responsive Button */}
+      {/* Center Play Button — ONLY shown when video is paused, NOT when playing with controls visible */}
       {isCenterControlVisible && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
           <button
@@ -124,13 +126,9 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
               onTogglePlay();
             }}
             className="pointer-events-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-black/60 hover:bg-black/80 active:scale-90 text-white transition-all cursor-pointer shadow-2xl border border-white/10"
-            aria-label={playing ? "Pause" : "Play"}
+            aria-label="Play"
           >
-            {playing ? (
-              <Pause className="h-8 w-8 sm:h-10 sm:w-10 text-white fill-white" />
-            ) : (
-              <Play className="ml-1 h-8 w-8 sm:h-10 sm:w-10 text-white fill-white" />
-            )}
+            <Play className="ml-1 h-8 w-8 sm:h-10 sm:w-10 text-white fill-white" />
           </button>
         </div>
       )}
