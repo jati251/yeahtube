@@ -218,7 +218,15 @@ export function VideoPlayer({
   }, []);
 
   // ── Custom Hook: Gestures (Hold 2X, Tap Zones, Double-Tap Seek) ────
-  const { isFastForwarding, skipInfo, startHold2X, endHold2X, handleTapZone } = usePlayerGestures({
+  const {
+    isFastForwarding,
+    skipInfo,
+    startHold2X,
+    endHold2X,
+    handleTapZone,
+    handleTouchStart,
+    handleTouchEnd,
+  } = usePlayerGestures({
     containerRef,
     videoRef,
     playing,
@@ -354,7 +362,7 @@ export function VideoPlayer({
       <div className={`absolute inset-0 overflow-hidden ${isFullscreenActive ? "rounded-none" : "rounded-xl"}`}>
         <video
           ref={videoRef}
-          className="h-full w-full object-contain"
+          className="h-full w-full object-contain pointer-events-none"
           poster={poster || undefined}
           onError={(e) => {
             console.error("Video error event:", e);
@@ -419,8 +427,8 @@ export function VideoPlayer({
         onMouseDown={startHold2X}
         onMouseUp={endHold2X}
         onMouseLeave={endHold2X}
-        onTouchStart={startHold2X}
-        onTouchEnd={endHold2X}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onTouchCancel={endHold2X}
       />
 
