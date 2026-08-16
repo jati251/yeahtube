@@ -1,8 +1,7 @@
 import "server-only";
 import { getDb, schema } from "@/db";
-import { eq, inArray, sql, desc } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
-import { getCache, setCache } from "@/lib/cache";
 import { ShortsClient } from "./ShortsClient";
 
 export const dynamic = "force-dynamic";
@@ -10,11 +9,6 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 15; // Load fewer at a time for shorts
 
 async function getInitialShorts() {
-  const cacheKey = "cache:shorts:initial";
-  const cached = await getCache<{ posts: ReturnType<typeof formatPostItem> extends Promise<infer U> ? U[] : never; total: number }>(cacheKey);
-  if (cached) {
-    return cached;
-  }
 
   const db = getDb();
 
@@ -33,7 +27,7 @@ async function getInitialShorts() {
       createdAt: schema.posts.createdAt,
     })
     .from(schema.posts)
-    .orderBy(desc(schema.posts.createdAt))
+    .orderBy(sql`RANDOM()`)
     .limit(PAGE_SIZE);
 
   if (posts.length === 0) {
@@ -70,10 +64,7 @@ async function getInitialShorts() {
     })
   );
 
-  const payload = { posts: result, total };
-  await setCache(cacheKey, payload, 60);
-
-  return payload;
+  return { posts: result, total };
 }
 
 export default async function ShortsPage() {
