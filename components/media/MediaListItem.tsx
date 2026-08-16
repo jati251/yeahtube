@@ -51,6 +51,8 @@ export const MediaListItem = React.memo(function MediaListItem({ post, isAdmin, 
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="(max-width: 640px) 144px, 112px"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full items-center justify-center">

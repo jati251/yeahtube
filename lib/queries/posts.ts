@@ -28,10 +28,13 @@ export async function buildFilterConditions(
   // Category filter
   if (category) {
     try {
-      const [cat] = await db
+      const getCategoryBySlugPrepared = db
         .select()
         .from(schema.categories)
-        .where(eq(schema.categories.slug, category));
+        .where(eq(schema.categories.slug, sql.placeholder("slug")))
+        .prepare("get_category_by_slug");
+
+      const [cat] = await getCategoryBySlugPrepared.execute({ slug: category });
       if (cat) {
         conditions.push(eq(schema.posts.categoryId, cat.id));
       } else {
@@ -397,10 +400,13 @@ export async function getPostDetail(
 
   const db = getDb();
 
-  const [post] = await db
+  const getPostByIdPrepared = db
     .select()
     .from(schema.posts)
-    .where(eq(schema.posts.id, postId));
+    .where(eq(schema.posts.id, sql.placeholder("postId")))
+    .prepare("get_post_detail_by_id");
+
+  const [post] = await getPostByIdPrepared.execute({ postId });
 
   if (!post) return null;
 
