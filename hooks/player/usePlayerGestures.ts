@@ -7,11 +7,10 @@ interface UsePlayerGesturesProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   playing: boolean;
   playbackSpeed: number;
-  togglePlay: () => void;
   skipBackward: (seconds?: number) => void;
   skipForward: (seconds?: number) => void;
-  showControlsTemporarily: () => void;
   setShowControls: React.Dispatch<React.SetStateAction<boolean>>;
+  showControlsTemporarily: () => void;
 }
 
 export function usePlayerGestures({
@@ -19,11 +18,10 @@ export function usePlayerGestures({
   videoRef,
   playing,
   playbackSpeed,
-  togglePlay,
   skipBackward,
   skipForward,
-  showControlsTemporarily,
   setShowControls,
+  showControlsTemporarily,
 }: UsePlayerGesturesProps) {
   // ── Hold-for-2X Fast Forward ──────────────────────
   const [isFastForwarding, setIsFastForwarding] = useState(false);
@@ -76,14 +74,14 @@ export function usePlayerGestures({
       const widthRatio = x / rect.width;
       const yRatio = y / rect.height;
 
-      // Ignore controls bar area
-      if (yRatio > 0.85) return;
+      // Ignore clicks on the bottom control bar area
+      if (yRatio > 0.82) return;
 
       const now = Date.now();
-      const currentSide = widthRatio < 0.35 ? "left" : widthRatio > 0.65 ? "right" : null;
+      const currentSide = widthRatio < 0.3 ? "left" : widthRatio > 0.7 ? "right" : null;
 
-      if (currentSide && currentSide === tapAccumulatorRef.current.side && now - tapAccumulatorRef.current.time < 400) {
-        // Multi-tap detected on left or right
+      if (currentSide && currentSide === tapAccumulatorRef.current.side && now - tapAccumulatorRef.current.time < 350) {
+        // Multi-tap skip detected on left/right edges
         tapAccumulatorRef.current.count += 1;
         tapAccumulatorRef.current.time = now;
         const totalSkip = tapAccumulatorRef.current.count * 10;
@@ -99,24 +97,20 @@ export function usePlayerGestures({
         skipTimeoutRef.current = setTimeout(() => {
           setSkipInfo(null);
           tapAccumulatorRef.current = { time: 0, side: null, count: 0 };
-        }, 650);
+        }, 600);
       } else {
-        // Single tap
+        // Single tap on video: toggle UI visibility
         tapAccumulatorRef.current = { time: now, side: currentSide, count: 1 };
-        const isTouch = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-        if (isTouch) {
-          setShowControls((prev) => !prev);
-          if (!playing) {
-            setShowControls(true);
-          } else {
+        setShowControls((prev) => {
+          const next = !prev;
+          if (next) {
             showControlsTemporarily();
           }
-        } else {
-          togglePlay();
-        }
+          return next;
+        });
       }
     },
-    [containerRef, videoRef, playing, skipBackward, skipForward, togglePlay, showControlsTemporarily, setShowControls],
+    [containerRef, videoRef, skipBackward, skipForward, setShowControls, showControlsTemporarily],
   );
 
   return {

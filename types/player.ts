@@ -37,7 +37,6 @@ export interface PlayerControlsProps {
   progressRef: RefObject<HTMLDivElement | null>;
   showControls: boolean;
   showSettings: boolean;
-  playing: boolean;
   currentTime: number;
   duration: number;
   buffered: number;
@@ -53,9 +52,6 @@ export interface PlayerControlsProps {
   isFullscreenActive: boolean;
   onSeek: (e: MouseEvent<HTMLDivElement>) => void;
   onSeekStart: (e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => void;
-  onTogglePlay: () => void;
-  onSkipBackward: (seconds?: number) => void;
-  onSkipForward: (seconds?: number) => void;
   onToggleMute: () => void;
   onVolumeChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onToggleSettings: () => void;

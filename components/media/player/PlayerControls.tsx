@@ -2,14 +2,10 @@
 
 import React from "react";
 import {
-  Play,
-  Pause,
   Volume2,
   VolumeX,
   Maximize,
   Minimize,
-  SkipBack,
-  SkipForward,
   PictureInPicture,
   Settings,
 } from "lucide-react";
@@ -21,7 +17,6 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   progressRef,
   showControls,
   showSettings,
-  playing,
   currentTime,
   duration,
   buffered,
@@ -37,9 +32,6 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   isFullscreenActive,
   onSeek,
   onSeekStart,
-  onTogglePlay,
-  onSkipBackward,
-  onSkipForward,
   onToggleMute,
   onVolumeChange,
   onToggleSettings,
@@ -52,16 +44,28 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
 }) => {
   return (
     <>
+      {/* Mini Progress Bar when controls are hidden */}
+      {!showControls && !showSettings && (
+        <div className="absolute bottom-0 left-0 right-0 z-20 h-[3px] bg-white/20 pointer-events-none">
+          <div
+            className="h-full bg-blue-500 transition-all duration-100"
+            style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
+          />
+        </div>
+      )}
+
+      {/* Main Full Controls Overlay */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 sm:p-4 pt-10 sm:pt-12 transition-opacity ${
-          showControls || showSettings ? "opacity-100" : "opacity-0 pointer-events-none"
+        className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 sm:p-4 pt-10 sm:pt-12 transition-opacity duration-200 ${
+          showControls || showSettings ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Progress Bar */}
+        {/* Full Interactive Scrubber / Progress Bar */}
         <div
           ref={progressRef}
-          className={`group relative mb-3 cursor-pointer rounded-full bg-white/30 transition-all select-none ${
-            isDraggingState ? "h-4 sm:h-3" : "h-4 sm:h-1.5 hover:h-4 sm:hover:h-3"
+          className={`group relative mb-2.5 cursor-pointer rounded-full bg-white/30 transition-all select-none ${
+            isDraggingState ? "h-3" : "h-1.5 hover:h-2.5"
           }`}
           onClick={onSeek}
           onMouseDown={onSeekStart}
@@ -86,174 +90,146 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         </div>
 
         {/* Controls Row */}
-        <div className="flex items-center gap-2.5 sm:gap-3 text-white">
-          {/* Play / Pause */}
-          <button
-            onClick={onTogglePlay}
-            className="hover:text-blue-400 transition-colors cursor-pointer"
-            aria-label={playing ? "Pause" : "Play"}
-          >
-            {playing ? (
-              <Pause className="h-7 w-7 sm:h-5 sm:w-5 fill-current" />
-            ) : (
-              <Play className="h-7 w-7 sm:h-5 sm:w-5 fill-current" />
+        <div className="flex items-center justify-between text-white select-none">
+          {/* Left: Time indicator */}
+          <div className="flex items-center gap-2 text-xs font-medium text-white/90">
+            <span>{formatTime(currentTime)}</span>
+            <span className="text-white/40">/</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+
+          {/* Right: Actions (Volume, Settings, PiP, Fullscreen) */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Volume Control (Desktop) */}
+            <div className="hidden sm:flex items-center gap-1.5 group/vol">
+              <button
+                onClick={onToggleMute}
+                className="text-white/80 hover:text-white transition-colors cursor-pointer"
+                aria-label={muted ? "Unmute" : "Mute"}
+              >
+                {muted || volume === 0 ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={muted ? 0 : volume}
+                onChange={onVolumeChange}
+                className="h-1 w-16 sm:w-20 cursor-pointer rounded-lg bg-white/30 accent-blue-500"
+                aria-label="Volume"
+              />
+            </div>
+
+            {/* Quality Badge */}
+            {hasQualityOptions && (
+              <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
+                {currentQualityLabel}
+              </span>
             )}
-          </button>
 
-          {/* Skip Back / Forward */}
-          <button
-            onClick={() => onSkipBackward(10)}
-            className="text-white/80 hover:text-white transition-colors cursor-pointer"
-            aria-label="Skip 10s back"
-          >
-            <SkipBack className="h-6 w-6 sm:h-4 sm:w-4" />
-          </button>
-
-          <button
-            onClick={() => onSkipForward(10)}
-            className="text-white/80 hover:text-white transition-colors cursor-pointer"
-            aria-label="Skip 10s forward"
-          >
-            <SkipForward className="h-6 w-6 sm:h-4 sm:w-4" />
-          </button>
-
-          {/* Volume Control (Desktop) */}
-          <div className="hidden sm:flex items-center gap-1.5 group/vol">
+            {/* Settings Button */}
             <button
-              onClick={onToggleMute}
-              className="text-white/80 hover:text-white transition-colors cursor-pointer"
-              aria-label={muted ? "Unmute" : "Mute"}
+              onClick={onToggleSettings}
+              className={`transition-colors cursor-pointer ${
+                showSettings ? "text-blue-400" : "text-white/80 hover:text-white"
+              }`}
+              aria-label="Player Settings"
             >
-              {muted || volume === 0 ? (
-                <VolumeX className="h-4 w-4" />
+              <Settings className="h-5 w-5 sm:h-4 sm:w-4" />
+            </button>
+
+            {/* Picture-in-Picture */}
+            {pipSupported && (
+              <button
+                onClick={onTogglePiP}
+                className={`transition-colors cursor-pointer ${
+                  isPipActive ? "text-blue-400" : "text-white/80 hover:text-white"
+                }`}
+                aria-label="Picture-in-Picture"
+              >
+                <PictureInPicture className="h-5 w-5 sm:h-4 sm:w-4" />
+              </button>
+            )}
+
+            {/* Fullscreen Toggle */}
+            <button
+              onClick={onToggleFullscreen}
+              className="text-white/80 hover:text-white transition-colors cursor-pointer"
+              aria-label={isFullscreenActive ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {isFullscreenActive ? (
+                <Minimize className="h-5 w-5 sm:h-4 sm:w-4" />
               ) : (
-                <Volume2 className="h-4 w-4" />
+                <Maximize className="h-5 w-5 sm:h-4 sm:w-4" />
               )}
             </button>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={muted ? 0 : volume}
-              onChange={onVolumeChange}
-              className="h-1 w-16 sm:w-20 cursor-pointer rounded-lg bg-white/30 accent-blue-500"
-              aria-label="Volume"
-            />
           </div>
-
-          {/* Time Display */}
-          <span className="ml-auto font-mono text-[11px] sm:text-xs text-white/80 select-none">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </span>
-
-          {/* Quality Indicator Label */}
-          <span className="text-[10px] sm:text-[11px] text-white/60 font-medium select-none">
-            {currentQualityLabel}
-          </span>
-
-          {/* Settings Menu Toggle */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleSettings();
-              }}
-              className={`text-white/80 hover:text-white transition-colors cursor-pointer ${
-                showSettings ? "text-blue-400" : ""
-              }`}
-              aria-label="Settings"
-            >
-              <Settings className="h-6 w-6 sm:h-4 sm:w-4" />
-            </button>
-          </div>
-
-          {/* Picture in Picture */}
-          {pipSupported && (
-            <button
-              onClick={onTogglePiP}
-              className={`text-white/80 hover:text-white transition-colors cursor-pointer ${
-                isPipActive ? "text-blue-400" : ""
-              }`}
-              aria-label={isPipActive ? "Exit Picture-in-Picture" : "Picture-in-Picture"}
-            >
-              <PictureInPicture className="h-6 w-6 sm:h-4 sm:w-4" />
-            </button>
-          )}
-
-          {/* Fullscreen Toggle */}
-          <button
-            onClick={onToggleFullscreen}
-            className="text-white/80 hover:text-white transition-colors cursor-pointer"
-            aria-label={isFullscreenActive ? "Exit fullscreen" : "Fullscreen"}
-          >
-            {isFullscreenActive ? (
-              <Minimize className="h-6 w-6 sm:h-4 sm:w-4" />
-            ) : (
-              <Maximize className="h-6 w-6 sm:h-4 sm:w-4" />
-            )}
-          </button>
         </div>
-      </div>
 
-      {/* Settings Popup Menu */}
-      {showSettings && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={onCloseSettings} />
-          <div className="absolute bottom-20 right-4 z-50 w-48 max-h-[calc(100%-96px)] overflow-y-auto rounded-xl border border-white/10 bg-zinc-900/95 py-2 shadow-2xl backdrop-blur-md">
-            {/* Quality Section */}
-            {hasQualityOptions && qualityOptions && (
-              <>
-                <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/50">
-                  Quality
-                </div>
-                {qualityOptions.map((opt) => (
-                  <button
-                    key={opt.label}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectQuality?.(opt);
-                      onCloseSettings();
-                    }}
-                    className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors cursor-pointer ${
-                      opt.isCurrent
-                        ? "bg-blue-500/20 text-blue-400 font-medium"
-                        : "text-white/80 hover:bg-white/10"
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    {opt.isCurrent && <span className="text-blue-400 font-bold">✓</span>}
-                  </button>
-                ))}
-                <div className="mx-2 my-1.5 border-t border-white/10" />
-              </>
-            )}
+        {/* Settings Popup Menu */}
+        {showSettings && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={onCloseSettings} />
+            <div className="absolute bottom-16 right-4 z-50 w-48 max-h-[calc(100%-80px)] overflow-y-auto rounded-xl border border-white/10 bg-zinc-900/95 py-2 shadow-2xl">
+              {/* Quality Section */}
+              {hasQualityOptions && qualityOptions && (
+                <>
+                  <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/50">
+                    Quality
+                  </div>
+                  {qualityOptions.map((opt) => (
+                    <button
+                      key={opt.label}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectQuality?.(opt);
+                        onCloseSettings();
+                      }}
+                      className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors cursor-pointer ${
+                        opt.isCurrent
+                          ? "bg-blue-500/20 text-blue-400 font-medium"
+                          : "text-white/80 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {opt.isCurrent && <span className="text-[10px]">✓</span>}
+                    </button>
+                  ))}
+                  <div className="my-1.5 border-t border-white/10" />
+                </>
+              )}
 
-            {/* Playback Speed Section */}
-            <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/50">
-              Playback Speed
+              {/* Speed Section */}
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/50">
+                Speed
+              </div>
+              {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                <button
+                  key={speed}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectSpeed(speed);
+                    onCloseSettings();
+                  }}
+                  className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors cursor-pointer ${
+                    playbackSpeed === speed
+                      ? "bg-blue-500/20 text-blue-400 font-medium"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <span>{speed === 1 ? "Normal (1x)" : `${speed}x`}</span>
+                  {playbackSpeed === speed && <span className="text-[10px]">✓</span>}
+                </button>
+              ))}
             </div>
-            {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
-              <button
-                key={speed}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectSpeed(speed);
-                  onCloseSettings();
-                }}
-                className={`flex w-full items-center justify-between px-3 py-1.5 text-xs transition-colors cursor-pointer ${
-                  playbackSpeed === speed
-                    ? "bg-blue-500/20 text-blue-400 font-medium"
-                    : "text-white/80 hover:bg-white/10"
-                }`}
-              >
-                <span>{speed === 1 ? "Normal (1x)" : `${speed}x`}</span>
-                {playbackSpeed === speed && <span className="text-blue-400 font-bold">✓</span>}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </>
   );
 };

@@ -223,11 +223,10 @@ export function VideoPlayer({
     videoRef,
     playing,
     playbackSpeed,
-    togglePlay,
     skipBackward,
     skipForward,
-    showControlsTemporarily,
     setShowControls,
+    showControlsTemporarily,
   });
 
   // ── Custom Hook: Universal YouTube Keyboard Shortcuts ──────────────
@@ -312,11 +311,15 @@ export function VideoPlayer({
     };
   }, []);
 
-  // PiP state tracking & auto-resume
+  // ── Global PiP Resume Synchronization ──────────────────────────────
   useEffect(() => {
-    if (globalPiP.isActive) {
+    if (globalPiP.isActive && globalPiP.videoUrl === src) {
+      prevPipActiveRef.current = true;
       prevPipVideoUrlRef.current = globalPiP.videoUrl;
       prevPipCurrentTimeRef.current = globalPiP.currentTime;
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+      }
     } else if (prevPipActiveRef.current && prevPipVideoUrlRef.current === src) {
       const video = videoRef.current;
       if (video && video.paused && video.readyState >= 1) {
@@ -351,9 +354,8 @@ export function VideoPlayer({
       <div className={`absolute inset-0 overflow-hidden ${isFullscreenActive ? "rounded-none" : "rounded-xl"}`}>
         <video
           ref={videoRef}
-          className="h-full w-full object-contain cursor-pointer"
+          className="h-full w-full object-contain"
           poster={poster || undefined}
-          onClick={togglePlay}
           onError={(e) => {
             console.error("Video error event:", e);
             if (hasQualityOptions && qualityOptions && onQualityChange) {
@@ -450,7 +452,6 @@ export function VideoPlayer({
         progressRef={progressRef}
         showControls={showControls}
         showSettings={showSettings}
-        playing={playing}
         currentTime={currentTime}
         duration={duration}
         buffered={buffered}
@@ -466,9 +467,6 @@ export function VideoPlayer({
         isFullscreenActive={isFullscreenActive}
         onSeek={handleSeek}
         onSeekStart={handleSeekStart}
-        onTogglePlay={togglePlay}
-        onSkipBackward={skipBackward}
-        onSkipForward={skipForward}
         onToggleMute={toggleMute}
         onVolumeChange={handleVolumeChange}
         onToggleSettings={() => setShowSettings((prev) => !prev)}

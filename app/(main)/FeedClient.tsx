@@ -11,6 +11,7 @@ import { MobileFilters } from "@/components/filters/MobileFilters";
 import { ActiveFilters } from "@/components/filters/ActiveFilters";
 import { TagCloud } from "@/components/filters/TagCloud";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { MediaCardSkeleton, MediaListItemSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { SlidersHorizontal, LayoutGrid, List } from "lucide-react";
 import { FeedClientProps } from "@/types/feed";
@@ -399,37 +400,13 @@ export function FeedClient({
             viewMode === "grid" ? (
               <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="animate-pulse overflow-hidden rounded-2xl border border-zinc-100 bg-white/50 dark:border-zinc-800/60 dark:bg-zinc-800/30"
-                  >
-                    <div className="aspect-[4/3] bg-zinc-200/70 dark:bg-zinc-700/50" />
-                    <div className="space-y-3 p-4">
-                      <div className="h-5 w-3/4 rounded bg-zinc-200/70 dark:bg-zinc-700/50" />
-                      <div className="space-y-2">
-                        <div className="h-3 w-full rounded bg-zinc-200/50 dark:bg-zinc-700/30" />
-                        <div className="h-3 w-4/6 rounded bg-zinc-200/50 dark:bg-zinc-700/30" />
-                      </div>
-                    </div>
-                  </div>
+                  <MediaCardSkeleton key={i} />
                 ))}
               </div>
             ) : (
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex animate-pulse gap-2 rounded-2xl border border-zinc-100 bg-white/50 p-4 dark:border-zinc-800/60 dark:bg-zinc-800/30"
-                  >
-                    <div className="h-20 w-28 rounded-lg bg-zinc-200/70 dark:bg-zinc-700/50 sm:h-24 sm:w-36" />
-                    <div className="flex-1 space-y-3 pt-1">
-                      <div className="h-5 w-3/4 rounded bg-zinc-200/70 dark:bg-zinc-700/50" />
-                      <div className="space-y-2">
-                        <div className="h-3 w-full rounded bg-zinc-200/50 dark:bg-zinc-700/30" />
-                        <div className="h-3 w-1/2 rounded bg-zinc-200/50 dark:bg-zinc-700/30" />
-                      </div>
-                    </div>
-                  </div>
+                  <MediaListItemSkeleton key={i} />
                 ))}
               </div>
             )

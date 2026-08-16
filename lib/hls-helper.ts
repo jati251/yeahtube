@@ -36,9 +36,11 @@ export interface HlsAttachResult {
 }
 
 /**
- * Attaches HLS or native playback for a video element.
- * For MPEG-TS files, creates a virtual HLS manifest for Hls.js to transmux on the fly.
- * Dynamically loads Hls.js only when needed (saves ~200KB on native / non-HLS playback).
+ * Attaches HLS or native playback for a video element with YouTube-tier buffer management.
+ * - Multi-threaded background Web Worker demuxing (Off-Main-Thread)
+ * - 30-second Lookahead Prefetching
+ * - 30-second Back-buffer Pruning (keeps RAM footprint minimal)
+ * - Micro-gap skip recovery
  */
 export function attachHlsOrNative(
   video: HTMLVideoElement,
@@ -58,28 +60,47 @@ export function attachHlsOrNative(
   let activeHls: Hls | null = null;
   let activeBlobUrl: string | null = null;
 
-  // In Safari (macOS / iOS) or standard MP4, native playback is used directly
+  // In Safari (macOS / iOS) or standard MP4/AV1, use optimized native streaming
   if (!isTs || canPlayNativeHls) {
     video.src = src;
+    video.preload = "auto";
     video.load();
     return {
       hls: null,
       destroy: () => {
         video.pause();
         video.removeAttribute("src");
+        video.load();
       },
     };
   }
 
-  // Dynamically load Hls.js on demand
+  // Dynamically load Hls.js on demand with YouTube-grade buffer configuration
   import("hls.js").then(({ default: HlsClass }) => {
     if (destroyed) return;
 
     if (HlsClass.isSupported()) {
       const hls = new HlsClass({
+        // 1. Offload heavy demuxing to Web Worker
         enableWorker: true,
-        lowLatencyMode: false,
+
+        // 2. Sliding window buffer configuration
+        maxBufferLength: 30,         // Prefetch 30s ahead
+        maxMaxBufferLength: 60,      // Max 60s forward buffer
+        maxBufferSize: 60 * 1024 * 1024, // 60MB max buffer cap
+        backBufferLength: 30,        // Discard watched video older than 30s
+
+        // 3. Ultra fast start & progressive streaming
         autoStartLoad: true,
+        startFragPrefetch: true,
+        progressive: true,
+        lowLatencyMode: false,
+
+        // 4. Seamless gap recovery (skip encoding micro-holes without buffering spinner)
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 5,
       });
       activeHls = hls;
 
@@ -154,6 +175,7 @@ export function attachHlsOrNative(
       }
       video.pause();
       video.removeAttribute("src");
+      video.load();
     },
   };
 }
