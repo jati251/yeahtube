@@ -11,7 +11,8 @@
     "seed:videos": "tsx db/seed-videos.ts",
     "worker": "tsx worker.ts",
     "retranscode": "tsx scripts/retranscode-all.ts",
-    "encode:av1": "tsx scripts/encode-av1.ts"
+    "encode:av1": "tsx scripts/encode-av1.ts",
+    "queue": "tsx scripts/queue-manage.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1111.0",
