@@ -1,5 +1,5 @@
-export const DEFAULT_PAGE_SIZE = 20;
-export const MAX_PAGE_SIZE = 50;
+export const DEFAULT_PAGE_SIZE = 48;
+export const MAX_PAGE_SIZE = 100;
 
 export const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },

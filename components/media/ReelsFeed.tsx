@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { ArrowLeft, Volume2, VolumeX, Heart, MessageCircle, Share2, BookmarkPlus, Play } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX, Heart, MessageCircle, Share2, BookmarkPlus, Play, FastForward, Rewind } from "lucide-react";
 import { PostItem } from "@/types/post";
 import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
@@ -190,6 +190,11 @@ const ReelItem = React.memo(function ReelItem({
   const [showComments, setShowComments] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [skipInfo, setSkipInfo] = useState<{ side: 'left' | 'right', amount: number } | null>(null);
+  
+  const lastTapRef = useRef<{ time: number, side: 'left' | 'right' | null, count: number, timeout: NodeJS.Timeout | null }>({
+    time: 0, side: null, count: 0, timeout: null
+  });
 
   // Notify parent of pause state change
   useEffect(() => {
@@ -280,20 +285,61 @@ const ReelItem = React.memo(function ReelItem({
   };
 
   const handleVideoClick = (e: React.MouseEvent) => {
-    // Avoid triggering pause when clicking interactive overlays
     if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) {
       return;
     }
-    const effectiveControls = showControls || isPaused || showComments || showSaveModal;
-    onUserActivity();
-    if (!effectiveControls) {
-      // If controls were hidden, first tap brings controls back without pausing
-      return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const side = x < rect.width / 2 ? 'left' : 'right';
+    const now = Date.now();
+    
+    // Multi-tap detection (within 300ms)
+    if (now - lastTapRef.current.time < 300 && lastTapRef.current.side === side) {
+      if (lastTapRef.current.timeout) clearTimeout(lastTapRef.current.timeout);
+      
+      lastTapRef.current.count += 1;
+      lastTapRef.current.time = now;
+      
+      const skipSeconds = 10;
+      const totalAmount = (lastTapRef.current.count - 1) * skipSeconds;
+      setSkipInfo({ side, amount: totalAmount });
+      
+      if (videoRef.current) {
+        if (side === 'left') {
+          videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - skipSeconds);
+        } else {
+          videoRef.current.currentTime = Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + skipSeconds);
+        }
+      }
+      
+      // Clear skip info after no taps for 800ms
+      lastTapRef.current.timeout = setTimeout(() => {
+        setSkipInfo(null);
+        lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
+      }, 800);
+      
+    } else {
+      // First tap
+      if (lastTapRef.current.timeout) clearTimeout(lastTapRef.current.timeout);
+      
+      lastTapRef.current = { time: now, side, count: 1, timeout: null };
+      
+      lastTapRef.current.timeout = setTimeout(() => {
+        // Handle single tap logic
+        const effectiveControls = showControls || isPaused || showComments || showSaveModal;
+        onUserActivity();
+        if (!effectiveControls) {
+          // If controls were hidden, first tap brings controls back without pausing
+        } else {
+          setIsPaused((prev) => !prev);
+        }
+        lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
+      }, 300);
     }
-    setIsPaused((prev) => !prev);
   };
 
-  const effectiveShowControls = showControls || isPaused || showComments || showSaveModal;
+  const effectiveShowControls = showControls || isPaused || showComments || showSaveModal || skipInfo !== null;
 
   return (
     <div
@@ -319,10 +365,20 @@ const ReelItem = React.memo(function ReelItem({
               onTimeUpdate={handleTimeUpdate}
             />
             {/* Play Overlay Indicator */}
-            {isPaused && (
+            {isPaused && !skipInfo && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-opacity">
                 <div className="bg-black/60 p-5 rounded-full text-white backdrop-blur-sm animate-scale-up shadow-xl border border-white/10">
                   <Play className="h-10 w-10 fill-white" />
+                </div>
+              </div>
+            )}
+            
+            {/* Skip Info Overlay */}
+            {skipInfo && (
+              <div className={`absolute inset-0 flex items-center ${skipInfo.side === 'left' ? 'justify-start pl-12' : 'justify-end pr-12'} transition-opacity pointer-events-none`}>
+                <div className="bg-black/40 rounded-full p-4 flex flex-col items-center backdrop-blur-md animate-scale-up">
+                  {skipInfo.side === 'left' ? <Rewind className="h-8 w-8 text-white mb-1" fill="currentColor" /> : <FastForward className="h-8 w-8 text-white mb-1" fill="currentColor" />}
+                  <span className="text-white font-bold">{skipInfo.amount}s</span>
                 </div>
               </div>
             )}

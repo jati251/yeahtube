@@ -6,7 +6,7 @@ import { ShortsClient } from "./ShortsClient";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 10; // Load fewer at a time for shorts
+const PAGE_SIZE = 15; // Load fewer at a time for shorts
 
 async function getInitialShorts() {
   const db = getDb();
