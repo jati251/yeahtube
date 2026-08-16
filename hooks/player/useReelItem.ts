@@ -227,10 +227,10 @@ export function useReelItem({
           lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
         }, 700);
       } else {
-        // Single tap
+        // Single tap (start accumulator with count = 0)
         if (lastTapRef.current.timeout) clearTimeout(lastTapRef.current.timeout);
 
-        lastTapRef.current = { time: now, side, count: 1, timeout: null };
+        lastTapRef.current = { time: now, side, count: 0, timeout: null };
 
         lastTapRef.current.timeout = setTimeout(() => {
           onUserActivity();
