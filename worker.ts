@@ -63,9 +63,18 @@ interface WorkerConfig {
 
 // ── Interactive Wizard / CLI Args Parser ──────────────
 async function resolveConfig(): Promise<WorkerConfig> {
-  const isInteractive = process.argv.includes("-i") || process.argv.includes("--interactive");
+  const hasHelp = process.argv.includes("-h") || process.argv.includes("--help");
+  if (hasHelp) showHelp();
 
-  if (isInteractive && process.stdin.isTTY) {
+  // Check if explicit CLI flags or non-interactive mode is requested
+  const hasEncoderFlag = process.argv.includes("-e") || process.argv.includes("--encoder");
+  const hasConcFlag = process.argv.includes("-c") || process.argv.includes("--concurrency");
+  const hasNonInteractive = process.argv.includes("-y") || process.argv.includes("--yes") || process.argv.includes("--non-interactive");
+
+  const hasExplicitArgs = hasEncoderFlag || hasConcFlag || hasNonInteractive;
+
+  // Show interactive menu by default if run directly in an interactive terminal
+  if (!hasExplicitArgs && process.stdin.isTTY && process.stdout.isTTY) {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -84,7 +93,7 @@ async function resolveConfig(): Promise<WorkerConfig> {
     console.log("  4) Apple VideoToolbox (Mac M1/M2/M3/M4 GPU)");
     console.log("  5) Universal H.264 (libx264 CPU)");
 
-    const encoderAns = (await rl.question("\nPilih nomor [1-5, Default: 1]: ")).trim();
+    const encoderAns = (await rl.question("\nPilih nomor [1-5, tekan Enter untuk default: 1]: ")).trim();
     let encoder: EncoderType = "svtav1";
     if (encoderAns === "2") encoder = "nvenc";
     else if (encoderAns === "3") encoder = "qsv";
@@ -92,7 +101,7 @@ async function resolveConfig(): Promise<WorkerConfig> {
     else if (encoderAns === "5") encoder = "x264";
 
     const defaultConcurrency = encoder === "nvenc" || encoder === "qsv" ? 4 : 2;
-    const concAns = (await rl.question(`Berapa video diproses paralel? [1-16, Default: ${defaultConcurrency}]: `)).trim();
+    const concAns = (await rl.question(`Berapa video diproses paralel? [1-16, tekan Enter untuk default: ${defaultConcurrency}]: `)).trim();
     const parsedConc = parseInt(concAns, 10);
     const concurrency = !isNaN(parsedConc) && parsedConc > 0 ? Math.min(parsedConc, 16) : defaultConcurrency;
 
@@ -100,7 +109,7 @@ async function resolveConfig(): Promise<WorkerConfig> {
     return { concurrency, encoder };
   }
 
-  // Parse CLI args or ENV
+  // Parse CLI args or ENV for direct execution / scripts / Docker
   let encoder: EncoderType = "svtav1";
   const eIndex = process.argv.indexOf("-e");
   const encoderIndex = process.argv.indexOf("--encoder");
