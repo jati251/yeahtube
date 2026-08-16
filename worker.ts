@@ -214,6 +214,15 @@ const worker = new Worker<TranscodeJobData>(
         [videoWidth, videoHeight, actualDuration, thumbnailKey, finalPreviewKey, mediaId]
       );
 
+      // Invalidate Redis feed & post cache so UI immediately reflects updated metadata
+      try {
+        const { invalidatePostCache, invalidateFeedCache } = await import("./lib/cache");
+        await invalidatePostCache(postId);
+        await invalidateFeedCache();
+      } catch {
+        // Silently continue if Redis helper is unavailable in standalone worker context
+      }
+
       console.log(`[Worker] ✅ Video assets generated successfully for media #${mediaId}`);
     } catch (err) {
       console.error(`[Worker] ❌ Asset generation failed for media #${mediaId}:`, err);

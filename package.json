@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:seed": "tsx db/seed.ts"
+    "db:seed": "tsx db/seed.ts",
+    "worker": "tsx worker.ts",
+    "retranscode": "tsx scripts/retranscode-all.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1111.0",
