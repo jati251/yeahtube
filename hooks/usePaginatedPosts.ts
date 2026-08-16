@@ -61,6 +61,7 @@ export function usePaginatedPosts({
   // Prevent fetch on mount / after cache restore
   const skipRef = useRef(false);
   const mountedRef = useRef(false);
+  const currentFetchIdRef = useRef(0);
 
   const buildUrl = useCallback(
     (pageNum: number) => {
@@ -80,6 +81,7 @@ export function usePaginatedPosts({
 
   const fetchPage = useCallback(
     async (pageNum: number, bypassCache: boolean = false) => {
+      const fetchId = ++currentFetchIdRef.current;
       const url = buildUrl(pageNum);
 
       // SWR (Stale-While-Revalidate) in-memory cache for instant UI rendering
@@ -105,6 +107,10 @@ export function usePaginatedPosts({
       try {
         const res = await fetch(url);
         const data = await res.json();
+
+        // Discard out-of-order stale response if a newer fetch was initiated
+        if (fetchId !== currentFetchIdRef.current) return;
+
         const fetchedPosts: PostItem[] = data.posts || [];
         const fetchedTotal: number = data.total || 0;
 
@@ -127,9 +133,13 @@ export function usePaginatedPosts({
         setTotal(fetchedTotal);
         setPage(pageNum);
       } catch (err) {
-        console.error("Failed to fetch posts:", err);
+        if (fetchId === currentFetchIdRef.current) {
+          console.error("Failed to fetch posts:", err);
+        }
       } finally {
-        setLoading(false);
+        if (fetchId === currentFetchIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     [appendMode, buildUrl],
@@ -140,7 +150,6 @@ export function usePaginatedPosts({
 
   const goToPage = useCallback((pageNum: number) => {
     const safe = Math.max(1, pageNum);
-    setPage(safe);
     fetchPageRef.current(safe);
   }, []);
 
@@ -155,7 +164,7 @@ export function usePaginatedPosts({
     [],
   );
 
-  // Sync from server props (soft navigation)
+  // Sync from server props on first load or when route changes
   const prevServerPropsRef = useRef({ initialPosts, initialTotal, initialPage });
   useEffect(() => {
     if (
@@ -184,7 +193,7 @@ export function usePaginatedPosts({
     }
   }, [initialPosts, initialTotal, initialPage, buildUrl]);
 
-  // Auto-fetch: triggered when filter/sort params change after initial mount
+  // Auto-fetch: triggered strictly when filter/sort params change (resets to page 1)
   const prevFilterKeyRef = useRef("");
   useEffect(() => {
     const currentKey = `${limitVal}|${sortVal}|${typeVal}|${tagsVal}|${qVal}|${categoryVal}|${yearVal}`;
@@ -196,7 +205,6 @@ export function usePaginatedPosts({
     if (!mountedRef.current) {
       mountedRef.current = true;
       prevFilterKeyRef.current = currentKey;
-      // Seed initial mount into memory cache
       if (initialPosts.length > 0) {
         const initialUrl = buildUrl(initialPage);
         clientMemoryCache.set(initialUrl, {
@@ -209,9 +217,10 @@ export function usePaginatedPosts({
     }
     if (autoFetch && currentKey !== prevFilterKeyRef.current) {
       prevFilterKeyRef.current = currentKey;
-      fetchPageRef.current(page);
+      // Filter/sort changed: always fetch page 1 cleanly
+      fetchPageRef.current(1);
     }
-  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, page, autoFetch, buildUrl, initialPage, initialPosts, initialTotal]);
+  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, autoFetch, buildUrl, initialPage, initialPosts, initialTotal]);
 
   // Post-created event: invalidates client in-memory cache and refetches
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { CUSTOM_EVENTS } from "@/lib/constants";
 
 interface UseFeedFiltersProps {
@@ -8,7 +8,6 @@ interface UseFeedFiltersProps {
 
 export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   // ---- Derive initial state from URL ----
   const initialMediaType = searchParams.get("type");
@@ -75,22 +74,26 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   }, []);
 
   const syncUrl = useCallback((currentPage: number) => {
+    if (typeof window === "undefined") return;
+
     const sp = new URLSearchParams();
     if (activeMediaType) sp.set("type", activeMediaType);
     if (activeTags.length > 0) sp.set("tags", activeTags.join(","));
     if (activeSearchQuery) sp.set("q", activeSearchQuery);
-    if (activeSort !== initialSort) sp.set("sort", activeSort);
+    if (activeSort && activeSort !== initialSort) sp.set("sort", activeSort);
     if (activeCategory) sp.set("category", activeCategory);
     if (activeYear) sp.set("year", activeYear);
     if (currentPage > 1) sp.set("page", String(currentPage));
 
     const qs = sp.toString();
     const newUrl = qs ? `/?${qs}` : "/";
+    const currentSearch = window.location.search;
+    const targetSearch = qs ? `?${qs}` : "";
 
-    if (window.location.search !== (qs ? `?${qs}` : "")) {
-      router.replace(newUrl, { scroll: false });
+    if (currentSearch !== targetSearch) {
+      window.history.replaceState(null, "", newUrl);
     }
-  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, initialSort, router]);
+  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, initialSort]);
 
   return {
     activeMediaType,

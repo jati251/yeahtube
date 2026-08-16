@@ -169,7 +169,6 @@ export function FeedClient({
   // ---- Handlers ----
   const handleMediaTypeChange = (type: string | null) => {
     setActiveMediaType(type);
-    goToPage(1);
   };
 
   const handleTagToggle = (slug: string) => {
@@ -179,22 +178,18 @@ export function FeedClient({
       else next.add(slug);
       return Array.from(next);
     });
-    goToPage(1);
   };
 
   const handleCategoryChange = (slug: string | null) => {
     setActiveCategory(slug);
-    goToPage(1);
   };
 
   const handleYearChange = (yearVal: string | null) => {
     setActiveYear(yearVal);
-    goToPage(1);
   };
 
   const handleSortChange = (newSort: string) => {
     setActiveSort(newSort);
-    goToPage(1);
   };
 
   const clearAll = () => {
@@ -204,7 +199,6 @@ export function FeedClient({
     setActiveSort(initialSort);
     setActiveCategory(null);
     setActiveYear(null);
-    goToPage(1);
   };
 
   const navigateToPage = (newPage: number) => {
