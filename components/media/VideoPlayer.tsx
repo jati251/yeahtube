@@ -208,6 +208,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     return () => {
       handle.destroy();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, type]);
 
   // Cleanup video resources on unmount to prevent memory/decoder leaks

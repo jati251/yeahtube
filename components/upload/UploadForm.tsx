@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import NextImage from "next/image";
 import { Upload, X, FileVideo, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -281,6 +282,11 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
     }
   };
 
+  const doUploadRef = useRef(doUpload);
+  useEffect(() => {
+    doUploadRef.current = doUpload;
+  });
+
   const handleQuickPost = () => doUpload(selectedFiles, true);
 
   const addFiles = useCallback(
@@ -303,7 +309,7 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
           videoCount++;
         } else {
           skippedCount++;
-          skippedDetails += `${file.name} (${file.type || "no-type"}); `;
+          skippedDetails += (skippedDetails ? ", " : "") + file.name;
         }
 
         if (isImage || isVideo) {
@@ -341,7 +347,7 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
         const isInstant = localStorage.getItem("yeahtube_instant_upload") === "true";
         if (isInstant) {
           setTimeout(() => {
-            doUpload(newFiles, true);
+            doUploadRef.current(newFiles, true);
           }, 100);
         }
       }
@@ -582,11 +588,15 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
                   <FileVideo className="h-8 w-8 text-zinc-400" />
                 </div>
               ) : (
-                <img
-                  src={sf.preview}
-                  alt={sf.file.name}
-                  className="aspect-square w-full object-cover"
-                />
+                <div className="relative aspect-square w-full">
+                  <NextImage
+                    src={sf.preview}
+                    alt={sf.file.name}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
               )}
               <button
                 type="button"

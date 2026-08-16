@@ -176,15 +176,16 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
           )}
 
           {/* Image */}
-          <div className="flex max-h-[90vh] max-w-[90vw] items-center justify-center overflow-auto">
-            <img
+          <div className="relative flex h-[85vh] w-[85vw] items-center justify-center">
+            <NextImage
               src={currentPhoto.imageUrl}
               alt={currentPhoto.filename}
+              fill
+              unoptimized
               style={{ transform: `scale(${zoom})`, transition: "transform 0.2s" }}
-              className="max-h-full max-w-full object-contain"
+              className="object-contain select-none"
               draggable={false}
-              loading="lazy"
-              decoding="async"
+              priority
             />
           </div>
 

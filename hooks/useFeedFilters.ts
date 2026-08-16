@@ -88,7 +88,6 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     const newUrl = qs ? `/?${qs}` : "/";
 
     if (window.location.search !== (qs ? `?${qs}` : "")) {
-      window.history.replaceState(null, "", newUrl);
       router.replace(newUrl, { scroll: false });
     }
   }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, initialSort, router]);
