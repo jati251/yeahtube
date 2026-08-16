@@ -22,6 +22,15 @@ async function main() {
 
   console.log(`📊 Found ${validKeys.size} valid referenced S3 keys in PostgreSQL.`);
 
+  // Safety check: Never proceed if database returned 0 valid keys (prevents wiping S3 on DB connection mismatch)
+  if (validKeys.size === 0) {
+    console.error("⛔ SAFETY ABORT: Database returned 0 media records! Aborting to prevent accidental S3 wipeout.");
+    process.exit(1);
+  }
+
+  const isDryRun = process.argv.includes("--dry-run");
+  const isForce = process.argv.includes("--force") || process.argv.includes("-f");
+
   // 2. List all objects in S3
   const orphanedKeys: string[] = [];
   let continuationToken: string | undefined = undefined;
@@ -52,6 +61,33 @@ async function main() {
 
   console.log(`📦 Scanned ${totalObjectsScanned} total objects in S3.`);
   console.log(`🗑️ Found ${orphanedKeys.length} orphaned objects in MinIO.`);
+
+  if (orphanedKeys.length === 0) {
+    console.log("✅ Bucket S3 sudah bersih! Tidak ada file orphan.");
+    process.exit(0);
+  }
+
+  if (isDryRun) {
+    console.log("\n[DRY RUN MODE] File berikut yang terdeteksi sebagai orphan (TIDAK dihapus):");
+    orphanedKeys.slice(0, 50).forEach((k) => console.log(`  - ${k}`));
+    if (orphanedKeys.length > 50) {
+      console.log(`  ... dan ${orphanedKeys.length - 50} file lainnya.`);
+    }
+    console.log("\n💡 Untuk menghapus secara permanen, jalankan: npm run clean:orphans");
+    process.exit(0);
+  }
+
+  // Confirmation prompt if interactive
+  if (!isForce && process.stdin.isTTY) {
+    const readline = (await import("readline/promises")).default;
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const ans = (await rl.question(`\n⚠️ Apakah kamu yakin ingin MENGHAPUS ${orphanedKeys.length} file orphan tersebut dari S3? (y/N): `)).trim().toLowerCase();
+    rl.close();
+    if (ans !== "y" && ans !== "yes") {
+      console.log("❌ Dibatalkan oleh user. Tidak ada file yang dihapus.");
+      process.exit(0);
+    }
+  }
 
   // 3. Delete orphaned objects
   let deletedCount = 0;
