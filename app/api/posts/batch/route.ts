@@ -86,6 +86,9 @@ export async function DELETE(request: NextRequest) {
     const deleted = await db.delete(schema.posts).where(inArray(schema.posts.id, ids));
     deletedCount = deleted.rowCount ?? ids.length;
 
+    const { invalidateFeedCache } = await import("@/lib/cache");
+    await invalidateFeedCache();
+
     return NextResponse.json({
       success: true,
       deletedCount,

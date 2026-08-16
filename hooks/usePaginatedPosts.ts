@@ -23,6 +23,18 @@ interface UsePaginatedPostsOptions {
   appendMode?: boolean;
 }
 
+// Client in-memory cache for fast instant navigation across pages & filters
+interface MemoryCacheEntry {
+  posts: PostItem[];
+  total: number;
+  timestamp: number;
+}
+const clientMemoryCache = new Map<string, MemoryCacheEntry>();
+
+export function clearClientFeedCache() {
+  clientMemoryCache.clear();
+}
+
 export function usePaginatedPosts({
   initialPosts = [],
   initialTotal = 0,
@@ -67,23 +79,52 @@ export function usePaginatedPosts({
   );
 
   const fetchPage = useCallback(
-    async (pageNum: number) => {
-      setLoading(true);
+    async (pageNum: number, bypassCache: boolean = false) => {
+      const url = buildUrl(pageNum);
+
+      // SWR (Stale-While-Revalidate) in-memory cache for instant UI rendering
+      if (!appendMode && !bypassCache) {
+        const cached = clientMemoryCache.get(url);
+        if (cached) {
+          setPosts(cached.posts);
+          setTotal(cached.total);
+          setPage(pageNum);
+
+          const isFresh = Date.now() - cached.timestamp < 30000; // 30s freshness window
+          if (isFresh) {
+            return;
+          }
+          // If stale, revalidate in the background silently without full loading spinner
+        } else {
+          setLoading(true);
+        }
+      } else {
+        setLoading(true);
+      }
+
       try {
-        const res = await fetch(buildUrl(pageNum));
+        const res = await fetch(url);
         const data = await res.json();
-        
+        const fetchedPosts: PostItem[] = data.posts || [];
+        const fetchedTotal: number = data.total || 0;
+
         if (appendMode && pageNum !== 1) {
           setPosts((prev) => {
             const existingIds = new Set(prev.map((p) => p.id));
-            const newPosts = (data.posts || []).filter((p: PostItem) => !existingIds.has(p.id));
+            const newPosts = fetchedPosts.filter((p) => !existingIds.has(p.id));
             return [...prev, ...newPosts];
           });
         } else {
-          setPosts(data.posts || []);
+          setPosts(fetchedPosts);
+          // Store in fast memory cache
+          clientMemoryCache.set(url, {
+            posts: fetchedPosts,
+            total: fetchedTotal,
+            timestamp: Date.now(),
+          });
         }
-        
-        setTotal(data.total || 0);
+
+        setTotal(fetchedTotal);
         setPage(pageNum);
       } catch (err) {
         console.error("Failed to fetch posts:", err);
@@ -130,8 +171,18 @@ export function usePaginatedPosts({
       setPosts(initialPosts);
       setTotal(initialTotal);
       setPage(initialPage);
+
+      // Seed initial server props into memory cache
+      if (initialPosts.length > 0) {
+        const initialUrl = buildUrl(initialPage);
+        clientMemoryCache.set(initialUrl, {
+          posts: initialPosts,
+          total: initialTotal,
+          timestamp: Date.now(),
+        });
+      }
     }
-  }, [initialPosts, initialTotal, initialPage]);
+  }, [initialPosts, initialTotal, initialPage, buildUrl]);
 
   // Auto-fetch: triggered when filter/sort params change after initial mount
   const prevFilterKeyRef = useRef("");
@@ -145,17 +196,29 @@ export function usePaginatedPosts({
     if (!mountedRef.current) {
       mountedRef.current = true;
       prevFilterKeyRef.current = currentKey;
+      // Seed initial mount into memory cache
+      if (initialPosts.length > 0) {
+        const initialUrl = buildUrl(initialPage);
+        clientMemoryCache.set(initialUrl, {
+          posts: initialPosts,
+          total: initialTotal,
+          timestamp: Date.now(),
+        });
+      }
       return;
     }
     if (autoFetch && currentKey !== prevFilterKeyRef.current) {
       prevFilterKeyRef.current = currentKey;
       fetchPageRef.current(page);
     }
-  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, page, autoFetch]);
+  }, [limitVal, sortVal, typeVal, tagsVal, qVal, categoryVal, yearVal, page, autoFetch, buildUrl, initialPage, initialPosts, initialTotal]);
 
-  // Post-created event
+  // Post-created event: invalidates client in-memory cache and refetches
   useEffect(() => {
-    const handler = () => fetchPageRef.current(1);
+    const handler = () => {
+      clientMemoryCache.clear();
+      fetchPageRef.current(1, true);
+    };
     window.addEventListener(CUSTOM_EVENTS.POST_CREATED, handler);
     return () => window.removeEventListener(CUSTOM_EVENTS.POST_CREATED, handler);
   }, []);
@@ -170,6 +233,6 @@ export function usePaginatedPosts({
     goToPage,
     setPage,
     restoreFromCache,
-    refetch: () => fetchPage(page),
+    refetch: () => fetchPage(page, true),
   };
 }

@@ -44,6 +44,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
 
+    const { invalidateTaxonomyCache } = await import("@/lib/cache");
+    await invalidateTaxonomyCache();
+
     return NextResponse.json({ category: updated });
   } catch (error: unknown) {
     const pgError = error as { code?: string };
@@ -80,6 +83,9 @@ export async function DELETE(
     if (!deleted) {
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
+
+    const { invalidateTaxonomyCache } = await import("@/lib/cache");
+    await invalidateTaxonomyCache();
 
     return NextResponse.json({ success: true });
   } catch (error) {

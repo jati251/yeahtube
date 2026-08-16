@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import sharp from "sharp";
 import path from "path";
 import { eq } from "drizzle-orm";
+import { invalidateFeedCache, invalidateTaxonomyCache } from "@/lib/cache";
 
 // ── Validation ─────────────────────────────────────────
 
@@ -330,7 +331,11 @@ export async function POST(request: NextRequest) {
       // Process tags (only for new posts, on first file)
       if (isNew) {
         await processTags(db, postId, tagNames);
+        await invalidateTaxonomyCache();
       }
+
+      // Invalidate Redis feed cache
+      await invalidateFeedCache();
 
       return NextResponse.json(
         {

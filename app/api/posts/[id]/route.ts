@@ -4,6 +4,7 @@ import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
 import { eq, sql } from "drizzle-orm";
+import { invalidatePostCache } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -141,6 +142,7 @@ export async function DELETE(
 
     // Delete post (cascades to media, post_tags)
     await db.delete(schema.posts).where(eq(schema.posts.id, Number(id)));
+    await invalidatePostCache(Number(id));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -215,6 +217,8 @@ export async function PATCH(
         .where(eq(schema.categories.id, updatedPost.categoryId));
       categoryName = cat?.name ?? null;
     }
+
+    await invalidatePostCache(Number(id));
 
     return NextResponse.json({
       success: true,

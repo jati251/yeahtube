@@ -2,6 +2,7 @@ import { getDb, schema } from "@/db";
 import { eq, desc, sql, ilike, inArray, and, SQL } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/lib/constants";
+import { getCache, setCache } from "@/lib/cache";
 
 /**
  * Builds filter conditions for both the main query and count query.
@@ -111,6 +112,28 @@ interface PostQueryResult {
  * Fetches, filters, and paginates feed posts.
  */
 export async function getFeedPosts(searchParams: URLSearchParams) {
+  // Check Redis cache first (skip caching for randomized sort)
+  const sort = searchParams.get("sort") || "newest";
+  const shouldCache = sort !== "random";
+  
+  const normalizedParams = new URLSearchParams(searchParams);
+  normalizedParams.sort();
+  const cacheKey = `cache:feed:${normalizedParams.toString() || "default"}`;
+
+  if (shouldCache) {
+    const cached = await getCache<{
+      posts: Awaited<ReturnType<typeof formatPostItem>>[];
+      total: number;
+      limit: number;
+      offset: number;
+      nextCursor: string | null;
+      hasMore: boolean;
+    }>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
   const db = getDb();
 
   // Pagination — supports offset-based (page numbers) and cursor-based
@@ -123,9 +146,6 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
   const offset = searchParams.has("offset")
     ? Math.max(0, Number(searchParams.get("offset")) || 0)
     : (pageParam - 1) * limit;
-
-  // Filters
-  const sort = searchParams.get("sort") || "newest";
 
   // Media count subquery (only evaluated in DB if joined)
   const mediaCountSubquery = db
@@ -305,7 +325,7 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
     nextCursor = Buffer.from(JSON.stringify(cursorObj)).toString("base64");
   }
 
-  return {
+  const response = {
     posts: result,
     total,
     limit,
@@ -313,6 +333,13 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
     nextCursor,
     hasMore,
   };
+
+  if (shouldCache) {
+    // Cache for 60 seconds (invalidated automatically on uploads/deletes/edits)
+    await setCache(cacheKey, response, 60);
+  }
+
+  return response;
 }
 
 /**

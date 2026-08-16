@@ -44,6 +44,9 @@ export async function POST(request: NextRequest) {
       .values({ name: name.trim(), slug, description: description?.trim() || "" })
       .returning();
 
+    const { invalidateTaxonomyCache } = await import("@/lib/cache");
+    await invalidateTaxonomyCache();
+
     return NextResponse.json({ category: newCategory }, { status: 201 });
   } catch (error: unknown) {
     const pgError = error as { code?: string };
