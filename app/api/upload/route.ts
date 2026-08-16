@@ -132,7 +132,6 @@ export async function POST(request: NextRequest) {
     const tagsRaw = decodeURIComponent(request.headers.get("x-post-tags") || "[]");
     const quickPost = request.headers.get("x-quick-post") === "true";
     const postIdStr = request.headers.get("x-post-id") || null;
-    const albumId = request.headers.get("x-album-id") || null;
     const orderIndexStr = request.headers.get("x-order-index") || "0";
     const fileSizeStr = request.headers.get("content-length") || "0";
     
@@ -155,8 +154,9 @@ export async function POST(request: NextRequest) {
     let mediaType: "image" | "video";
     try {
       mediaType = determineMediaType(mimeType);
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message }, { status: 400 });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Invalid media type";
+      return NextResponse.json({ error: msg }, { status: 400 });
     }
 
     const maxSize = mediaType === "image" ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
           params: {
             Bucket: storageConfig.bucket,
             Key: storageKey,
-            Body: request.body as any, // Web ReadableStream
+            Body: request.body as unknown as ReadableStream,
             ContentType: mimeType,
           },
         });

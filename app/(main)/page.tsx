@@ -1,79 +1,11 @@
 import "server-only";
 import { getDb, schema } from "@/db";
-import { eq, desc, inArray, sql } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
-import { formatPostItem } from "@/lib/posts";
+import { getFeedPosts } from "@/lib/queries/posts";
+import { SortValue } from "@/lib/constants";
 import { FeedClient } from "./FeedClient";
 
 export const dynamic = "force-dynamic";
-
-const PAGE_SIZE = 48;
-
-async function getInitialPosts(page: number, sort: string) {
-  const db = getDb();
-
-  const [totalResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(schema.posts);
-
-  const total = totalResult?.count ?? 0;
-  const offset = (page - 1) * PAGE_SIZE;
-
-  const orderBy = sort === "oldest"
-    ? [schema.posts.createdAt, schema.posts.id] as const
-    : sort === "popular"
-    ? [desc(schema.posts.views), desc(schema.posts.createdAt), desc(schema.posts.id)] as const
-    : [desc(schema.posts.createdAt), desc(schema.posts.id)] as const;
-
-  const posts = await db
-    .select({
-      id: schema.posts.id,
-      title: schema.posts.title,
-      description: schema.posts.description,
-      views: schema.posts.views,
-      createdAt: schema.posts.createdAt,
-    })
-    .from(schema.posts)
-    .orderBy(...orderBy)
-    .limit(PAGE_SIZE)
-    .offset(offset);
-
-  if (posts.length === 0) {
-    return { posts: [], total };
-  }
-
-  const postIds = posts.map((p) => p.id);
-
-  const allMedia = await db
-    .select()
-    .from(schema.media)
-    .where(inArray(schema.media.postId, postIds))
-    .orderBy(schema.media.orderIndex);
-
-  const allPostTags = await db
-    .select({
-      postId: schema.postTags.postId,
-      tagId: schema.tags.id,
-      tagName: schema.tags.name,
-      tagSlug: schema.tags.slug,
-    })
-    .from(schema.postTags)
-    .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
-    .where(inArray(schema.postTags.postId, postIds));
-
-  const result = await Promise.all(
-    posts.map((post) => {
-      const postMedia = allMedia.filter((m) => m.postId === post.id);
-      const postTags = allPostTags
-        .filter((pt) => pt.postId === post.id)
-        .map((pt) => ({ id: pt.tagId, name: pt.tagName, slug: pt.tagSlug }));
-
-      return formatPostItem(post, postMedia, postTags, null);
-    })
-  );
-
-  return { posts: result, total };
-}
 
 async function getTags() {
   const db = getDb();
@@ -92,15 +24,24 @@ async function getCategories() {
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; sort?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const sp = await searchParams;
-  const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
-  const sort = sp.sort === "oldest" ? "oldest" : sp.sort === "popular" ? "popular" : "newest";
+  const spObj = await searchParams;
+  const urlSearchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(spObj || {})) {
+    if (typeof value === "string") {
+      urlSearchParams.set(key, value);
+    } else if (Array.isArray(value)) {
+      urlSearchParams.set(key, value.join(","));
+    }
+  }
 
-  const [user, { posts, total }, tags, categories] = await Promise.all([
+  const page = Math.max(1, parseInt(urlSearchParams.get("page") || "1", 10) || 1);
+  const sort = (urlSearchParams.get("sort") || "newest") as SortValue;
+
+  const [user, feedData, tags, categories] = await Promise.all([
     getCurrentUser(),
-    getInitialPosts(page, sort),
+    getFeedPosts(urlSearchParams),
     getTags(),
     getCategories(),
   ]);
@@ -108,8 +49,8 @@ export default async function HomePage({
   return (
     <FeedClient
       isAdmin={user?.isAdmin ?? false}
-      initialPosts={posts}
-      initialTotal={total}
+      initialPosts={feedData.posts}
+      initialTotal={feedData.total}
       initialPage={page}
       initialSort={sort}
       tags={tags.map((t) => ({ id: t.id, name: t.name, slug: t.slug }))}

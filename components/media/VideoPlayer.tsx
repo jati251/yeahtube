@@ -14,7 +14,6 @@ import {
   ChevronRight,
   PictureInPicture,
   Settings,
-  Monitor,
 } from "lucide-react";
 
 import { getQualityLabel } from "@/lib/media-utils";
@@ -59,7 +58,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   const prevPipVideoUrlRef = useRef("");
   const prevPipCurrentTimeRef = useRef(0);
 
-  const [pipSupported, setPipSupported] = useState(false);
+  const [pipSupported] = useState(() => typeof document !== "undefined" && "pictureInPictureEnabled" in document);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -71,7 +70,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   const [waiting, setWaiting] = useState(false);
   const [isPip, setIsPip] = useState(false);
   const isPipActive = isPip || (globalPiP.isActive && globalPiP.videoUrl === src);
-  const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
+  const controlsTimeout = useRef<NodeJS.Timeout | null>(null);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -152,9 +151,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
     }, 600);
   }, []);
 
-  useEffect(() => {
-    setPipSupported(typeof document !== "undefined" && "pictureInPictureEnabled" in document);
-  }, []);
+
 
   // Pause video when browser is minimized or tab is hidden
   useEffect(() => {
@@ -364,22 +361,18 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   // Auto-hide controls
   const showControlsTemporarily = useCallback(() => {
     setShowControls(true);
-    if (controlsTimeout) clearTimeout(controlsTimeout);
-    const timeout = setTimeout(() => {
+    if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
+    controlsTimeout.current = setTimeout(() => {
       if (playing && !showSettings) setShowControls(false);
     }, 3000);
-    setControlsTimeout(timeout);
-  }, [playing, controlsTimeout, showSettings]);
+  }, [playing, showSettings]);
 
   useEffect(() => {
-    if (showSettings) {
-      setShowControls(true);
-      if (controlsTimeout) {
-        clearTimeout(controlsTimeout);
-        setControlsTimeout(null);
-      }
+    if (showSettings && controlsTimeout.current) {
+      clearTimeout(controlsTimeout.current);
+      controlsTimeout.current = null;
     }
-  }, [showSettings, controlsTimeout]);
+  }, [showSettings]);
 
   // Mobile tap zones: double click/tap on left/right to skip 10s, single click/tap to toggle controls
   const handleTapZone = useCallback(
@@ -486,9 +479,9 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
   // Cleanup timeout
   useEffect(() => {
     return () => {
-      if (controlsTimeout) clearTimeout(controlsTimeout);
+      if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
     };
-  }, [controlsTimeout]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -668,7 +661,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       )}
 
       {/* Center play/pause button overlay */}
-      {(!playing || (playing && showControls)) && (
+      {(!playing || (playing && (showControls || showSettings))) && (
         <div
           className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
         >
@@ -692,7 +685,7 @@ export function VideoPlayer({ src, poster, type = "video/mp4", width, height, qu
       {/* Controls overlay */}
       <div
         className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 to-transparent p-3 sm:p-4 pt-10 sm:pt-12 transition-opacity ${
-          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+          (showControls || showSettings) ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
         {/* Progress bar */}

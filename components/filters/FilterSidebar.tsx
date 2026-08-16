@@ -2,7 +2,6 @@
 
 import React from "react";
 import { clsx } from "clsx";
-import { X } from "lucide-react";
 
 interface TagItem {
   id: number;

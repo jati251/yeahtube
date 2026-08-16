@@ -34,8 +34,12 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
   const [uploadProgress, setUploadProgress] = useState(0);
   const [totalProgress, setTotalProgress] = useState<number | undefined>(undefined);
   const [isBulk, setIsBulk] = useState(false);
-  const [acceptType, setAcceptType] = useState("image/*,video/*");
-  const [instantUpload, setInstantUpload] = useState(false);
+  const [acceptType] = useState(() =>
+    typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent) ? "*/*" : "image/*,video/*"
+  );
+  const [instantUpload, setInstantUpload] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("yeahtube_instant_upload") === "true"
+  );
   const [albumMode, setAlbumMode] = useState(false);
   const [windowDragOver, setWindowDragOver] = useState(false);
   const dragCounter = useRef(0);
@@ -51,19 +55,7 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
   const prevFilesCount = useRef(0);
   const lastAutoFilledTitleRef = useRef("");
 
-  useEffect(() => {
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    if (isAndroid) {
-      // Use */* on Android to bypass picker multi-select bugs
-      setAcceptType("*/*");
-    }
 
-    // Load instant upload state
-    const saved = localStorage.getItem("yeahtube_instant_upload");
-    if (saved === "true") {
-      setInstantUpload(true);
-    }
-  }, []);
 
   const isVideoFile = useCallback((file: File) => {
     if (file.type && file.type.startsWith("video/")) return true;
@@ -367,7 +359,7 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
       // Clear input safely after selection so same file can be re-selected if needed
       const target = e.target;
       setTimeout(() => {
-        try { target.value = ""; } catch (err) {}
+        try { target.value = ""; } catch {}
       }, 500);
     },
     [addFiles]

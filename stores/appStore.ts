@@ -81,7 +81,8 @@ export const useAppStore = create<AppState>()(
       },
       // Don't persist global PiP across page sessions
       partialize: (state: AppState) => {
-        const { globalPiP: _gp, ...rest } = state;
+        const { globalPiP: _, ...rest } = state;
+        void _;
         return rest;
       },
     },

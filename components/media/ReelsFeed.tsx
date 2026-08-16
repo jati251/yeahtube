@@ -1,16 +1,10 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import Link from "next/link";
-import NextImage from "next/image";
 import { ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { ReelItem } from "./ReelItem";
 import { PostItem } from "@/types/post";
-import { LikeDislike } from "@/components/interactions/LikeDislike";
-import { Comments } from "@/components/interactions/Comments";
-import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
 import { clsx } from "clsx";
-import { attachHlsOrNative } from "@/lib/hls-helper";
 
 interface ReelsFeedProps {
   posts: PostItem[];
@@ -40,11 +34,14 @@ export function ReelsFeed({ posts, onClose, onLoadMore, hasMore, isLoadingMore }
   }, []);
 
   useEffect(() => {
-    resetControlsTimer();
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 2500);
     return () => {
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
-  }, [activeVideoId, resetControlsTimer]);
+  }, [activeVideoId]);
   
   const activeVideoIdRef = useRef<number | null>(activeVideoId);
   useEffect(() => {

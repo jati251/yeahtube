@@ -246,7 +246,7 @@ export const ReelItem = React.memo(function ReelItem({
             <div
               className={clsx(
                 "absolute bottom-16 lg:bottom-0 left-0 right-0 h-6 cursor-pointer z-20 flex items-end group transition-opacity duration-300",
-                isActive && effectiveShowControls ? "opacity-100" : "opacity-0 pointer-events-none"
+                isActive ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
               onClick={handleTimelineClick}
             >

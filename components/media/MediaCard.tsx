@@ -29,7 +29,7 @@ interface MediaCardProps {
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
   onDelete?: (id: number) => void;
-  onEdit?: (post: any) => void;
+  onEdit?: (post: MediaCardProps["post"]) => void;
   deleting?: boolean;
 }
 

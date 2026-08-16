@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb, schema } from "@/db";
-import { eq, desc, inArray, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
 import { ShortsClient } from "./ShortsClient";
 

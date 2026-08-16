@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Shield, ShieldOff, Check, X, UserPlus, HardDrive, Database, Server, FileText, Users, Film, MessageCircle, Heart, Tag, FolderOpen, ListVideo, Upload, TrendingUp, FileWarning } from "lucide-react";
 import { formatBytes } from "@/lib/media-utils";
 import { CategoryManager } from "@/components/admin/CategoryManager";
-import { UserItem, AdminClientProps } from "@/types/admin";
+import { AdminClientProps } from "@/types/admin";
 
 const colorMap: Record<string, string> = {
   blue:   "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",

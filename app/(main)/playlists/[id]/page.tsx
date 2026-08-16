@@ -1,8 +1,7 @@
 import { Metadata } from "next";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { MediaCard } from "@/components/media/MediaCard";
 import { formatPostItem } from "@/lib/posts";
 

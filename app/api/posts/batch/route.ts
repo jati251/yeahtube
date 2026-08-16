@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { requireCsrf } from "@/lib/csrf";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 

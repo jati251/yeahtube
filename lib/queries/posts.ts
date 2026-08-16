@@ -1,16 +1,16 @@
 import { getDb, schema } from "@/db";
-import { eq, desc, sql, like, inArray } from "drizzle-orm";
+import { eq, desc, sql, ilike, inArray, and, SQL } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
 
 /**
  * Builds filter conditions for both the main query and count query.
- * Returns an array of where-clause builder functions.
+ * Returns an array of SQL conditions.
  */
 export async function buildFilterConditions(
   db: ReturnType<typeof getDb>,
   searchParams: URLSearchParams,
-) {
-  const conditions: Array<(q: any) => any> = [];
+): Promise<SQL[]> {
+  const conditions: SQL[] = [];
 
   const searchQuery = searchParams.get("q");
   const category = searchParams.get("category");
@@ -18,9 +18,9 @@ export async function buildFilterConditions(
   const tagSlugs = searchParams.get("tags");
   const mediaType = searchParams.get("type");
 
-  // Search filter
+  // Search filter (case-insensitive)
   if (searchQuery) {
-    conditions.push((q: any) => q.where(like(schema.posts.title, `%${searchQuery}%`)));
+    conditions.push(ilike(schema.posts.title, `%${searchQuery}%`));
   }
 
   // Category filter
@@ -31,7 +31,7 @@ export async function buildFilterConditions(
         .from(schema.categories)
         .where(eq(schema.categories.slug, category));
       if (cat) {
-        conditions.push((q: any) => q.where(eq(schema.posts.categoryId, cat.id)));
+        conditions.push(eq(schema.posts.categoryId, cat.id));
       }
     } catch {
       // Categories table doesn't exist yet
@@ -42,8 +42,8 @@ export async function buildFilterConditions(
   if (year) {
     const yearNum = parseInt(year, 10);
     if (!isNaN(yearNum)) {
-      conditions.push((q: any) =>
-        q.where(sql`EXTRACT(YEAR FROM ${schema.posts.createdAt}::timestamp) = ${yearNum}`),
+      conditions.push(
+        sql`EXTRACT(YEAR FROM ${schema.posts.createdAt}::timestamp) = ${yearNum}`,
       );
     }
   }
@@ -63,10 +63,10 @@ export async function buildFilterConditions(
           .select({ postId: schema.postTags.postId })
           .from(schema.postTags)
           .where(inArray(schema.postTags.tagId, tagIds));
-        conditions.push((q: any) => q.where(inArray(schema.posts.id, postIdsWithTags)));
+        conditions.push(inArray(schema.posts.id, postIdsWithTags));
       } else {
         // No matching tags → force empty result
-        conditions.push((q: any) => q.where(sql`1 = 0`));
+        conditions.push(sql`1 = 0`);
       }
     }
   }
@@ -77,10 +77,31 @@ export async function buildFilterConditions(
       .select({ postId: schema.media.postId })
       .from(schema.media)
       .where(eq(schema.media.mediaType, mediaType as "image" | "video"));
-    conditions.push((q: any) => q.where(inArray(schema.posts.id, postIdsWithMediaType)));
+    conditions.push(inArray(schema.posts.id, postIdsWithMediaType));
   }
 
   return conditions;
+}
+
+interface CursorData {
+  id?: number;
+  createdAt?: string;
+  title?: string;
+  updatedAt?: string;
+  mediaCount?: number;
+  views?: number;
+}
+
+interface PostQueryResult {
+  id: number;
+  title: string;
+  description: string | null;
+  userId: number;
+  categoryId: number | null;
+  views: number | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  mediaCount?: number;
 }
 
 /**
@@ -107,19 +128,19 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
     .groupBy(schema.media.postId)
     .as("mc");
 
-  const baseSelect: any = {
+  const baseSelect = {
     id: schema.posts.id,
     title: schema.posts.title,
     description: schema.posts.description,
     userId: schema.posts.userId,
     categoryId: schema.posts.categoryId,
+    views: schema.posts.views,
     createdAt: schema.posts.createdAt,
     updatedAt: schema.posts.updatedAt,
+    ...(sort === "most-media"
+      ? { mediaCount: sql<number>`coalesce(${mediaCountSubquery.count}, 0)`.as("media_count") }
+      : {}),
   };
-
-  if (sort === "most-media") {
-    baseSelect.mediaCount = sql<number>`coalesce(${mediaCountSubquery.count}, 0)`.as("media_count");
-  }
 
   // Build filter conditions
   const filterConditions = await buildFilterConditions(db, searchParams);
@@ -130,27 +151,26 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
     .from(schema.posts)
     .$dynamic();
 
-  for (const applyCondition of filterConditions) {
-    countQuery = applyCondition(countQuery) as typeof countQuery;
+  if (filterConditions.length > 0) {
+    countQuery = countQuery.where(and(...filterConditions)) as typeof countQuery;
   }
 
   // --- Main data query ---
-  let query: any = db
+  let query = db
     .select(baseSelect)
     .from(schema.posts)
     .$dynamic();
 
   if (sort === "most-media") {
-    query = query.leftJoin(mediaCountSubquery, eq(schema.posts.id, mediaCountSubquery.postId));
+    query = query.leftJoin(mediaCountSubquery, eq(schema.posts.id, mediaCountSubquery.postId)) as typeof query;
   }
 
-  // Apply same filters
-  for (const applyCondition of filterConditions) {
-    query = applyCondition(query);
+  if (filterConditions.length > 0) {
+    query = query.where(and(...filterConditions)) as typeof query;
   }
 
   // Parse cursor (Base64 JSON or fallback to raw string)
-  let cursorData: any = null;
+  let cursorData: CursorData | null = null;
   if (cursor) {
     try {
       cursorData = JSON.parse(Buffer.from(cursor, "base64").toString("utf-8"));
@@ -160,10 +180,10 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
   }
 
   // Apply cursor pagination & sorting config
-  type SortKey = "newest" | "oldest" | "title-asc" | "title-desc" | "recently-updated" | "most-media" | "random";
+  type SortKey = "newest" | "oldest" | "popular" | "title-asc" | "title-desc" | "recently-updated" | "most-media" | "random";
   const sortConfigs: Record<SortKey, { 
-    where: (c: any) => ReturnType<typeof sql> | undefined, 
-    orderBy: any[] 
+    where: (c: CursorData) => SQL | undefined, 
+    orderBy: (SQL | typeof schema.posts.id | typeof schema.posts.createdAt | typeof schema.posts.title | ReturnType<typeof desc>)[] 
   }> = {
     "random": {
       where: () => undefined,
@@ -172,6 +192,10 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
     "oldest": {
       where: (c) => c.createdAt && c.id ? sql`(${schema.posts.createdAt}, ${schema.posts.id}) > (${c.createdAt}, ${c.id})` : c.createdAt ? sql`${schema.posts.createdAt} > ${c.createdAt}` : undefined,
       orderBy: [schema.posts.createdAt, schema.posts.id]
+    },
+    "popular": {
+      where: (c) => c.views !== undefined && c.createdAt && c.id ? sql`(${schema.posts.views}, ${schema.posts.createdAt}, ${schema.posts.id}) < (${c.views}, ${c.createdAt}, ${c.id})` : undefined,
+      orderBy: [desc(schema.posts.views), desc(schema.posts.createdAt), desc(schema.posts.id)]
     },
     "title-asc": {
       where: (c) => c.title && c.id ? sql`(${schema.posts.title}, ${schema.posts.id}) > (${c.title}, ${c.id})` : undefined,
@@ -202,14 +226,15 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
     if (whereCondition) query = query.where(whereCondition) as typeof query;
   }
 
-  query = query.orderBy(...activeSort.orderBy).offset(offset).limit(limit + 1);
+  query = query.orderBy(...activeSort.orderBy).offset(offset).limit(limit + 1) as typeof query;
 
   // Execute both queries in parallel to halve database latency
-  const [[countResult], posts] = await Promise.all([countQuery, query]);
+  const [[countResult], postsRaw] = await Promise.all([countQuery, query]);
+  const posts = postsRaw as unknown as PostQueryResult[];
   const total = countResult?.count ?? 0;
 
   // Get media info for each post
-  const postIds = posts.slice(0, limit).map((p: any) => p.id);
+  const postIds = posts.slice(0, limit).map((p) => p.id);
   const allMedia = postIds.length > 0
     ? await db
         .select()
@@ -242,7 +267,7 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
   }
 
   // Assemble result
-  const result = await Promise.all(posts.slice(0, limit).map((post: any) => {
+  const result = await Promise.all(posts.slice(0, limit).map((post) => {
     const postMedia = allMedia.filter((m) => m.postId === post.id);
     const postTags = allPostTags
       .filter((pt) => pt.postId === post.id)

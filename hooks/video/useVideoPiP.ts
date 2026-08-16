@@ -9,14 +9,10 @@ interface UseVideoPiPProps {
 
 export function useVideoPiP({ src, poster, videoRef }: UseVideoPiPProps) {
   const { globalPiP, activateGlobalPiP, deactivateGlobalPiP } = useAppStore();
-  const [pipSupported, setPipSupported] = useState(false);
+  const [pipSupported] = useState(() => typeof document !== "undefined" && "pictureInPictureEnabled" in document);
   const [isPip, setIsPip] = useState(false);
 
   const isPipActive = isPip || (globalPiP.isActive && globalPiP.videoUrl === src);
-
-  useEffect(() => {
-    setPipSupported(typeof document !== "undefined" && "pictureInPictureEnabled" in document);
-  }, []);
 
   useEffect(() => {
     const handlePipChange = () => {
@@ -83,7 +79,7 @@ export function useVideoPiP({ src, poster, videoRef }: UseVideoPiPProps) {
       currentTime: video.currentTime,
       isPlaying: !video.paused,
     });
-  }, [src, poster, videoRef, globalPiP.isActive, globalPiP.videoUrl, deactivateGlobalPiP, activateGlobalPiP]);
+  }, [src, poster, videoRef, globalPiP.isActive, globalPiP.videoUrl, globalPiP.currentTime, deactivateGlobalPiP, activateGlobalPiP]);
 
   return {
     pipSupported,

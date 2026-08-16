@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb, schema } from "@/db";
-import { eq, desc, inArray, sql } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
 import { formatPostItem } from "@/lib/posts";
 import { redirect } from "next/navigation";
@@ -59,12 +59,12 @@ export default async function HistoryPage() {
 
       return {
         ...formatted,
-        createdAt: entry.watchedAt, // Display watchedAt instead of createdAt
+        createdAt: entry.watchedAt instanceof Date ? entry.watchedAt.toISOString() : String(entry.watchedAt),
       };
     })
   );
 
-  const finalPosts = result.filter(p => p !== null) as any[];
+  const finalPosts = result.filter((p): p is NonNullable<typeof p> => p !== null);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -77,6 +77,7 @@ export default async function HistoryPage() {
         initialSort="newest"
         tags={[]}
         categories={[]}
+        disableFiltersAndPagination={true}
       />
     </div>
   );

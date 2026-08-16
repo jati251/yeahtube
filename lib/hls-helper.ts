@@ -45,7 +45,7 @@ export function attachHlsOrNative(
   options?: {
     mimeType?: string;
     duration?: number | null;
-    onError?: (error: any) => void;
+    onError?: (error: unknown) => void;
   }
 ): HlsAttachResult {
   const isTs = isTsOrHls(src, options?.mimeType);

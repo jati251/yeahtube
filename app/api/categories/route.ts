@@ -45,8 +45,9 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json({ category: newCategory }, { status: 201 });
-  } catch (error: any) {
-    if (error?.code === "23505") { // Unique violation
+  } catch (error: unknown) {
+    const pgError = error as { code?: string };
+    if (pgError?.code === "23505") { // Unique violation
       return NextResponse.json({ error: "Category already exists" }, { status: 400 });
     }
     console.error("Failed to create category:", error);

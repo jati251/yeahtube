@@ -16,6 +16,7 @@ import os from "os";
 import fs from "fs/promises";
 import { Pool } from "pg";
 import sharp from "sharp";
+import ffmpeg, { FfprobeData } from "fluent-ffmpeg";
 
 // ── Types ─────────────────────────────────────────────
 interface TranscodeJobData {
@@ -53,7 +54,7 @@ const worker = new Worker<TranscodeJobData>(
   "yeahtube-transcode",
   async (job: Job<TranscodeJobData>) => {
     const {
-      mediaId, postId, storageKey, filename, mimeType,
+      mediaId, postId, storageKey,
       bucket, endpoint, region, accessKey, secretKey, forcePathStyle,
     } = job.data;
 
@@ -95,13 +96,11 @@ const worker = new Worker<TranscodeJobData>(
       let videoHeight: number | null = null;
 
       await new Promise<void>((resolve, reject) => {
-        const ffmpeg = require("fluent-ffmpeg") as any;
-
-        ffmpeg.ffprobe(presignedUrl, (err: any, metadata: any) => {
+        ffmpeg.ffprobe(presignedUrl, (err: Error | null, metadata: FfprobeData) => {
           if (err) return reject(err);
 
           actualDuration = metadata.format.duration || 0;
-          const videoStream = metadata.streams?.find((s: any) => s.codec_type === "video");
+          const videoStream = metadata.streams?.find((s) => s.codec_type === "video");
           if (videoStream) {
             if (videoStream.width) videoWidth = videoStream.width;
             if (videoStream.height) videoHeight = videoStream.height;
@@ -130,7 +129,7 @@ const worker = new Worker<TranscodeJobData>(
               ])
               .save(tmpPreview)
               .on("end", onDone)
-              .on("error", (previewErr: any) => {
+              .on("error", (previewErr: Error) => {
                 console.error("[Worker] Preview generation failed:", previewErr.message);
                 onDone();
               });
@@ -144,7 +143,7 @@ const worker = new Worker<TranscodeJobData>(
               .output(tmpThumbPng)
               .outputOptions(["-update", "1"])
               .on("end", onSuccess)
-              .on("error", (e: any) => {
+              .on("error", (e: Error) => {
                 console.error(`[Worker] Thumbnail at t=${time} failed:`, e.message);
                 onFail();
               })
@@ -175,7 +174,7 @@ const worker = new Worker<TranscodeJobData>(
         thumbnailBuffer = await sharp(pngBuffer)
           .webp({ quality: 75 })
           .toBuffer();
-      } catch (e) {
+      } catch {
         console.error("[Worker] Could not read/convert thumbnail PNG, generating fallback");
         thumbnailBuffer = await sharp({
           create: { width: 400, height: 225, channels: 3, background: { r: 30, g: 30, b: 30 } },
@@ -205,7 +204,7 @@ const worker = new Worker<TranscodeJobData>(
           }),
         );
         finalPreviewKey = previewKey;
-      } catch (e) {
+      } catch {
         console.error("[Worker] Could not read preview buffer (preview may not have been generated)");
       }
 

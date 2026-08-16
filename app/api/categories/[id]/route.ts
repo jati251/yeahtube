@@ -45,8 +45,9 @@ export async function PATCH(
     }
 
     return NextResponse.json({ category: updated });
-  } catch (error: any) {
-    if (error?.code === "23505") {
+  } catch (error: unknown) {
+    const pgError = error as { code?: string };
+    if (pgError?.code === "23505") {
       return NextResponse.json({ error: "Category name already exists" }, { status: 400 });
     }
     console.error("Failed to update category:", error);

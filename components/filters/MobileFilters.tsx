@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Filter } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { FilterSidebar } from "./FilterSidebar";
 

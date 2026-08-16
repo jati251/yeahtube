@@ -59,8 +59,8 @@ export default function LoginPage() {
 
       router.push(redirect);
       router.refresh();
-    } catch (err) {
-      setError("Network error. Please try again.");
+    } catch {
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }

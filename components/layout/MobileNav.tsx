@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Upload, Clock, TrendingUp, ListVideo, PlaySquare } from "lucide-react";
+import { Home, Upload, TrendingUp, ListVideo, PlaySquare } from "lucide-react";
 import { clsx } from "clsx";
 import { CUSTOM_EVENTS } from "@/lib/constants";
 

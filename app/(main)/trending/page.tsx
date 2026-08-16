@@ -26,7 +26,8 @@ export default async function TrendingPage() {
     .orderBy(desc(sql<number>`count(${schema.likes.id})::int`))
     .limit(20);
 
-  let trendingPosts: any[] = [];
+  type TrendingPost = Awaited<ReturnType<typeof formatPostItem>> & { likeCount: number };
+  let trendingPosts: TrendingPost[] = [];
 
   if (trendingQuery.length > 0) {
     const postIds = trendingQuery.map((t) => t.postId);
@@ -50,7 +51,7 @@ export default async function TrendingPage() {
     } catch {}
 
     // Map and order by trending position
-    trendingPosts = await Promise.all(
+    const rawResults = await Promise.all(
       trendingQuery.map(async (t) => {
         const post = posts.find((p) => p.id === t.postId);
         if (!post) return null;
@@ -66,7 +67,7 @@ export default async function TrendingPage() {
       })
     );
     
-    trendingPosts = trendingPosts.filter((p) => p !== null);
+    trendingPosts = rawResults.filter((p): p is TrendingPost => p !== null);
   }
 
   return (
@@ -85,7 +86,7 @@ export default async function TrendingPage() {
 
       {trendingPosts.length > 0 ? (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {trendingPosts.map((post: any, index: number) => (
+          {trendingPosts.map((post, index) => (
             <div key={post.id} className="relative">
               <div className="absolute -left-3 -top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-red-500 font-bold text-white shadow-md dark:border-zinc-950">
                 #{index + 1}

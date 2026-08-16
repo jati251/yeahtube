@@ -28,7 +28,7 @@ interface MediaListItemProps {
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
   onDelete?: (id: number) => void;
-  onEdit?: (post: any) => void;
+  onEdit?: (post: MediaListItemProps["post"]) => void;
   deleting?: boolean;
 }
 

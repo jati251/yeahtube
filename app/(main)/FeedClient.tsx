@@ -13,7 +13,6 @@ import { PaginationControls } from "@/components/ui/PaginationControls";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/components/ui/Toast";
 import { SlidersHorizontal, LayoutGrid, List } from "lucide-react";
-import { PostItem, TagItem, CategoryItem } from "@/types/post";
 import { FeedClientProps } from "@/types/feed";
 import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
@@ -28,6 +27,7 @@ export function FeedClient({
   initialSort,
   tags,
   categories,
+  disableFiltersAndPagination = false,
 }: FeedClientProps) {
   const { addToast } = useToast();
 
@@ -59,7 +59,7 @@ export function FeedClient({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
 
-  const { posts, setPosts, loading, page, total, totalPages, goToPage, restoreFromCache } =
+  const { posts, setPosts, loading, page, total, totalPages, setPage, restoreFromCache } =
     usePaginatedPosts({
       initialPosts,
       initialTotal,
@@ -72,7 +72,7 @@ export function FeedClient({
         category: activeCategory,
         year: activeYear,
       },
-      autoFetch: false,
+      autoFetch: true,
     });
 
   // ---- Restore from Zustand cache on mount (prevents flash of page 1) ----
@@ -149,7 +149,7 @@ export function FeedClient({
   
     
   // Sync the goToPage function to the ref so the hook can call it
-  useEffect(() => { goToPageRef.current = goToPage; }, [goToPage, goToPageRef]);
+  useEffect(() => { goToPageRef.current = setPage; }, [setPage, goToPageRef]);
 
   // Sync URL when dependencies change
   useEffect(() => {
@@ -159,7 +159,7 @@ export function FeedClient({
   // ---- Handlers ----
   const handleMediaTypeChange = (type: string | null) => {
     setActiveMediaType(type);
-    goToPage(1);
+    setPage(1);
   };
 
   const handleTagToggle = (slug: string) => {
@@ -169,22 +169,22 @@ export function FeedClient({
       else next.add(slug);
       return Array.from(next);
     });
-    goToPage(1);
+    setPage(1);
   };
 
   const handleCategoryChange = (slug: string | null) => {
     setActiveCategory(slug);
-    goToPage(1);
+    setPage(1);
   };
 
   const handleYearChange = (yearVal: string | null) => {
     setActiveYear(yearVal);
-    goToPage(1);
+    setPage(1);
   };
 
   const handleSortChange = (newSort: string) => {
     setActiveSort(newSort);
-    goToPage(1);
+    setPage(1);
   };
 
   const clearAll = () => {
@@ -194,11 +194,11 @@ export function FeedClient({
     setActiveSort(initialSort);
     setActiveCategory(null);
     setActiveYear(null);
-    goToPage(1);
+    setPage(1);
   };
 
   const navigateToPage = (newPage: number) => {
-    goToPage(newPage);
+    setPage(newPage);
   };
 
   // ---- Admin post selection ----
@@ -218,30 +218,52 @@ export function FeedClient({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <ActiveFilters
-        mediaType={activeMediaType}
-        selectedTags={activeTags}
-        searchQuery={activeSearchQuery}
-        category={activeCategory}
-        year={activeYear}
-        sort={activeSort}
-        onRemoveMediaType={() => handleMediaTypeChange(null)}
-        onRemoveTag={(slug) => {
-          setActiveTags((prev) => prev.filter((t) => t !== slug));
-          goToPage(1);
-        }}
-        onRemoveSearch={() => {
-          setActiveSearchQuery("");
-          goToPage(1);
-        }}
-        onRemoveCategory={() => handleCategoryChange(null)}
-        onRemoveYear={() => handleYearChange(null)}
-        onClearAll={clearAll}
-      />
+      {!disableFiltersAndPagination && (
+        <ActiveFilters
+          mediaType={activeMediaType}
+          selectedTags={activeTags}
+          searchQuery={activeSearchQuery}
+          category={activeCategory}
+          year={activeYear}
+          sort={activeSort}
+          onRemoveMediaType={() => handleMediaTypeChange(null)}
+          onRemoveTag={(slug) => {
+            setActiveTags((prev) => prev.filter((t) => t !== slug));
+            setPage(1);
+          }}
+          onRemoveSearch={() => {
+            setActiveSearchQuery("");
+            setPage(1);
+          }}
+          onRemoveCategory={() => handleCategoryChange(null)}
+          onRemoveYear={() => handleYearChange(null)}
+          onClearAll={clearAll}
+        />
+      )}
 
       <div className="lg:flex lg:gap-8">
-        <aside className="hidden w-60 flex-shrink-0 lg:block">
-          <FilterSidebar
+        {!disableFiltersAndPagination && (
+          <aside className="hidden w-60 flex-shrink-0 lg:block">
+            <FilterSidebar
+              mediaType={activeMediaType}
+              selectedTags={activeTags}
+              tags={tags}
+              category={activeCategory}
+              categories={categories}
+              year={activeYear}
+              onMediaTypeChange={handleMediaTypeChange}
+              onTagToggle={handleTagToggle}
+              onCategoryChange={handleCategoryChange}
+              onYearChange={handleYearChange}
+              onClearAll={clearAll}
+            />
+          </aside>
+        )}
+
+        {!disableFiltersAndPagination && (
+          <MobileFilters
+            isOpen={mobileFiltersOpen}
+            onClose={() => setMobileFiltersOpen(false)}
             mediaType={activeMediaType}
             selectedTags={activeTags}
             tags={tags}
@@ -254,46 +276,34 @@ export function FeedClient({
             onYearChange={handleYearChange}
             onClearAll={clearAll}
           />
-        </aside>
-
-        <MobileFilters
-          isOpen={mobileFiltersOpen}
-          onClose={() => setMobileFiltersOpen(false)}
-          mediaType={activeMediaType}
-          selectedTags={activeTags}
-          tags={tags}
-          category={activeCategory}
-          categories={categories}
-          year={activeYear}
-          onMediaTypeChange={handleMediaTypeChange}
-          onTagToggle={handleTagToggle}
-          onCategoryChange={handleCategoryChange}
-          onYearChange={handleYearChange}
-          onClearAll={clearAll}
-        />
+        )}
 
         <div className="flex-1">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setMobileFiltersOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200/80 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-all lg:hidden"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters
-              </button>
+              {!disableFiltersAndPagination && (
+                <>
+                  <button
+                    onClick={() => setMobileFiltersOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200/80 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-all lg:hidden"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filters
+                  </button>
 
-              <select
-                value={activeSort}
-                onChange={(e) => handleSortChange(e.target.value)}
-                className="rounded-xl border border-zinc-200/80 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-600 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400 dark:focus:border-zinc-600 dark:focus:ring-zinc-800 transition-all"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                  <select
+                    value={activeSort}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    className="rounded-xl border border-zinc-200/80 bg-white px-3.5 py-1.5 text-sm font-medium text-zinc-600 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400 dark:focus:border-zinc-600 dark:focus:ring-zinc-800 transition-all"
+                  >
+                    {SORT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
@@ -311,14 +321,16 @@ export function FeedClient({
               )}
 
               <div className="hidden lg:block">
-                <TagCloud
-                  tags={tags}
-                  activeTag={activeTags[0] || null}
-                  onTagSelect={(slug) => {
-                    setActiveTags(slug ? [slug] : []);
-                    goToPage(1);
-                  }}
-                />
+                {!disableFiltersAndPagination && (
+                  <TagCloud
+                    tags={tags}
+                    activeTag={activeTags[0] || null}
+                    onTagSelect={(slug) => {
+                      setActiveTags(slug ? [slug] : []);
+                      setPage(1);
+                    }}
+                  />
+                )}
               </div>
 
               <div className="flex rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-700/80 dark:bg-zinc-950 overflow-hidden">
@@ -349,21 +361,23 @@ export function FeedClient({
           </div>
 
           <div className="mb-4 lg:hidden">
-            <TagCloud
-              tags={tags}
-              activeTag={activeTags[0] || null}
-              onTagSelect={(slug) => {
-                setActiveTags(slug ? [slug] : []);
-                goToPage(1);
-              }}
-            />
+            {!disableFiltersAndPagination && (
+              <TagCloud
+                tags={tags}
+                activeTag={activeTags[0] || null}
+                onTagSelect={(slug) => {
+                  setActiveTags(slug ? [slug] : []);
+                  setPage(1);
+                }}
+              />
+            )}
           </div>
 
           <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
             {`${total} result${total !== 1 ? "s" : ""}`}
           </p>
 
-          {posts.length > 0 && (
+          {!disableFiltersAndPagination && posts.length > 0 && (
             <PaginationControls
               page={page}
               totalPages={totalPages}
@@ -461,17 +475,19 @@ export function FeedClient({
             </div>
           )}
 
-          <PaginationControls
-            page={page}
-            totalPages={totalPages}
-            total={total}
-            loading={loading}
-            onNext={() => navigateToPage(page + 1)}
-            onPrev={() => navigateToPage(page - 1)}
-            onFirst={() => navigateToPage(1)}
-            onLast={() => navigateToPage(totalPages)}
-            onPage={navigateToPage}
-          />
+          {!disableFiltersAndPagination && (
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              loading={loading}
+              onNext={() => navigateToPage(page + 1)}
+              onPrev={() => navigateToPage(page - 1)}
+              onFirst={() => navigateToPage(1)}
+              onLast={() => navigateToPage(totalPages)}
+              onPage={navigateToPage}
+            />
+          )}
 
           {isAdmin && selectMode && selectedIds.size > 0 && (
             <div className="sticky bottom-0 z-30 -mx-4 mt-6 border-t border-zinc-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/95 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">

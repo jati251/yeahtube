@@ -25,7 +25,7 @@ export async function getRecommendations(
 ): Promise<RecommendedPost[]> {
   const db = getDb();
 
-  let recommendedPosts: { id: number; title: string; description: string | null; createdAt: any; views: number }[] = [];
+  let recommendedPosts: { id: number; title: string; description: string | null; createdAt: string | Date; views: number }[] = [];
 
   // 1. Try to fetch posts sharing the same category or sharing any tag
   const matches = [];

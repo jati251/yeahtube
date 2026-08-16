@@ -22,22 +22,23 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
   const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
-    fetchPlaylists();
-  }, []);
+    let active = true;
+    fetch("/api/playlists")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active && data?.playlists) {
+          setPlaylists(data.playlists);
+        }
+      })
+      .catch((error) => console.error(error))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-  const fetchPlaylists = async () => {
-    try {
-      const res = await fetch("/api/playlists");
-      if (res.ok) {
-        const data = await res.json();
-        setPlaylists(data.playlists);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

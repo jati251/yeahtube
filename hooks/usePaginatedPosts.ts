@@ -41,7 +41,9 @@ export function usePaginatedPosts({
 
   // Latest params always available via ref
   const paramsRef = useRef(fetchParams);
-  useEffect(() => { paramsRef.current = fetchParams; }, [fetchParams]);
+  useEffect(() => {
+    paramsRef.current = fetchParams;
+  }, [fetchParams]);
 
   // Prevent fetch on mount / after cache restore
   const skipRef = useRef(false);
@@ -164,6 +166,7 @@ export function usePaginatedPosts({
     total,
     totalPages,
     goToPage,
+    setPage,
     restoreFromCache,
     refetch: () => fetchPage(page),
   };

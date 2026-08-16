@@ -4,7 +4,7 @@ export interface PostDbItem {
   id: number;
   title: string;
   description: string | null;
-  createdAt: string | Date | any;
+  createdAt: string | Date;
   categoryId?: number | null;
   views?: number | null;
   mediaCount?: number | null;

@@ -192,7 +192,7 @@ export async function PATCH(
       title?: string;
       description?: string | null;
       categoryId?: number | null;
-      updatedAt: any;
+      updatedAt: ReturnType<typeof sql>;
     } = {
       updatedAt: sql`now()`,
     };

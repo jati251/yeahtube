@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { eq, count, sql } from "drizzle-orm";
+import { count } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 

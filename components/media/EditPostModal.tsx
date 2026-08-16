@@ -40,28 +40,27 @@ export function EditPostModal({
 }: EditPostModalProps) {
   const { addToast } = useToast();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [prevPost, setPrevPost] = useState(post);
+  const [title, setTitle] = useState(post?.title || "");
+  const [description, setDescription] = useState(post?.description || "");
+  const [categoryId, setCategoryId] = useState<number | null>(post?.categoryId ?? null);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingCategories, setFetchingCategories] = useState(false);
 
-  // Sync state when post changes or modal opens
-  useEffect(() => {
-    if (post) {
-      setTitle(post.title || "");
-      setDescription(post.description || "");
-      setCategoryId(post.categoryId ?? null);
-    }
-  }, [post]);
+  // Adjust state during render when post prop changes (React recommended pattern)
+  if (post !== prevPost) {
+    setPrevPost(post);
+    setTitle(post?.title || "");
+    setDescription(post?.description || "");
+    setCategoryId(post?.categoryId ?? null);
+  }
 
   // Fetch categories list
   useEffect(() => {
     if (!isOpen) return;
 
     let isMounted = true;
-    setFetchingCategories(true);
     fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => {
@@ -132,8 +131,9 @@ export function EditPostModal({
         });
       }
       onClose();
-    } catch (err: any) {
-      addToast("error", err.message || "Something went wrong");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      addToast("error", msg);
     } finally {
       setLoading(false);
     }
