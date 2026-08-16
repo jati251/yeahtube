@@ -210,7 +210,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
 
       {/* Info */}
       <div className="min-w-0 p-4">
-        <h3 className="truncate text-[1.05rem] font-bold tracking-tight text-zinc-900 dark:text-zinc-50" title={post.title}>
+        <h3 className="line-clamp-2 text-sm sm:text-[1.05rem] font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug break-words" title={post.title}>
           {post.title}
         </h3>
         {post.description && (
