@@ -35,6 +35,9 @@ export interface AdminStats {
   hdCount: number;
   sdCount: number;
   unprocessedCount: number;
+  storageCapacity: number;
+  storageFree: number;
+  storageUsedPercentage: number;
   services: ServiceHealth[];
   queueStats: QueueHealth;
   totalPosts: number;

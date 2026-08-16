@@ -176,6 +176,13 @@ export default async function AdminPage() {
     largestFiles = lf.map((f) => ({ filename: f.filename, fileSize: f.fileSize, postTitle: f.postTitle }));
   } catch { /* fallback */ }
 
+  // Total storage capacity calculation (default: 500GB or configurable via STORAGE_CAPACITY_GB)
+  const storageCapacityGb = parseInt(process.env.STORAGE_CAPACITY_GB || "500", 10);
+  const storageCapacity = storageCapacityGb * 1024 * 1024 * 1024;
+  const totalMediaBytes = Number(mediaStats?.totalMediaSize) || 0;
+  const storageFree = Math.max(0, storageCapacity - totalMediaBytes);
+  const storageUsedPercentage = Math.min(100, Math.round((totalMediaBytes / storageCapacity) * 1000) / 10);
+
   return (
     <AdminClient
       currentUserId={user.id}
@@ -189,13 +196,16 @@ export default async function AdminPage() {
       }))}
       categories={categories.map(c => ({ ...c, createdAt: c.createdAt.toISOString() }))}
       stats={{
-        totalMediaSize: Number(mediaStats?.totalMediaSize) || 0,
+        totalMediaSize: totalMediaBytes,
         videoSize: Number(mediaStats?.videoSize) || 0,
         imageSize: Number(mediaStats?.imageSize) || 0,
         videoCount: mediaStats?.videoCount ?? 0,
         imageCount: mediaStats?.imageCount ?? 0,
         avgVideoSize: Number(mediaStats?.avgVideoSize) || 0,
         databaseSize,
+        storageCapacity,
+        storageFree,
+        storageUsedPercentage,
         totalDuration: Number(mediaStats?.totalDuration) || 0,
         hdCount: mediaStats?.hdCount ?? 0,
         sdCount: mediaStats?.sdCount ?? 0,
