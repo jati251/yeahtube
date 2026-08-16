@@ -1,7 +1,8 @@
 import "server-only";
 import { getDb, schema } from "@/db";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray, sql, desc } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
+import { getCache, setCache } from "@/lib/cache";
 import { ShortsClient } from "./ShortsClient";
 
 export const dynamic = "force-dynamic";
@@ -9,12 +10,17 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 15; // Load fewer at a time for shorts
 
 async function getInitialShorts() {
+  const cacheKey = "cache:shorts:initial";
+  const cached = await getCache<{ posts: ReturnType<typeof formatPostItem> extends Promise<infer U> ? U[] : never; total: number }>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const db = getDb();
 
   const [totalResult] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(schema.posts)
-    // .where(eq(schema.posts.mediaType, "video")) // If we wanted strictly videos
+    .from(schema.posts);
   
   const total = totalResult?.count ?? 0;
 
@@ -27,7 +33,7 @@ async function getInitialShorts() {
       createdAt: schema.posts.createdAt,
     })
     .from(schema.posts)
-    .orderBy(sql`RANDOM()`)
+    .orderBy(desc(schema.posts.createdAt))
     .limit(PAGE_SIZE);
 
   if (posts.length === 0) {
@@ -64,7 +70,10 @@ async function getInitialShorts() {
     })
   );
 
-  return { posts: result, total };
+  const payload = { posts: result, total };
+  await setCache(cacheKey, payload, 60);
+
+  return payload;
 }
 
 export default async function ShortsPage() {

@@ -48,6 +48,9 @@ export function attachHlsOrNative(
   options?: {
     mimeType?: string;
     duration?: number | null;
+    maxBufferLength?: number;
+    maxMaxBufferLength?: number;
+    maxBufferSize?: number;
     onError?: (error: unknown) => void;
   }
 ): HlsAttachResult {
@@ -85,10 +88,10 @@ export function attachHlsOrNative(
         enableWorker: true,
 
         // 2. Sliding window buffer configuration
-        maxBufferLength: 30,         // Prefetch 30s ahead
-        maxMaxBufferLength: 60,      // Max 60s forward buffer
-        maxBufferSize: 60 * 1024 * 1024, // 60MB max buffer cap
-        backBufferLength: 30,        // Discard watched video older than 30s
+        maxBufferLength: options?.maxBufferLength ?? 30,         // Prefetch buffer
+        maxMaxBufferLength: options?.maxMaxBufferLength ?? 60,   // Max forward buffer cap
+        maxBufferSize: options?.maxBufferSize ?? 60 * 1024 * 1024, // Max buffer memory cap
+        backBufferLength: options?.maxBufferLength ? Math.min(15, options.maxBufferLength) : 30, // Discard watched buffer
 
         // 3. Ultra fast start & progressive streaming
         autoStartLoad: true,

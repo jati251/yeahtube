@@ -81,7 +81,10 @@ export async function deleteCachePattern(pattern: string): Promise<void> {
  * Invalidate all feed caches (e.g. after upload, edit, delete).
  */
 export async function invalidateFeedCache(): Promise<void> {
-  await deleteCachePattern("cache:feed:*");
+  await Promise.all([
+    deleteCachePattern("cache:feed:*"),
+    deleteCache("cache:shorts:initial"),
+  ]);
 }
 
 /**

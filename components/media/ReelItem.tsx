@@ -66,6 +66,9 @@ export const ReelItem = React.memo(function ReelItem({
 
     const handle = attachHlsOrNative(video, post.videoUrl, {
       duration: post.duration || undefined,
+      maxBufferLength: 8,
+      maxMaxBufferLength: 15,
+      maxBufferSize: 15 * 1024 * 1024,
     });
 
     return () => {
@@ -131,7 +134,7 @@ export const ReelItem = React.memo(function ReelItem({
               loop
               playsInline
               muted={isMuted}
-              preload="auto"
+              preload={isActive ? "auto" : "metadata"}
               onTimeUpdate={handleTimeUpdate}
             />
             {/* Play Overlay Indicator */}
