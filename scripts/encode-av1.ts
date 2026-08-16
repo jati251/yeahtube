@@ -38,6 +38,11 @@ const keepOriginal = process.argv.includes("--keep-original");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  keepAlive: true,
+  idleTimeoutMillis: 30000,
+});
+pool.on("error", (err) => {
+  console.warn("[Script] PostgreSQL idle pool error:", err.message);
 });
 
 function getS3Client(): { s3: S3Client; bucket: string } {

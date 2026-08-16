@@ -398,7 +398,7 @@ export function FeedClient({
 
           {loading ? (
             viewMode === "grid" ? (
-              <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <MediaCardSkeleton key={i} />
                 ))}
@@ -423,7 +423,7 @@ export function FeedClient({
               </p>
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 animate-slide-up">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 animate-slide-up">
               {posts.map((post) => (
                 <MediaCard
                   key={post.id}

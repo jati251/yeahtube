@@ -28,6 +28,11 @@ function getRedisConnection() {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  keepAlive: true,
+  idleTimeoutMillis: 30000,
+});
+pool.on("error", (err) => {
+  console.warn("[Script] PostgreSQL idle pool error:", err.message);
 });
 
 const transcodeQueue = new Queue("yeahtube-transcode", {

@@ -14,7 +14,16 @@ const globalForDb = globalThis as unknown as {
 export function getDb() {
   if (!globalForDb.pool) {
     // Limit max connections per pool so we don't exhaust PG easily
-    globalForDb.pool = new Pool({ connectionString, max: 10 });
+    globalForDb.pool = new Pool({
+      connectionString,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+      keepAlive: true,
+    });
+    globalForDb.pool.on("error", (err) => {
+      console.warn("[DB] PostgreSQL idle pool error (recovering):", err.message);
+    });
   }
   if (!globalForDb.db) {
     globalForDb.db = drizzle(globalForDb.pool, { schema });

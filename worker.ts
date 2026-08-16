@@ -48,6 +48,15 @@ function getRedisConnection() {
 // ── DB Pool ───────────────────────────────────────────
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  keepAlive: true,
+});
+
+pool.on("error", (err) => {
+  // Prevent unhandled error event from crashing worker during long transcoding processes
+  console.warn("[Worker] PostgreSQL idle connection event (auto-recovering):", err.message);
 });
 
 // ── Worker ────────────────────────────────────────────

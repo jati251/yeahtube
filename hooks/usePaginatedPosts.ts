@@ -38,6 +38,20 @@ export function usePaginatedPosts({
     setPage(1);
   }
 
+  // Only provide initialData when params match the initial server-rendered state.
+  // If filters/sort have changed, we must NOT pass initialData or TanStack Query
+  // will use the stale server data instead of fetching with the new params.
+  const isInitialParams =
+    page === 1 &&
+    (!fetchParams.type) &&
+    (!fetchParams.tags) &&
+    (!fetchParams.q) &&
+    (!fetchParams.category) &&
+    (!fetchParams.year) &&
+    (fetchParams.sort === "newest" || !fetchParams.sort);
+
+  const shouldProvideInitialData = isInitialParams && initialPosts.length > 0;
+
   // Use TanStack Query
   const { data, isFetching, refetch } = usePostsQuery(
     {
@@ -45,7 +59,7 @@ export function usePaginatedPosts({
       page,
       limit: limitVal,
     },
-    initialPosts.length > 0 ? { posts: initialPosts, total: initialTotal } : undefined,
+    shouldProvideInitialData ? { posts: initialPosts, total: initialTotal } : undefined,
     autoFetch,
   );
 

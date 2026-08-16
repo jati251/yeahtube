@@ -7,7 +7,6 @@ import { PlayerOverlaysProps } from "@/types";
 export type { PlayerOverlaysProps };
 
 export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
-  title,
   isFastForwarding,
   toastBadge,
   playPauseFlash,
@@ -16,24 +15,15 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
   waiting,
   playing,
   showControls,
-  showSettings,
   onResumeFromPiP,
   onTogglePlay,
 }) => {
-  // Only show center button when paused (not playing) — hide it while playing even if controls visible
-  // This prevents the center button from stealing tap events meant for the gesture overlay
-  const isCenterControlVisible = !playing && !isPipActive;
+  // Show center button when paused OR when controls are visible (and not buffering/waiting)
+  const isCenterControlVisible = (!playing || showControls) && !isPipActive && !waiting;
 
   return (
     <>
-      {/* Top Title Overlay (Visible when controls are shown) */}
-      {(showControls || showSettings) && title && !isPipActive && (
-        <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/85 via-black/40 to-transparent p-3.5 sm:p-4 pt-3 sm:pt-4 transition-opacity duration-200 pointer-events-none">
-          <h2 className="text-xs sm:text-sm md:text-base font-semibold text-white/95 line-clamp-2 drop-shadow-md pr-8">
-            {title}
-          </h2>
-        </div>
-      )}
+
 
       {/* 2X Fast Forward Top Badge */}
       {isFastForwarding && (
@@ -51,13 +41,13 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
       )}
 
       {/* Center Play/Pause Flash Feedback Animation (momentary, non-interactive) */}
-      {playPauseFlash && (
+      {playPauseFlash && !isCenterControlVisible && (
         <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black/70 text-white animate-out fade-out zoom-out-50 duration-500 shadow-2xl border border-white/10">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/70 text-white animate-out fade-out zoom-out-50 duration-500 shadow-2xl border border-white/10">
             {playPauseFlash === "play" ? (
-              <Play className="ml-1 h-10 w-10 text-white fill-white" />
+              <Play className="ml-0.5 h-8 w-8 text-white fill-white" />
             ) : (
-              <Pause className="h-10 w-10 text-white fill-white" />
+              <Pause className="h-8 w-8 text-white fill-white" />
             )}
           </div>
         </div>
@@ -112,23 +102,29 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
 
       {/* Loading Spinner */}
       {waiting && !isPipActive && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 pointer-events-none">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-blue-500" />
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <div className="h-14 w-14 sm:h-16 sm:w-16 animate-spin rounded-full border-4 border-white/20 border-t-white drop-shadow-xl" />
         </div>
       )}
 
-      {/* Center Play Button — ONLY shown when video is paused, NOT when playing with controls visible */}
+      {/* Center Play/Pause Button */}
       {isCenterControlVisible && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onTogglePlay();
             }}
-            className="pointer-events-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-black/60 hover:bg-black/80 active:scale-90 text-white transition-all cursor-pointer shadow-2xl border border-white/10"
-            aria-label="Play"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className="pointer-events-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-black/50 hover:bg-black/70 active:scale-95 text-white backdrop-blur-sm transition-all cursor-pointer shadow-xl border border-white/10"
+            aria-label={playing ? "Pause" : "Play"}
           >
-            <Play className="ml-1 h-8 w-8 sm:h-10 sm:w-10 text-white fill-white" />
+            {playing ? (
+              <Pause className="h-6 w-6 sm:h-8 sm:w-8 text-white fill-white" />
+            ) : (
+              <Play className="ml-1 h-6 w-6 sm:h-8 sm:w-8 text-white fill-white" />
+            )}
           </button>
         </div>
       )}

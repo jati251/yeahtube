@@ -63,7 +63,7 @@ export function ViewPageClient({
 
         <div className="mt-6 lg:mt-0 lg:w-72 lg:flex-shrink-0">
           <div className="flex items-start justify-between gap-2">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words !whitespace-normal !line-clamp-none">
               {postData.title}
             </h1>
             {canEdit && (

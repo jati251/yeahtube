@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import { getQualityLabel } from "@/lib/media-utils";
 import { useAppStore } from "@/stores/appStore";
 import { attachHlsOrNative } from "@/lib/hls-helper";
@@ -13,6 +13,10 @@ import { usePlayerGestures } from "@/hooks/player/usePlayerGestures";
 import { QualityOption, VideoPlayerProps } from "@/types";
 
 export type { QualityOption, VideoPlayerProps };
+
+const subscribeNoop = () => () => {};
+const getPipSnapshot = () => typeof document !== "undefined" && "pictureInPictureEnabled" in document;
+const getPipServerSnapshot = () => false;
 
 export function VideoPlayer({
   src,
@@ -42,7 +46,7 @@ export function VideoPlayer({
   const prevPipCurrentTimeRef = useRef(0);
 
   // Playback state
-  const [pipSupported] = useState(() => typeof document !== "undefined" && "pictureInPictureEnabled" in document);
+  const pipSupported = useSyncExternalStore(subscribeNoop, getPipSnapshot, getPipServerSnapshot);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -356,9 +360,15 @@ export function VideoPlayer({
           ? "!fixed !inset-0 !z-[9999] !h-screen !h-[100dvh] !w-screen !rounded-none !aspect-auto"
           : "aspect-video rounded-xl"
       }`}
-      onMouseMove={showControlsTemporarily}
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => playing && setShowControls(false)}
+      onPointerMove={(e) => {
+        if (e.pointerType === "mouse") showControlsTemporarily();
+      }}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") setShowControls(true);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse" && playing) setShowControls(false);
+      }}
     >
       <div className={`absolute inset-0 overflow-hidden ${isFullscreenActive ? "rounded-none" : "rounded-xl"}`}>
         <video

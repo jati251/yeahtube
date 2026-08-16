@@ -137,7 +137,7 @@ export function WatchPageClient({
           />
 
           <div className="mt-4">
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words whitespace-normal leading-snug">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words !whitespace-normal leading-snug !line-clamp-none">
               {postData.title}
             </h1>
 
