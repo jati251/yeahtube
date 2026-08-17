@@ -92,11 +92,11 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: http: https:",
               "media-src 'self' blob: http: https:",
-              "connect-src 'self' http: https:",
+              "connect-src 'self' http: https: https://cloudflareinsights.com",
               "font-src 'self'",
             ].join("; "),
           },
