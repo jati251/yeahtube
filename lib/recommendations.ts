@@ -11,8 +11,9 @@ export async function getRecommendations(
   categoryId: number | null,
   tagIds: number[],
   user?: { id: number; isAdmin: boolean } | null,
+  channelPref?: string | null
 ): Promise<RecommendedPost[]> {
-  const cacheKey = `cache:recommendations:${user ? "auth" : "pub"}:${currentPostId}`;
+  const cacheKey = `cache:recommendations:${user ? "auth" : "pub"}:${channelPref || "all"}:${currentPostId}`;
   const cached = await getCache<RecommendedPost[]>(cacheKey);
   if (cached) {
     return cached;
@@ -23,7 +24,11 @@ export async function getRecommendations(
   let recommendedPosts: { id: number; userId: number; title: string; description: string | null; channel: string; createdAt: string | Date; views: number }[] = [];
 
   // Channel filter condition
-  const channelCondition = !user ? eq(schema.posts.channel, "public") : undefined;
+  const channelCondition = !user 
+    ? eq(schema.posts.channel, "public") 
+    : channelPref === "private"
+      ? eq(schema.posts.channel, "private")
+      : undefined;
 
   // 1. Try to fetch posts sharing the same category or sharing any tag
   const matches = [];

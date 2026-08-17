@@ -1,5 +1,6 @@
 import "server-only";
 import { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries/posts";
@@ -22,7 +23,14 @@ export async function generateMetadata({ searchParams }: WatchQueryPageProps): P
   }
 
   const user = await getCurrentUser();
-  const detail = await getPostDetail(targetIdOrSlug, user);
+  let channelPref: string | undefined = undefined;
+  if (user) {
+    const cookieStore = await cookies();
+    if (cookieStore.get("show-public-posts")?.value === "false") {
+      channelPref = "private";
+    }
+  }
+  const detail = await getPostDetail(targetIdOrSlug, user, channelPref);
 
   if (!detail || !detail.post) {
     return {
@@ -79,7 +87,14 @@ export default async function WatchPage({ searchParams }: WatchQueryPageProps) {
   }
 
   const user = await getCurrentUser();
-  const detail = await getPostDetail(targetIdOrSlug, user);
+  let channelPref: string | undefined = undefined;
+  if (user) {
+    const cookieStore = await cookies();
+    if (cookieStore.get("show-public-posts")?.value === "false") {
+      channelPref = "private";
+    }
+  }
+  const detail = await getPostDetail(targetIdOrSlug, user, channelPref);
 
   if (detail?.isPrivate && !user) {
     redirect(`/login?redirect=/watch?v=${targetIdOrSlug}`);

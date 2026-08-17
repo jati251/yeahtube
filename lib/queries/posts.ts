@@ -383,11 +383,12 @@ export async function getFeedPosts(
  * Fetches full details for a post (media, tags, recommendations, edit permissions, presigned URLs, author).
  * Wrapped in React cache to deduplicate metadata + page execution within the same request lifecycle.
  */
-export const getPostDetail = cache(async function getPostDetail(
+export const getPostDetail = cache(async (
   idOrSlug: string | number,
-  user: { id: number; isAdmin: boolean } | null,
-) {
-  const cacheKey = `cache:post:${idOrSlug}`;
+  user?: { id: number; isAdmin: boolean } | null,
+  channelPref?: string | null
+) => {
+  const cacheKey = `post:detail:${user ? "auth" : "pub"}:${channelPref || "all"}:${idOrSlug}`;
   const cached = await getCache<{
     post: {
       id: number;
@@ -517,7 +518,7 @@ export const getPostDetail = cache(async function getPostDetail(
   const images = media.filter((m) => m.mediaType === "image");
 
   const tagIds = postTags.map((t) => t.id);
-  const recommendations = await getRecommendations(post.id, post.categoryId, tagIds, user);
+  const recommendations = await getRecommendations(post.id, post.categoryId, tagIds, user, channelPref);
 
   const videosWithUrls = await Promise.all(
     videos.map(async (v) => ({
