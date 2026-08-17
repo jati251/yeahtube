@@ -14,25 +14,8 @@ export function usePlayerFullscreen(
 
   const [fullscreen, setFullscreen] = useState(false);
   const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
-  const [isPortrait, setIsPortrait] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.innerHeight > window.innerWidth;
-  });
 
   const isFullscreenActive = fullscreen || isMobileFullscreen;
-  const isRotatedLandscape = isFullscreenActive && isPortrait && isLandscape;
-
-  useEffect(() => {
-    const checkOrientation = () => {
-      setIsPortrait(window.innerHeight > window.innerWidth);
-    };
-    window.addEventListener("resize", checkOrientation);
-    window.addEventListener("orientationchange", checkOrientation);
-    return () => {
-      window.removeEventListener("resize", checkOrientation);
-      window.removeEventListener("orientationchange", checkOrientation);
-    };
-  }, []);
 
   const lockLandscape = useCallback(async () => {
     try {
@@ -41,7 +24,7 @@ export function usePlayerFullscreen(
         await orient.lock("landscape");
       }
     } catch {
-      // Screen orientation lock not supported or rejected
+      // Screen orientation lock not supported or rejected by browser
     }
   }, []);
 
@@ -54,6 +37,7 @@ export function usePlayerFullscreen(
 
   const exitFullscreen = useCallback(async () => {
     setIsMobileFullscreen(false);
+    document.body.classList.remove("is-player-fullscreen");
     document.body.style.overflow = "";
     unlockOrientation();
 
@@ -95,7 +79,7 @@ export function usePlayerFullscreen(
         nativeSuccess = true;
       }
     } catch (e) {
-      console.warn("Native fullscreen request failed, falling back to viewport fullscreen:", e);
+      console.warn("Native fullscreen request failed, using viewport fallback:", e);
     }
 
     // 3. Auto lock to landscape on mobile if video is 16:9 / horizontal
@@ -103,12 +87,22 @@ export function usePlayerFullscreen(
       lockLandscape();
     }
 
-    // 4. Viewport fallback (e.g. iOS Safari / restricted webview)
-    if (!nativeSuccess) {
-      setIsMobileFullscreen(true);
-      document.body.style.overflow = "hidden";
-    }
+    // 4. Fallback / mobile viewport fullscreen
+    setIsMobileFullscreen(true);
+    document.body.classList.add("is-player-fullscreen");
+    document.body.style.overflow = "hidden";
   }, [containerRef, isFullscreenActive, exitFullscreen, isLandscape, lockLandscape]);
+
+  // Sync body class with fullscreen state
+  useEffect(() => {
+    if (isFullscreenActive) {
+      document.body.classList.add("is-player-fullscreen");
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.classList.remove("is-player-fullscreen");
+      document.body.style.overflow = "";
+    }
+  }, [isFullscreenActive]);
 
   // Support Android / Mobile hardware Back Button to exit mobile CSS fullscreen
   useEffect(() => {
@@ -116,6 +110,7 @@ export function usePlayerFullscreen(
 
     const handlePopState = () => {
       setIsMobileFullscreen(false);
+      document.body.classList.remove("is-player-fullscreen");
       document.body.style.overflow = "";
       unlockOrientation();
     };
@@ -124,6 +119,7 @@ export function usePlayerFullscreen(
     window.addEventListener("popstate", handlePopState);
 
     return () => {
+      document.body.classList.remove("is-player-fullscreen");
       document.body.style.overflow = "";
       window.removeEventListener("popstate", handlePopState);
     };
@@ -136,6 +132,7 @@ export function usePlayerFullscreen(
       const isFs = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
       setFullscreen(isFs);
       if (!isFs) {
+        document.body.classList.remove("is-player-fullscreen");
         document.body.style.overflow = "";
         unlockOrientation();
       }
@@ -154,7 +151,6 @@ export function usePlayerFullscreen(
     fullscreen,
     isMobileFullscreen,
     isFullscreenActive,
-    isRotatedLandscape,
     toggleFullscreen,
   };
 }
