@@ -54,8 +54,8 @@ function isPublicRoute(pathname: string, method: string): boolean {
   if (matchesAny(pathname, PUBLIC_ROUTES)) return true;
   if (method === "GET" && matchesAny(pathname, PUBLIC_GET_API_ROUTES)) return true;
 
-  // View count increment is allowed for public
-  if (method === "POST" && /^\/api\/posts\/\d+\/view$/.test(pathname)) return true;
+  // Public analytics and interaction trackers
+  if (method === "POST" && /^\/api\/posts\/\d+\/(view|history)$/.test(pathname)) return true;
 
   return false;
 }

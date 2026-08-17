@@ -16,7 +16,7 @@ import { trackWatchHistory, trackPostView } from "@/services/queries";
 import { clsx } from "clsx";
 import { useInView } from "react-intersection-observer";
 
-import { useRecommendationsQuery } from "@/services/queries";
+import { useRecommendationsQuery, useSessionQuery } from "@/services/queries";
 import { useAppStore } from "@/stores/appStore";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
@@ -82,11 +82,15 @@ export function WatchPageClient({
     return result;
   }, [recsData, post.id]);
 
+  const { data: session } = useSessionQuery();
+
   // Fire-and-forget tracking
   useEffect(() => {
-    trackWatchHistory(post.id);
+    if (session?.authenticated) {
+      trackWatchHistory(post.id);
+    }
     trackPostView(post.id);
-  }, [post.id]);
+  }, [post.id, session?.authenticated]);
 
   const qualityOptions = videos.length > 1 ? videos.map((v, idx) => ({
     label: getQualityLabel(v.width, v.height)?.label ?? "Auto",
