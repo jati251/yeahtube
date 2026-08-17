@@ -11,14 +11,19 @@ export interface RecommendationsResponse {
 export function useRecommendationsQuery(
   postId: number,
   initialData?: PostItem[],
-  maxPages: number = 3
+  maxPages: number = 3,
+  channel?: string | null
 ) {
   return useInfiniteQuery({
-    queryKey: ["recommendations", postId, "random"],
+    queryKey: ["recommendations", postId, "random", channel ?? "all"],
     queryFn: async ({ pageParam = 1 }) => {
-      // The endpoint returns random posts, we append pageParam to bypass browser cache
-      // since the API route might have Cache-Control max-age headers.
-      return api.get<RecommendationsResponse>(`/api/posts?sort=random&limit=10&page=${pageParam}`);
+      const params = new URLSearchParams({
+        sort: "random",
+        limit: "10",
+        page: String(pageParam),
+      });
+      if (channel) params.set("channel", channel);
+      return api.get<RecommendationsResponse>(`/api/posts?${params.toString()}`);
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {

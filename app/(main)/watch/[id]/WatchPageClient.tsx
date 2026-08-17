@@ -17,6 +17,7 @@ import { clsx } from "clsx";
 import { useInView } from "react-intersection-observer";
 
 import { useRecommendationsQuery } from "@/services/queries";
+import { useAppStore } from "@/stores/appStore";
 
 export type { VideoData, ImageData, PostData };
 
@@ -43,12 +44,15 @@ export function WatchPageClient({
     rootMargin: "200px",
   });
 
+  const showPublicPosts = useAppStore((s) => s.showPublicPosts);
+  const channelFilter = showPublicPosts ? null : "private";
+
   const {
     data: recsData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useRecommendationsQuery(post.id, recommendations, 3);
+  } = useRecommendationsQuery(post.id, recommendations, 3, channelFilter);
 
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {

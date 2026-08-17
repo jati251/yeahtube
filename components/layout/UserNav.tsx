@@ -16,6 +16,7 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
   const logoutMutation = useLogoutMutation();
   const showPublicPosts = useAppStore((s) => s.showPublicPosts);
   const setShowPublicPosts = useAppStore((s) => s.setShowPublicPosts);
+  const triggerPostsRefresh = useAppStore((s) => s.triggerPostsRefresh);
 
   const handleLogout = async () => {
     await logoutMutation.mutateAsync();
@@ -105,6 +106,7 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
                 onClick={() => {
                   const next = !showPublicPosts;
                   setShowPublicPosts(next);
+                  triggerPostsRefresh();
                   // Sync to cookie so server can read preference on SSR (like theme)
                   document.cookie = `show-public-posts=${next}; path=/; max-age=31536000; SameSite=Lax`;
                 }}
