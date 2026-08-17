@@ -52,9 +52,24 @@ export function FeedFilterBar({
   const [openDropdown, setOpenDropdown] = useState<
     "type" | "category" | "year" | "tags" | "sort" | null
   >(null);
+  const [dropdownAlign, setDropdownAlign] = useState<"left" | "right">("left");
   const [tagSearch, setTagSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const toggleDropdown = (
+    name: "type" | "category" | "year" | "tags" | "sort",
+    e: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    if (openDropdown === name) {
+      setOpenDropdown(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const align = rect.left + rect.width / 2 > window.innerWidth / 2 ? "right" : "left";
+      setDropdownAlign(align);
+      setOpenDropdown(name);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -94,7 +109,7 @@ export function FeedFilterBar({
       <div className="relative">
         <button
           type="button"
-          onClick={() => setOpenDropdown(openDropdown === "type" ? null : "type")}
+          onClick={(e) => toggleDropdown("type", e)}
           className={clsx(
             buttonBaseClass,
             mediaType
@@ -121,7 +136,12 @@ export function FeedFilterBar({
         </button>
 
         {openDropdown === "type" && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
+          <div
+            className={clsx(
+              "absolute top-full z-50 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
+              dropdownAlign === "right" ? "right-0" : "left-0",
+            )}
+          >
             {[
               { value: null, label: "All Types", icon: Sparkles },
               { value: "video", label: "Videos", icon: Film },
@@ -162,7 +182,7 @@ export function FeedFilterBar({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setOpenDropdown(openDropdown === "category" ? null : "category")}
+            onClick={(e) => toggleDropdown("category", e)}
             className={clsx(
               buttonBaseClass,
               category
@@ -183,7 +203,12 @@ export function FeedFilterBar({
           </button>
 
           {openDropdown === "category" && (
-            <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
+            <div
+              className={clsx(
+                "absolute top-full z-50 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
+                dropdownAlign === "right" ? "right-0" : "left-0",
+              )}
+            >
               {categories.length > 6 && (
                 <input
                   type="text"
@@ -245,7 +270,7 @@ export function FeedFilterBar({
       <div className="relative">
         <button
           type="button"
-          onClick={() => setOpenDropdown(openDropdown === "year" ? null : "year")}
+          onClick={(e) => toggleDropdown("year", e)}
           className={clsx(
             buttonBaseClass,
             year
@@ -264,7 +289,12 @@ export function FeedFilterBar({
         </button>
 
         {openDropdown === "year" && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-44 rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
+          <div
+            className={clsx(
+              "absolute top-full z-50 mt-2 w-44 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
+              dropdownAlign === "right" ? "right-0" : "left-0",
+            )}
+          >
             <button
               type="button"
               onClick={() => {
@@ -313,7 +343,7 @@ export function FeedFilterBar({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setOpenDropdown(openDropdown === "tags" ? null : "tags")}
+            onClick={(e) => toggleDropdown("tags", e)}
             className={clsx(
               buttonBaseClass,
               selectedTags.length > 0
@@ -338,7 +368,12 @@ export function FeedFilterBar({
           </button>
 
           {openDropdown === "tags" && (
-            <div className="absolute right-0 sm:left-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
+            <div
+              className={clsx(
+                "absolute top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
+                dropdownAlign === "right" ? "right-0" : "left-0",
+              )}
+            >
               <input
                 type="text"
                 placeholder="Search tags..."
@@ -396,7 +431,7 @@ export function FeedFilterBar({
       <div className="relative">
         <button
           type="button"
-          onClick={() => setOpenDropdown(openDropdown === "sort" ? null : "sort")}
+          onClick={(e) => toggleDropdown("sort", e)}
           className={clsx(
             buttonBaseClass,
             sort !== "newest"
@@ -415,7 +450,12 @@ export function FeedFilterBar({
         </button>
 
         {openDropdown === "sort" && (
-          <div className="absolute right-0 top-full z-50 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
+          <div
+            className={clsx(
+              "absolute top-full z-50 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
+              dropdownAlign === "right" ? "right-0" : "left-0",
+            )}
+          >
             {SORT_OPTIONS.map((opt) => {
               const isSelected = sort === opt.value;
               return (
