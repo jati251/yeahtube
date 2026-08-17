@@ -8,11 +8,14 @@ import { clsx } from "clsx";
 import { useAppStore } from "@/stores/appStore";
 import { MobileDrawerProps } from "@/types";
 import { DRAWER_NAV_ITEMS, ADMIN_NAV_ITEM } from "@/constants";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 export function MobileDrawer({ isOpen, onClose, isAdmin }: MobileDrawerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentType = searchParams.get("type");
+
+  useBodyScrollLock(isOpen);
 
   const navLinks = [
     ...DRAWER_NAV_ITEMS,
@@ -24,7 +27,7 @@ export function MobileDrawer({ isOpen, onClose, isAdmin }: MobileDrawerProps) {
       {/* Backdrop */}
       <div
         className={clsx(
-          "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden transition-all duration-300 ease-in-out",
+          "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden transition-all duration-300 ease-in-out touch-none",
           isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
         )}
         onClick={onClose}
@@ -33,7 +36,7 @@ export function MobileDrawer({ isOpen, onClose, isAdmin }: MobileDrawerProps) {
       {/* Drawer Container */}
       <div
         className={clsx(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-white/95 p-5 shadow-2xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden transition-all duration-300 ease-in-out transform",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-white/95 p-5 shadow-2xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden transition-all duration-300 ease-in-out transform overscroll-contain",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >

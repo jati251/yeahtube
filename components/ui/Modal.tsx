@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { X } from "lucide-react";
 import { ModalProps } from "@/types";
 import { MODAL_SIZE_STYLES } from "@/constants";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 export function Modal({
   isOpen,
@@ -14,6 +15,8 @@ export function Modal({
   size = "md",
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  useBodyScrollLock(isOpen);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -25,11 +28,9 @@ export function Modal({
   useEffect(() => {
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
     }
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
     };
   }, [isOpen, handleKeyDown]);
 
@@ -38,18 +39,18 @@ export function Modal({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overscroll-contain"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
     >
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm touch-none animate-in fade-in duration-200" />
 
       {/* Modal Dialog */}
       <div
         className={clsx(
-          "relative z-10 flex w-full max-h-[90vh] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 animate-in zoom-in-95 fade-in duration-200",
+          "relative z-10 flex w-full max-h-[90vh] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 animate-in zoom-in-95 fade-in duration-200 overscroll-contain",
           MODAL_SIZE_STYLES[size]
         )}
         role="dialog"
@@ -73,7 +74,7 @@ export function Modal({
         )}
 
         {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin overscroll-contain">
           {children}
         </div>
       </div>
