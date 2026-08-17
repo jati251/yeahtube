@@ -141,11 +141,11 @@ export const ReelItem = React.memo(function ReelItem({
       className="reel-item relative h-[100dvh] w-full snap-center snap-always flex items-center justify-center bg-black overflow-hidden select-none"
       data-post-id={post.id}
     >
-      {/* Background Poster / Blur Backdrop */}
+      {/* Background Poster (Clean object-contain, no blurred backdrop) */}
       {post.thumbnailUrl && (
         <div
           className={clsx(
-            "absolute inset-0 z-0 overflow-hidden transition-opacity duration-300 pointer-events-none",
+            "absolute inset-0 z-0 overflow-hidden transition-opacity duration-300 pointer-events-none flex items-center justify-center bg-black",
             isVideoReady && isActive ? "opacity-0" : "opacity-100",
           )}
         >
@@ -154,15 +154,7 @@ export const ReelItem = React.memo(function ReelItem({
             alt={post.title}
             fill
             priority={isActive}
-            className="object-cover blur-md scale-110 opacity-40"
-            sizes="(max-width: 1024px) 100vw, 800px"
-          />
-          <NextImage
-            src={post.thumbnailUrl}
-            alt={post.title}
-            fill
-            priority={isActive}
-            className="object-contain relative z-10"
+            className="object-contain"
             sizes="(max-width: 1024px) 100vw, 800px"
           />
         </div>

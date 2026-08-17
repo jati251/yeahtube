@@ -183,20 +183,20 @@ export function ReelsFeed({
       >
         <button
           onClick={onClose}
-          className="p-2.5 bg-black/30 rounded-full text-white hover:bg-black/50 transition-colors active:scale-95 shadow-md"
+          className="p-2 text-white/90 hover:text-white transition-all active:scale-90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer"
           aria-label="Back"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-6 w-6 stroke-[2.5]" />
         </button>
 
         <div />
 
         <button
           onClick={toggleSound}
-          className="p-2.5 bg-black/30 rounded-full text-white hover:bg-black/50 transition-colors active:scale-95 shadow-md"
+          className="p-2 text-white/90 hover:text-white transition-all active:scale-90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer"
           aria-label="Toggle Sound"
         >
-          {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          {isMuted ? <VolumeX className="h-6 w-6 stroke-[2.5]" /> : <Volume2 className="h-6 w-6 stroke-[2.5]" />}
         </button>
       </div>
 
@@ -242,7 +242,7 @@ export function ReelsFeed({
 
           return (
             <ReelItem
-              key={post.id}
+              key={`${post.id}-${index}`}
               post={post}
               isActive={activeVideoId === post.id}
               isNearActive={distance <= 1}
