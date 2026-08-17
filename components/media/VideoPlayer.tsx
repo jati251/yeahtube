@@ -98,6 +98,7 @@ export function VideoPlayer({
     endHold2X,
     handleTapZone,
     handleTouchStart,
+    handleTouchMove,
     handleTouchEnd,
   } = usePlayerGestures({
     containerRef,
@@ -142,7 +143,7 @@ export function VideoPlayer({
   return (
     <div
       ref={containerRef}
-      className={`group relative bg-black select-none ${
+      className={`group relative bg-black select-none touch-none ${
         isFullscreenActive
           ? "!fixed !inset-0 !z-[99999] !h-screen !h-[100dvh] !w-screen !w-[100dvw] !rounded-none !aspect-auto"
           : "aspect-video rounded-xl"
@@ -198,12 +199,13 @@ export function VideoPlayer({
 
       {/* Tap zones overlay with Hold-for-2X and Double Tap seek */}
       <div
-        className="absolute inset-0 z-[5] cursor-pointer rounded-xl overflow-hidden select-none"
+        className="absolute inset-0 z-[5] cursor-pointer rounded-xl overflow-hidden select-none touch-none"
         onClick={handleTapZone}
         onMouseDown={startHold2X}
         onMouseUp={endHold2X}
         onMouseLeave={endHold2X}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onTouchCancel={endHold2X}
       />

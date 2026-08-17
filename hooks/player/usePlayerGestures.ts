@@ -195,6 +195,22 @@ export function usePlayerGestures({
     [videoRef, playbackSpeed, processTapCoordinates, isFullscreenActive, toggleFullscreen],
   );
 
+  // Touch Move (Mobile)
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
+      const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
+      // Cancel hold timer if user is swiping
+      if (dx > 10 || dy > 10) {
+        if (holdTimerRef.current) {
+          clearTimeout(holdTimerRef.current);
+          holdTimerRef.current = null;
+        }
+      }
+    }
+  }, []);
+
   // Mouse Hold (Desktop)
   const startHold2X = useCallback(() => {
     if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
@@ -228,6 +244,7 @@ export function usePlayerGestures({
     endHold2X,
     handleTapZone,
     handleTouchStart,
+    handleTouchMove,
     handleTouchEnd,
   };
 }
