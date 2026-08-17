@@ -102,7 +102,12 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
               <button
                 type="button"
-                onClick={() => setShowPublicPosts(!showPublicPosts)}
+                onClick={() => {
+                  const next = !showPublicPosts;
+                  setShowPublicPosts(next);
+                  // Sync to cookie so server can read preference on SSR (like theme)
+                  document.cookie = `show-public-posts=${next}; path=/; max-age=31536000; SameSite=Lax`;
+                }}
                 className="flex w-full items-center justify-between px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
               >
                 <span className="flex items-center gap-2">

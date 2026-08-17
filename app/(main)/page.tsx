@@ -1,4 +1,5 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getFeedPosts, getAllTags, getAllCategories } from "@/lib/queries";
 import { SortValue } from "@/lib/constants";
@@ -25,6 +26,16 @@ export default async function HomePage({
   const sort = (urlSearchParams.get("sort") || "newest") as SortValue;
 
   const user = await getCurrentUser();
+
+  // Read channel preference from cookie (synced from client toggle)
+  if (user && !urlSearchParams.has("channel")) {
+    const cookieStore = await cookies();
+    const showPublicPref = cookieStore.get("show-public-posts")?.value;
+    if (showPublicPref === "false") {
+      urlSearchParams.set("channel", "private");
+    }
+  }
+
   const [feedData, tags, categories] = await Promise.all([
     getFeedPosts(urlSearchParams, user),
     getAllTags(),
