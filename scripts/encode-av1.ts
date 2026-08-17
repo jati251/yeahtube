@@ -46,7 +46,7 @@ pool.on("error", (err) => {
 });
 
 function getS3Client(): { s3: S3Client; bucket: string } {
-  const endpoint = process.env.S3_ENDPOINT || "http://api.s3.homelab.local";
+  const endpoint = process.env.S3_ENDPOINT || "http://localhost:9000";
   const region = process.env.S3_REGION || "us-east-1";
   const bucket = process.env.S3_BUCKET || "yeahtube";
   const accessKey = process.env.S3_ACCESS_KEY || "minioadmin";

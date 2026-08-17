@@ -17,7 +17,7 @@ const limitIndex = process.argv.indexOf("--limit");
 const limit = limitIndex !== -1 ? parseInt(process.argv[limitIndex + 1], 10) : undefined;
 
 function getRedisConnection() {
-  const url = process.env.REDIS_URL || "redis://:strongpassword123@cekcok-redis:6379";
+  const url = process.env.REDIS_URL || "redis://localhost:6379";
   const parsed = new URL(url);
   return {
     host: parsed.hostname,
@@ -61,7 +61,7 @@ async function main() {
     return;
   }
 
-  const endpoint = process.env.S3_ENDPOINT || "http://api.s3.homelab.local";
+  const endpoint = process.env.S3_ENDPOINT || "http://localhost:9000";
   const region = process.env.S3_REGION || "us-east-1";
   const bucket = process.env.S3_BUCKET || "yeahtube";
   const accessKey = process.env.S3_ACCESS_KEY || "minioadmin";

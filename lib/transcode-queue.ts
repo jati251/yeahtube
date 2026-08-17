@@ -2,7 +2,7 @@ import { Queue } from "bullmq";
 
 // ── Redis Connection (plain object, no IORedis instance to avoid version conflicts) ───
 function getRedisConnection() {
-  const url = process.env.REDIS_URL || "redis://:strongpassword123@cekcok-redis:6379";
+  const url = process.env.REDIS_URL || "redis://localhost:6379";
   const parsed = new URL(url);
   return {
     host: parsed.hostname,

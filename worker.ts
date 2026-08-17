@@ -166,7 +166,7 @@ interface SlotState {
 
 // ── Redis Connection ──────────────────────────────────
 function getRedisConnection() {
-  const url = process.env.REDIS_URL || "redis://:strongpassword123@cekcok-redis:6379";
+  const url = process.env.REDIS_URL || "redis://localhost:6379";
   const parsed = new URL(url);
   return {
     host: parsed.hostname,
