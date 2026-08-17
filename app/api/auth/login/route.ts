@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { login, setSessionCookie } from "@/lib/auth";
 import { z } from "zod";
+import { getClientIp, checkAuthRateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 const loginSchema = z.object({
   username: z.string().min(1).max(50),
@@ -9,6 +10,8 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const clientIp = getClientIp(request);
+
     // Accept both JSON (JS) and form-encoded (no-JS fallback)
     const contentType = request.headers.get("content-type") || "";
     let username: string;
@@ -22,6 +25,12 @@ export async function POST(request: NextRequest) {
       const body = await request.json();
       username = body.username;
       password = body.password;
+    }
+
+    // Rate limit per IP + Username (max 5 attempts per minute)
+    const rateLimit = await checkAuthRateLimit(clientIp, username);
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit.resetSeconds, "Too many login attempts. Please try again in a few moments.");
     }
 
     const parsed = loginSchema.safeParse({ username, password });

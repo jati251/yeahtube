@@ -32,9 +32,11 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/package.json ./
 
-# Copy db and lib for worker and runtime helpers
+# Copy db, lib, types, and tsconfig for worker and runtime helpers
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/types ./types
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/worker.ts ./worker.ts
 COPY --from=builder /app/node_modules ./node_modules
 

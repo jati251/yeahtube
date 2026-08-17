@@ -57,7 +57,19 @@ export async function GET(request: NextRequest) {
     return new Response("Missing 'key' query parameter", { status: 400 });
   }
 
-  const decodedKey = decodeURIComponent(key);
+  const decodedKey = decodeURIComponent(key).trim();
+
+  // Strict S3 key validation to prevent Path Traversal, Null Byte injection, and SSRF attacks
+  if (
+    decodedKey.includes("\0") ||
+    decodedKey.includes("..") ||
+    decodedKey.startsWith("/") ||
+    decodedKey.startsWith("\\") ||
+    !/^[a-zA-Z0-9_\-\.\/]+$/.test(decodedKey)
+  ) {
+    return new Response("Invalid key parameter", { status: 400 });
+  }
+
   const s3 = getS3Client();
   const { bucket } = getStorageConfig();
 

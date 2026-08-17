@@ -14,6 +14,7 @@ import path from "path";
 import { eq, inArray } from "drizzle-orm";
 import { invalidateFeedCache, invalidateTaxonomyCache } from "@/lib/cache";
 import { generateYouTubeId } from "@/lib/slug";
+import { checkUploadRateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 // ── Validation ─────────────────────────────────────────
 
@@ -125,8 +126,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Header extraction
-    const filename = decodeURIComponent(request.headers.get("x-file-name") || "");
+    // Rate limiting: max 40 uploads per minute per user
+    const rateLimit = await checkUploadRateLimit(user.id);
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit.resetSeconds, "Upload rate limit exceeded. Please wait a moment before uploading more files.");
+    }
+
+    // Header extraction & sanitization
+    const rawFilename = decodeURIComponent(request.headers.get("x-file-name") || "").trim();
+    // Sanitize filename to prevent path traversal & control character injection
+    const filename = path.basename(rawFilename).replace(/[\0\r\n\t]/g, "").replace(/\.{2,}/g, ".");
+
     let mimeType = request.headers.get("x-file-type") || "application/octet-stream";
     if (
       filename.toLowerCase().endsWith(".ts") &&

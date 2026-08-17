@@ -49,14 +49,20 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
-    // In development, be permissive for HMR and dev tools
     if (isDev) {
       return [
         {
-          source: "/(.*)",
+          source: "/embed/:path*",
           headers: [
             { key: "X-Content-Type-Options", value: "nosniff" },
-            { key: "X-Frame-Options", value: "DENY" },
+            { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          ],
+        },
+        {
+          source: "/((?!embed).*)",
+          headers: [
+            { key: "X-Content-Type-Options", value: "nosniff" },
+            { key: "X-Frame-Options", value: "SAMEORIGIN" },
             { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           ],
         },
@@ -65,11 +71,39 @@ const nextConfig: NextConfig = {
 
     return [
       {
-        source: "/(.*)",
+        source: "/embed/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: http: https:",
+              "media-src 'self' blob: http: https:",
+              "connect-src 'self' http: https: https://cloudflareinsights.com",
+              "font-src 'self'",
+              "frame-ancestors *",
+            ].join("; "),
+          },
+        ],
+      },
+      {
+        source: "/((?!embed).*)",
         headers: [
           // ── Security Headers ──────────────────────────────
           { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
@@ -84,10 +118,6 @@ const nextConfig: NextConfig = {
             value: "none",
           },
           // ── Content Security Policy (production only) ─────
-          // Dev mode is intentionally permissive for HMR/WebSocket.
-          // In production, restrict resources to self-hosted origins.
-          // 'unsafe-inline' on style-src is required for Next.js
-          // style injection. Media can be served from local MinIO.
           {
             key: "Content-Security-Policy",
             value: [
@@ -98,6 +128,7 @@ const nextConfig: NextConfig = {
               "media-src 'self' blob: http: https:",
               "connect-src 'self' http: https: https://cloudflareinsights.com",
               "font-src 'self'",
+              "frame-ancestors 'self'",
             ].join("; "),
           },
         ],

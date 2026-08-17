@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import { and, eq, sql } from "drizzle-orm";
+import { requireCsrf } from "@/lib/csrf";
+import { checkInteractionRateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -64,8 +66,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const csrfError = requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const rateLimit = await checkInteractionRateLimit(String(user.id), "like");
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit.resetSeconds, "Like action rate limit exceeded. Please wait a moment.");
+    }
 
     const { id } = await params;
     const postId = parseInt(id, 10);

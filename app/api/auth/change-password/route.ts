@@ -3,14 +3,25 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb, schema } from "@/db";
 import { verifyPassword, hashPassword } from "@/lib/password";
 import { eq } from "drizzle-orm";
+import { requireCsrf } from "@/lib/csrf";
+import { getClientIp, checkAuthRateLimit, rateLimitExceededResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
+    const csrfError = requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const clientIp = getClientIp(request);
+    const rateLimit = await checkAuthRateLimit(clientIp, `pwd:${currentUser.id}`);
+    if (!rateLimit.allowed) {
+      return rateLimitExceededResponse(rateLimit.resetSeconds, "Too many password change attempts. Please try again later.");
     }
 
     const body = await request.json();
