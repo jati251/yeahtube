@@ -338,7 +338,7 @@ export function FeedFilterBar({
           </button>
 
           {openDropdown === "tags" && (
-            <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 sm:left-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
               <input
                 type="text"
                 placeholder="Search tags..."
@@ -415,7 +415,7 @@ export function FeedFilterBar({
         </button>
 
         {openDropdown === "sort" && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-48 rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute right-0 top-full z-50 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150">
             {SORT_OPTIONS.map((opt) => {
               const isSelected = sort === opt.value;
               return (
