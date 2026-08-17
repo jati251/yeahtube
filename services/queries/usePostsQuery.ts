@@ -68,7 +68,7 @@ export function usePostsQuery(
           }
         : undefined,
     placeholderData: keepPreviousData,
-    staleTime: 1000 * 30, // 30 seconds fresh window
+    staleTime: 1000 * 120, // 2 min fresh window — matches server Redis cache TTL
     enabled,
   });
 }

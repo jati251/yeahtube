@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result, {
       headers: {
-        "Cache-Control": "private, max-age=10, stale-while-revalidate=50",
+        "Cache-Control": "private, max-age=60, stale-while-revalidate=240",
       },
     });
   } catch (error) {

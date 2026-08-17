@@ -341,8 +341,10 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
   };
 
   if (shouldCache) {
-    // Cache for 60 seconds (invalidated automatically on uploads/deletes/edits)
-    await setCache(cacheKey, response, 60);
+    // Cache for 5 minutes (invalidated automatically on uploads/deletes/edits).
+    // Presigned URLs are valid for 1 hour, so 5 min cache is safe.
+    // Warm cache returns in ~11ms vs ~390ms cold — huge win for production.
+    await setCache(cacheKey, response, 300);
   }
 
   return response;
@@ -481,7 +483,8 @@ export const getPostDetail = cache(async function getPostDetail(
     recommendations,
   };
 
-  await setCache(cacheKey, payload, 120);
+  // Cache post detail for 10 minutes (presigned URLs valid for 1 hour)
+  await setCache(cacheKey, payload, 600);
 
   return {
     ...payload,
