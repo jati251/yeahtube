@@ -85,9 +85,17 @@ export async function GET(request: NextRequest) {
     const headers: Record<string, string> = {
       "Content-Type": contentType,
       "Accept-Ranges": "bytes",
-      "Cache-Control": "public, max-age=86400",
+      "Cache-Control": "public, max-age=31536000, immutable",
       "X-Content-Type-Options": "nosniff",
     };
+
+    if (s3Response.ETag) {
+      headers["ETag"] = s3Response.ETag;
+    }
+
+    if (s3Response.LastModified) {
+      headers["Last-Modified"] = s3Response.LastModified.toUTCString();
+    }
 
     if (contentLength !== undefined) {
       headers["Content-Length"] = String(contentLength);
