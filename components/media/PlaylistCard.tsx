@@ -55,31 +55,25 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
 
         {/* Top Badges (Channel + Sharing) */}
         <div className="absolute top-2.5 left-2.5 z-20 flex flex-wrap items-center gap-1.5">
-          <div className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[11px] font-medium text-white border border-white/10 shadow-sm">
+          <div
+            className="flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md p-1.5 border border-white/10 shadow-sm"
+            title={playlist.channel === "public" ? "Public Channel" : "Private Channel"}
+          >
             {playlist.channel === "public" ? (
-              <>
-                <Globe className="h-3 w-3 text-emerald-400" />
-                <span>Public Channel</span>
-              </>
+              <Globe className="h-3.5 w-3.5 text-emerald-400" />
             ) : (
-              <>
-                <Lock className="h-3 w-3 text-amber-400" />
-                <span>Private Channel</span>
-              </>
+              <Lock className="h-3.5 w-3.5 text-amber-400" />
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[11px] font-medium text-white border border-white/10 shadow-sm">
+          <div
+            className="flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md p-1.5 border border-white/10 shadow-sm"
+            title={isPublic ? "Shared" : "Personal"}
+          >
             {isPublic ? (
-              <>
-                <Users className="h-3 w-3 text-blue-400" />
-                <span>Shared</span>
-              </>
+              <Users className="h-3.5 w-3.5 text-blue-400" />
             ) : (
-              <>
-                <Lock className="h-3 w-3 text-zinc-400" />
-                <span>Personal</span>
-              </>
+              <Lock className="h-3.5 w-3.5 text-zinc-400" />
             )}
           </div>
         </div>

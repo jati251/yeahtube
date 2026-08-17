@@ -177,7 +177,7 @@ export function PlaylistCoverCollage({
       {/* Total Video Count Badge */}
       <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
         <ListVideo className="h-3 w-3" />
-        {totalCount} videos
+        {totalCount} {totalCount === 1 ? "item" : "items"}
       </div>
     </div>
   );

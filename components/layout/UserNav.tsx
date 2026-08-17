@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Upload, LogOut, LogIn, Video, Globe, Lock } from "lucide-react";
+import { Upload, LogOut, LogIn, Video, Globe, Lock, Shield } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserNavProps } from "@/types";
@@ -34,7 +34,11 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
       <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
         <Link href="/login">
-          <Button variant="primary" size="sm" className="flex items-center gap-1.5">
+          <Button
+            variant="primary"
+            size="sm"
+            className="flex items-center gap-1.5"
+          >
             <LogIn className="h-4 w-4" />
             <span>Sign In</span>
           </Button>
@@ -86,7 +90,10 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
             />
             <div className="absolute right-0 z-20 mt-1 w-52 rounded-2xl border border-zinc-200 bg-white py-1 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 animate-in zoom-in-95 duration-150">
               <div className="border-b border-zinc-100 px-4 py-2 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                Signed in as <span className="font-semibold text-zinc-900 dark:text-zinc-50">{username}</span>
+                Signed in as{" "}
+                <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+                  {username}
+                </span>
               </div>
               <Link
                 href={`/user/${username}`}
@@ -99,9 +106,10 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="block px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
                   onClick={() => setUserMenuOpen(false)}
                 >
+                  <Shield className="h-4 w-4 text-amber-500" />
                   Admin Panel
                 </Link>
               )}
@@ -123,7 +131,7 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
                   ) : (
                     <Lock className="h-4 w-4 text-amber-500" />
                   )}
-                  Show Public Posts
+                  Show Public
                 </span>
                 <div
                   className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${

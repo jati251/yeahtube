@@ -22,7 +22,7 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 glass-header">
+      <header className="sticky top-0 z-50 glass-header">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
           {/* Mobile menu button */}
           <button

@@ -111,7 +111,7 @@ export function WatchPageClient({
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="sticky top-16 z-40 -mx-4 sm:mx-0 bg-black lg:static lg:bg-transparent lg:col-span-8 lg:col-start-1 lg:row-start-1">
+        <div className="sticky top-16 z-30 -mx-4 sm:mx-0 bg-black lg:static lg:bg-transparent lg:col-span-8 lg:col-start-1 lg:row-start-1">
           <VideoPlayer
             key={post.id}
             src={currentVideo.streamUrl}
