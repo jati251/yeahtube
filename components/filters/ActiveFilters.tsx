@@ -10,17 +10,15 @@ export function ActiveFilters({
   searchQuery,
   category,
   year,
-  channel,
   sort,
   onRemoveMediaType,
   onRemoveTag,
   onRemoveSearch,
   onRemoveCategory,
   onRemoveYear,
-  onRemoveChannel,
   onClearAll,
 }: ActiveFiltersProps) {
-  const hasFilters = mediaType || selectedTags.length > 0 || searchQuery || category || year || channel;
+  const hasFilters = mediaType || selectedTags.length > 0 || searchQuery || category || year;
 
   if (!hasFilters) return null;
 
@@ -64,15 +62,6 @@ export function ActiveFilters({
         <span className={badgeClass}>
           Year: {year}
           <button onClick={onRemoveYear} className={closeBtnClass} aria-label="Remove year filter">
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </span>
-      )}
-
-      {channel && (
-        <span className={badgeClass}>
-          Channel: {channel === "public" ? "Public" : "Subscribed"}
-          <button onClick={onRemoveChannel} className={closeBtnClass} aria-label="Remove channel filter">
             <X className="h-3.5 w-3.5" />
           </button>
         </span>

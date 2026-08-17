@@ -18,7 +18,6 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   const initialActiveSort = searchParams.get("sort") || initialSort;
   const initialCategory = searchParams.get("category");
   const initialYear = searchParams.get("year");
-  const initialChannel = searchParams.get("channel");
 
   // ---- Local filter state ----
   const [activeMediaType, setActiveMediaType] = useState<string | null>(initialMediaType);
@@ -26,12 +25,11 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   const [activeSort, setActiveSort] = useState(initialActiveSort);
   const [activeCategory, setActiveCategory] = useState<string | null>(initialCategory);
   const [activeYear, setActiveYear] = useState<string | null>(initialYear);
-  const [activeChannel, setActiveChannel] = useState<string | null>(initialChannel);
 
   const activeSearchQuery = feedSearchQuery;
 
   const hasFilters = Boolean(
-    activeMediaType || activeTags.length > 0 || activeSearchQuery || activeCategory || activeYear || activeChannel,
+    activeMediaType || activeTags.length > 0 || activeSearchQuery || activeCategory || activeYear,
   );
 
   const goToPageRef = useRef<(p: number) => void>(() => {});
@@ -47,7 +45,6 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     const urlTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
     const urlCategory = searchParams.get("category");
     const urlYear = searchParams.get("year");
-    const urlChannel = searchParams.get("channel");
     const urlSort = searchParams.get("sort") || initialSort;
     const urlPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
@@ -57,14 +54,12 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
       urlTags.join(",") !== activeTags.join(",") ||
       urlCategory !== activeCategory ||
       urlYear !== activeYear ||
-      urlChannel !== activeChannel ||
       urlSort !== activeSort;
 
     setActiveMediaType(urlType);
     setActiveTags(urlTags);
     setActiveCategory(urlCategory);
     setActiveYear(urlYear);
-    setActiveChannel(urlChannel);
     setActiveSort(urlSort);
 
     if (filtersChanged && goToPageRef.current) {
@@ -85,7 +80,6 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
       setActiveSort(sp.get("sort") || initialSort);
       setActiveCategory(sp.get("category"));
       setActiveYear(sp.get("year"));
-      setActiveChannel(sp.get("channel"));
       const p = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
       if (goToPageRef.current) goToPageRef.current(p);
     };
@@ -104,7 +98,6 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
       setActiveSort(initialSort);
       setActiveCategory(null);
       setActiveYear(null);
-      setActiveChannel(null);
       if (goToPageRef.current) goToPageRef.current(1);
     }
   }, [feedResetCount, initialSort]);
@@ -119,7 +112,6 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     if (activeSort && activeSort !== initialSort) sp.set("sort", activeSort);
     if (activeCategory) sp.set("category", activeCategory);
     if (activeYear) sp.set("year", activeYear);
-    if (activeChannel) sp.set("channel", activeChannel);
     if (currentPage > 1) sp.set("page", String(currentPage));
 
     const qs = sp.toString();
@@ -130,7 +122,7 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     if (currentSearch !== targetSearch) {
       window.history.replaceState(null, "", newUrl);
     }
-  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, activeChannel, initialSort]);
+  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, initialSort]);
 
   return {
     activeMediaType,
@@ -148,8 +140,6 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     setActiveCategory,
     activeYear,
     setActiveYear,
-    activeChannel,
-    setActiveChannel,
     hasFilters,
     syncUrl,
     goToPageRef,
@@ -159,7 +149,6 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
       setActiveSort(initialSort);
       setActiveCategory(null);
       setActiveYear(null);
-      setActiveChannel(null);
       setFeedSearchQuery("");
     },
     handleTagToggle: (slug: string) => {

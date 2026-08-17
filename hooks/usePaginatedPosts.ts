@@ -31,7 +31,7 @@ export function usePaginatedPosts({
   const limitVal = fetchParams.limit || DEFAULT_PAGE_SIZE;
 
   // React 19 pattern: adjust state during render when filters change
-  const filterKey = `${fetchParams.sort}|${fetchParams.type}|${fetchParams.tags}|${fetchParams.q}|${fetchParams.category}|${fetchParams.year}`;
+  const filterKey = `${fetchParams.sort}|${fetchParams.type}|${fetchParams.tags}|${fetchParams.q}|${fetchParams.category}|${fetchParams.year}|${fetchParams.channel}`;
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
 
   if (prevFilterKey !== filterKey) {

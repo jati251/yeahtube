@@ -60,12 +60,12 @@ export function FeedClient({
     setActiveCategory,
     activeYear,
     setActiveYear,
-    activeChannel,
-    setActiveChannel,
     hasFilters,
     goToPageRef,
     syncUrl,
   } = useFeedFilters({ initialSort });
+
+  const showPublicPosts = useAppStore((s) => s.showPublicPosts);
 
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
@@ -93,7 +93,7 @@ export function FeedClient({
         sort: activeSort,
         category: activeCategory,
         year: activeYear,
-        channel: activeChannel,
+        channel: showPublicPosts ? null : "private",
       },
       autoFetch: !disableFiltersAndPagination && activeMediaType !== "playlist",
     });
@@ -140,7 +140,7 @@ export function FeedClient({
   useEffect(() => {
     if (disableFiltersAndPagination) return;
     syncUrl(page);
-  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, activeChannel, page, syncUrl, disableFiltersAndPagination]);
+  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, syncUrl, disableFiltersAndPagination]);
 
   // ---- Handlers ----
   const handleTagToggle = (slug: string) => {
@@ -159,7 +159,6 @@ export function FeedClient({
     setActiveSort(initialSort);
     setActiveCategory(null);
     setActiveYear(null);
-    setActiveChannel(null);
   };
 
   const navigateToPage = (newPage: number) => {
@@ -192,7 +191,6 @@ export function FeedClient({
           searchQuery={activeSearchQuery}
           category={activeCategory}
           year={activeYear}
-          channel={activeChannel}
           sort={activeSort}
           onRemoveMediaType={() => setActiveMediaType(null)}
           onRemoveTag={(slug) => {
@@ -209,10 +207,6 @@ export function FeedClient({
           }}
           onRemoveYear={() => {
             setActiveYear(null);
-            goToPage(1);
-          }}
-          onRemoveChannel={() => {
-            setActiveChannel(null);
             goToPage(1);
           }}
           onClearAll={clearAll}
@@ -242,13 +236,8 @@ export function FeedClient({
           category={activeCategory}
           categories={categories}
           year={activeYear}
-          channel={activeChannel}
           onMediaTypeChange={(type) => {
             setActiveMediaType(type);
-            goToPage(1);
-          }}
-          onChannelChange={(newChannel) => {
-            setActiveChannel(newChannel);
             goToPage(1);
           }}
           onTagToggle={handleTagToggle}
@@ -288,11 +277,6 @@ export function FeedClient({
                 onTagToggle={handleTagToggle}
                 sort={activeSort}
                 onSortChange={(newSort) => setActiveSort(newSort)}
-                channel={activeChannel}
-                onChannelChange={(newChannel) => {
-                  setActiveChannel(newChannel);
-                  goToPage(1);
-                }}
                 onClearAll={clearAll}
               />
             )}
@@ -423,6 +407,7 @@ export function FeedClient({
                       : p
                   )
                 );
+                addToast("success", "Post updated successfully");
               }}
             />
           )}

@@ -3,16 +3,19 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Upload, LogOut, LogIn, Video } from "lucide-react";
+import { Upload, LogOut, LogIn, Video, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { UserNavProps } from "@/types";
 import { useLogoutMutation } from "@/services/queries";
+import { useAppStore } from "@/stores/appStore";
 
 export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const logoutMutation = useLogoutMutation();
+  const showPublicPosts = useAppStore((s) => s.showPublicPosts);
+  const setShowPublicPosts = useAppStore((s) => s.setShowPublicPosts);
 
   const handleLogout = async () => {
     await logoutMutation.mutateAsync();
@@ -97,6 +100,33 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
                 </Link>
               )}
               <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+              <button
+                type="button"
+                onClick={() => setShowPublicPosts(!showPublicPosts)}
+                className="flex w-full items-center justify-between px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  {showPublicPosts ? (
+                    <Globe className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <Lock className="h-4 w-4 text-amber-500" />
+                  )}
+                  Show Public Posts
+                </span>
+                <div
+                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ${
+                    showPublicPosts
+                      ? "bg-emerald-500"
+                      : "bg-zinc-300 dark:bg-zinc-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                      showPublicPosts ? "translate-x-4" : "translate-x-0.5"
+                    }`}
+                  />
+                </div>
+              </button>
               <button
                 onClick={() => {
                   setUserMenuOpen(false);

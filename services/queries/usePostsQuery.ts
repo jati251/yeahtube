@@ -14,6 +14,7 @@ export interface PostsQueryParams {
   q?: string | null;
   category?: string | null;
   year?: string | null;
+  channel?: string | null;
 }
 
 export interface PostsResponse {
@@ -43,6 +44,7 @@ export function usePostsQuery(
         q: params.q || null,
         category: params.category || null,
         year: params.year || null,
+        channel: params.channel || null,
       },
     ],
     queryFn: async () => {
@@ -55,6 +57,7 @@ export function usePostsQuery(
       if (params.q) p.set("q", params.q);
       if (params.category) p.set("category", params.category);
       if (params.year) p.set("year", params.year);
+      if (params.channel) p.set("channel", params.channel);
 
       return api.get<PostsResponse>(`/api/posts?${p.toString()}`);
     },

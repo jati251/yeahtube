@@ -55,6 +55,10 @@ interface AppState {
   globalPiP: GlobalPiPState;
   activateGlobalPiP: (state: Omit<GlobalPiPState, "isActive">) => void;
   deactivateGlobalPiP: () => void;
+
+  // ── Feed Channel Preference ──────────────────────────
+  showPublicPosts: boolean;
+  setShowPublicPosts: (show: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -105,6 +109,10 @@ export const useAppStore = create<AppState>()(
         set({ globalPiP: { ...state, isActive: true } }),
       deactivateGlobalPiP: () =>
         set({ globalPiP: { ...defaultGlobalPiP } }),
+
+      // Feed Channel Preference
+      showPublicPosts: true,
+      setShowPublicPosts: (showPublicPosts) => set({ showPublicPosts }),
     }),
     {
       name: "yeahtube-app-state",
@@ -131,6 +139,7 @@ export const useAppStore = create<AppState>()(
         globalVolume: state.globalVolume,
         adminActiveTab: state.adminActiveTab,
         feedScrollY: state.feedScrollY,
+        showPublicPosts: state.showPublicPosts,
       }),
     },
   ),
