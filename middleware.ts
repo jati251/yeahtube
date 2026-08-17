@@ -36,7 +36,7 @@ function finalizeResponse(
   return response;
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Check if user is logged in
