@@ -255,6 +255,7 @@ export function useVideoPlaybackEngine({
   const handleLoadedMetadata = useCallback(() => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+      setWaiting(false);
       if (isQualityChangingRef.current) {
         isQualityChangingRef.current = false;
         videoRef.current.currentTime = savedTimeRef.current;

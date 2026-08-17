@@ -168,12 +168,22 @@ export function VideoPlayer({
             }
           }}
           onLoadedMetadata={handleLoadedMetadata}
+          onLoadedData={() => setWaiting(false)}
+          onCanPlay={() => setWaiting(false)}
+          onCanPlayThrough={() => setWaiting(false)}
+          onSeeked={() => setWaiting(false)}
           onProgress={handleProgress}
           onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
+          onPause={() => {
+            setPlaying(false);
+            setWaiting(false);
+          }}
           onWaiting={() => setWaiting(true)}
           onPlaying={() => setWaiting(false)}
-          onEnded={() => setPlaying(false)}
+          onEnded={() => {
+            setPlaying(false);
+            setWaiting(false);
+          }}
           playsInline
         />
 
