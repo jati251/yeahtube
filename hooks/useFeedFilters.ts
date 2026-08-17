@@ -46,13 +46,28 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     const urlCategory = searchParams.get("category");
     const urlYear = searchParams.get("year");
     const urlSort = searchParams.get("sort") || initialSort;
+    const urlPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+
+    // Check if filters actually changed (not just page)
+    const filtersChanged =
+      urlType !== activeMediaType ||
+      urlTags.join(",") !== activeTags.join(",") ||
+      urlCategory !== activeCategory ||
+      urlYear !== activeYear ||
+      urlSort !== activeSort;
 
     setActiveMediaType(urlType);
     setActiveTags(urlTags);
     setActiveCategory(urlCategory);
     setActiveYear(urlYear);
     setActiveSort(urlSort);
-    if (goToPageRef.current) goToPageRef.current(1);
+
+    if (filtersChanged && goToPageRef.current) {
+      goToPageRef.current(1);
+    } else if (goToPageRef.current) {
+      goToPageRef.current(urlPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, initialSort]);
 
   // Handle browser back/forward history navigation
