@@ -46,19 +46,19 @@ export function MediaCardSkeleton() {
 
 export function MediaListItemSkeleton() {
   return (
-    <div className="flex gap-3 sm:gap-4 rounded-xl glass-card p-3 sm:p-4 animate-pulse">
+    <div className="flex items-start gap-3 sm:gap-3.5 rounded-2xl glass-card p-2.5 sm:p-3 animate-pulse">
       {/* Thumbnail */}
-      <div className="aspect-[4/3] w-28 sm:w-40 shrink-0 rounded-xl bg-zinc-200 dark:bg-zinc-800" />
+      <div className="aspect-[16/10] w-32 sm:w-36 md:w-40 shrink-0 rounded-xl bg-zinc-200 dark:bg-zinc-800/80" />
 
       {/* Details */}
-      <div className="flex flex-1 flex-col justify-center gap-2 min-w-0">
+      <div className="flex flex-1 flex-col justify-between self-stretch gap-2 py-0.5 min-w-0">
         <div className="space-y-1.5">
-          <div className="h-4 w-4/5 rounded-md bg-zinc-200 dark:bg-zinc-800" />
-          <div className="h-3.5 w-2/3 rounded-md bg-zinc-200/70 dark:bg-zinc-800/70" />
+          <div className="h-4 w-4/5 rounded-md bg-zinc-200 dark:bg-zinc-800/80" />
+          <div className="h-3 w-1/2 rounded bg-zinc-200/70 dark:bg-zinc-800/70" />
         </div>
-        <div className="flex items-center gap-2 pt-1">
-          <div className="h-3 w-16 rounded bg-zinc-200/50 dark:bg-zinc-800/50" />
+        <div className="flex items-center gap-2">
           <div className="h-3 w-14 rounded bg-zinc-200/50 dark:bg-zinc-800/50" />
+          <div className="h-3 w-10 rounded bg-zinc-200/50 dark:bg-zinc-800/50" />
         </div>
       </div>
     </div>

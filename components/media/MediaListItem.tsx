@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { Film, Image as ImageIcon, Layers } from "lucide-react";
+import { Film, Image as ImageIcon, Clock } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
 import { MediaListItemProps } from "@/types";
@@ -26,50 +26,59 @@ export const MediaListItem = React.memo(function MediaListItem({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const ThumbnailContent = (
-    <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-900 sm:h-24 sm:w-36 cursor-pointer">
+    <div className="relative aspect-[16/10] w-32 sm:w-36 md:w-40 shrink-0 overflow-hidden rounded-xl bg-zinc-900 shadow-sm cursor-pointer group/thumb">
       {post.thumbnailUrl ? (
-        <NextImage
-          src={post.thumbnailUrl}
-          alt={post.title}
-          fill
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
-          sizes="(max-width: 640px) 144px, 112px"
-          loading="lazy"
-          decoding="async"
-        />
+        <>
+          {/* Blurred ambient background glow */}
+          <NextImage
+            src={post.thumbnailUrl}
+            alt=""
+            fill
+            sizes="160px"
+            className="absolute inset-0 z-0 h-full w-full object-cover blur-sm scale-110 opacity-30 pointer-events-none"
+          />
+          {/* Foreground crisp thumbnail */}
+          <NextImage
+            src={post.thumbnailUrl}
+            alt={post.title}
+            fill
+            sizes="160px"
+            className="relative z-10 h-full w-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
+            loading="lazy"
+            decoding="async"
+          />
+        </>
       ) : (
-        <div className="flex h-full items-center justify-center">
+        <div className="flex h-full items-center justify-center text-zinc-500">
           {post.mediaType === "video" ? (
-            <Film className="h-8 w-8 text-zinc-400" />
+            <Film className="h-6 w-6" />
           ) : (
-            <ImageIcon className="h-8 w-8 text-zinc-400" />
+            <ImageIcon className="h-6 w-6" />
           )}
         </div>
       )}
 
-      {/* Quality/Type badge */}
-      {quality && post.mediaType !== "image" ? (
-        <span className={`absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white ${quality.color}`}>
-          {quality.label}
-        </span>
-      ) : post.mediaType === "image" ? (
-        <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-zinc-700">
-          Photo
-        </span>
-      ) : post.mediaType === "video" ? (
-        <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-zinc-700">
-          Video
-        </span>
-      ) : post.mediaType === "mixed" ? (
-        <span className="absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-white bg-zinc-850 dark:bg-zinc-800">
-          Mixed
-        </span>
-      ) : null}
+      {/* Quality / Media Type badge */}
+      <div className="absolute top-1.5 left-1.5 z-20 flex gap-1">
+        {quality && post.mediaType !== "image" ? (
+          <span
+            className={`rounded px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm ${quality.color}`}
+          >
+            {quality.label}
+          </span>
+        ) : post.mediaType === "image" ? (
+          <span className="rounded bg-black/60 backdrop-blur-md px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+            Photo
+          </span>
+        ) : null}
+      </div>
 
+      {/* Duration badge */}
       {post.duration && (
-        <span className="absolute bottom-1 right-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+        <div className="absolute bottom-1.5 right-1.5 z-20 flex items-center gap-1 rounded bg-black/75 backdrop-blur-md px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+          <Clock className="h-2.5 w-2.5" />
           {formatDuration(post.duration)}
-        </span>
+        </div>
       )}
     </div>
   );
@@ -82,22 +91,24 @@ export const MediaListItem = React.memo(function MediaListItem({
         }
       }}
       className={clsx(
-        "group relative flex min-w-0 gap-4 rounded-xl glass-card premium-hover p-3 sm:p-4 transition-all duration-200",
+        "group relative flex min-w-0 items-start gap-3 sm:gap-3.5 rounded-2xl glass-card premium-hover p-2.5 sm:p-3 transition-all duration-200",
         selectMode && "select-none cursor-pointer",
-        selectMode && selected && "ring-2 ring-zinc-900 bg-zinc-100/30 dark:ring-zinc-100 dark:bg-zinc-900/40"
+        selectMode &&
+          selected &&
+          "ring-2 ring-zinc-900 bg-zinc-100/40 dark:ring-zinc-100 dark:bg-zinc-800/40"
       )}
     >
       {/* Selection checkbox */}
       {selectMode && (
         <div
-          className="flex items-start pt-1"
+          className="flex items-center self-center pt-0.5"
           onClick={(e) => e.stopPropagation()}
         >
           <input
             type="checkbox"
             checked={selected || false}
             onChange={() => onToggleSelect?.(post.id)}
-            className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-zinc-300"
+            className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-zinc-300"
           />
         </div>
       )}
@@ -106,148 +117,98 @@ export const MediaListItem = React.memo(function MediaListItem({
       {selectMode ? (
         ThumbnailContent
       ) : (
-        <Link href={href} prefetch={true} className="flex-shrink-0">
+        <Link href={href} prefetch={true} className="shrink-0">
           {ThumbnailContent}
         </Link>
       )}
 
       {/* Info Section */}
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
-        {/* Title and Media Count */}
-        {selectMode ? (
-          <div>
-            <div className="flex items-start justify-between gap-2">
+      <div className="flex min-w-0 flex-1 flex-col justify-between self-stretch gap-1.5 py-0.5">
+        <div>
+          {/* Title */}
+          {selectMode ? (
+            <h3
+              className="line-clamp-2 text-xs sm:text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug break-words"
+              title={post.title}
+            >
+              {post.title}
+            </h3>
+          ) : (
+            <Link href={href} prefetch={true} className="block group/title">
               <h3
-                className="text-sm font-semibold tracking-tight sm:text-base text-zinc-900 dark:text-zinc-50 leading-snug break-words"
+                className="line-clamp-2 text-xs sm:text-sm font-bold tracking-tight text-zinc-900 group-hover/title:text-blue-600 dark:text-zinc-50 dark:group-hover/title:text-blue-400 leading-snug break-words transition-colors"
                 title={post.title}
               >
                 {post.title}
               </h3>
-              {post.mediaCount > 1 && (
-                <span className="hidden shrink-0 items-center gap-1 text-xs text-zinc-400 sm:flex">
-                  <Layers className="h-3 w-3" />
-                  {post.mediaCount}
-                </span>
-              )}
-            </div>
-            {post.description && (
-              <p className="line-clamp-1 break-words text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                {post.description}
-              </p>
-            )}
-          </div>
-        ) : (
-          <Link href={href} prefetch={true} className="block group/title">
-            <div className="flex items-start justify-between gap-2">
-              <h3
-                className="text-sm font-semibold tracking-tight sm:text-base text-zinc-900 group-hover/title:text-blue-600 dark:text-zinc-50 dark:group-hover/title:text-blue-400 leading-snug break-words transition-colors"
-                title={post.title}
-              >
-                {post.title}
-              </h3>
-              {post.mediaCount > 1 && (
-                <span className="hidden shrink-0 items-center gap-1 text-xs text-zinc-400 sm:flex">
-                  <Layers className="h-3 w-3" />
-                  {post.mediaCount}
-                </span>
-              )}
-            </div>
-            {post.description && (
-              <p className="line-clamp-1 break-words text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                {post.description}
-              </p>
-            )}
-          </Link>
-        )}
+            </Link>
+          )}
 
-        {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
+          {/* Author & Channel */}
           {post.author && (
-            <>
+            <div className="mt-1 flex items-center gap-1.5 truncate">
               <Link
                 href={`/user/${post.author.username}`}
                 onClick={(e) => e.stopPropagation()}
-                className="font-semibold text-zinc-700 hover:text-blue-600 dark:text-zinc-300 dark:hover:text-blue-400"
+                className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600 hover:text-blue-600 dark:text-zinc-300 dark:hover:text-blue-400 truncate group/author"
               >
-                @{post.author.username}
+                <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[8px] font-bold text-white shadow-sm">
+                  {post.author.username.charAt(0).toUpperCase()}
+                </div>
+                <span className="truncate group-hover/author:underline">
+                  @{post.author.username}
+                </span>
               </Link>
-              <span>·</span>
-            </>
+
+              {post.channel && (
+                <span
+                  className={clsx(
+                    "shrink-0 rounded px-1.5 py-0.2 text-[8px] font-bold tracking-wider uppercase border",
+                    post.channel === "public"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
+                      : "bg-amber-50 text-amber-700 border-amber-200/70 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50"
+                  )}
+                >
+                  {post.channel}
+                </span>
+              )}
+            </div>
           )}
-          {post.channel && (
-            <>
-              <span
-                className={clsx(
-                  "rounded-md px-1.5 py-0.2 text-[9px] font-semibold tracking-wide uppercase border",
-                  post.channel === "public"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
-                    : "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50"
-                )}
-              >
-                {post.channel}
-              </span>
-              <span>·</span>
-            </>
-          )}
-          <span suppressHydrationWarning>{timeAgo}</span>
+        </div>
+
+        {/* Footer Meta Row: Views · Time · Category */}
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 truncate">
           {post.views !== undefined && (
             <>
-              <span>·</span>
-              <span>{post.views.toLocaleString()} views</span>
+              <span className="shrink-0">{post.views.toLocaleString()} views</span>
+              <span>•</span>
             </>
           )}
+          <span className="shrink-0" suppressHydrationWarning>{timeAgo}</span>
           {post.category && (
             <>
-              <span>·</span>
-              <span className="text-zinc-500 dark:text-zinc-400">
+              <span>•</span>
+              <span className="truncate text-zinc-500 dark:text-zinc-400">
                 {post.category}
               </span>
             </>
           )}
-          {post.mediaCount > 1 && (
-            <>
-              <span className="sm:hidden">·</span>
-              <span className="flex items-center gap-1 sm:hidden">
-                <Layers className="h-3 w-3" />
-                {post.mediaCount} files
-              </span>
-            </>
-          )}
         </div>
-
-        {/* Tags */}
-        {post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {post.tags.slice(0, 4).map((tag) => (
-              <span
-                key={tag.id}
-                className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-              >
-                #{tag.name}
-              </span>
-            ))}
-            {post.tags.length > 4 && (
-              <span className="text-[10px] text-zinc-400">
-                +{post.tags.length - 4}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Admin actions dropdown */}
       {isAdmin && !selectMode && (
-        <div className="relative z-30 flex items-start">
+        <div className="relative z-30 shrink-0 self-start">
           <button
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
               setMenuOpen(!menuOpen);
             }}
-            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer"
+            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer"
             aria-label="More actions"
           >
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
             </svg>
           </button>
@@ -257,7 +218,7 @@ export const MediaListItem = React.memo(function MediaListItem({
                 className="fixed inset-0 z-10"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-8 w-32 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="absolute right-0 z-20 mt-1 w-32 rounded-xl border border-zinc-200/90 bg-white py-1 shadow-xl dark:border-zinc-800/90 dark:bg-[#141417] animate-in zoom-in-95 duration-150">
                 {onEdit && (
                   <button
                     onClick={(e) => {
@@ -266,7 +227,7 @@ export const MediaListItem = React.memo(function MediaListItem({
                       setMenuOpen(false);
                       onEdit(post);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-xs text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
                   >
                     Edit
                   </button>
@@ -274,11 +235,12 @@ export const MediaListItem = React.memo(function MediaListItem({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     setMenuOpen(false);
                     onDelete?.(post.id);
                   }}
                   disabled={deleting}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-zinc-100 disabled:opacity-50 dark:text-red-400 dark:hover:bg-zinc-800 cursor-pointer"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40 cursor-pointer transition-colors"
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>

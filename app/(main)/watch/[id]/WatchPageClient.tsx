@@ -232,7 +232,7 @@ export function WatchPageClient({
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
             Recommendations
           </h2>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2.5 sm:gap-3">
             {recs.length > 0 ? (
               recs.map((rec) => (
                 <MediaListItem key={rec.id} post={rec} />
