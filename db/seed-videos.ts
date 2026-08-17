@@ -9,6 +9,7 @@ import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import { eq, asc } from "drizzle-orm";
 
+import readline from "readline/promises";
 import { getDb, schema } from "./index";
 import { getS3Client, getStorageConfig } from "../lib/storage";
 
@@ -310,16 +311,38 @@ async function main() {
   const s3 = getS3Client();
   const storageConfig = getStorageConfig();
 
-  // Parse channel from CLI args (e.g. --channel=public or --channel=private, default: private)
-  const channelArg =
-    process.argv
-      .find((arg) => arg.startsWith("--channel="))
-      ?.split("=")[1]
-      ?.toLowerCase() ||
-    (process.argv.includes("--public") ? "public" : "private");
-  const channel: "public" | "private" =
-    channelArg === "public" ? "public" : "private";
-  console.log(`📺 Seeding to channel: [${channel.toUpperCase()}]`);
+  // Resolve channel: CLI args or Interactive prompt
+  let channel: "public" | "private" = "public";
+  const hasExplicitPublic =
+    process.argv.includes("--public") ||
+    process.argv.includes("--non-logged") ||
+    process.argv.some((arg) => arg.toLowerCase() === "--channel=public");
+  const hasExplicitPrivate =
+    process.argv.includes("--private") ||
+    process.argv.some((arg) => arg.toLowerCase() === "--channel=private");
+
+  if (hasExplicitPrivate) {
+    channel = "private";
+  } else if (hasExplicitPublic) {
+    channel = "public";
+  } else if (process.stdout.isTTY && !process.env.CI) {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    console.log(`
+📺 Pilih Channel / Visibilitas Video Seed:
+  1) Public / Non-Logged Channel (Bisa ditonton pengunjung tanpa login) [Default]
+  2) Private Personal Channel (Hanya akun login / pemilik yang bisa akses)
+`);
+    const ans = (
+      await rl.question("Pilih nomor [1-2, default: 1]: ")
+    ).trim();
+    rl.close();
+    channel = ans === "2" ? "private" : "public";
+  }
+
+  console.log(`\n📺 Seeding to channel: [${channel.toUpperCase()}] (${channel === "public" ? "Non-Logged & Public" : "Private"})\n`);
 
   // Find admin or first user in the system
   const [adminUser] = await db
