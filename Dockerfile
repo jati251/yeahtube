@@ -32,9 +32,10 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/package.json ./
 
-# Copy worker script (needs to be at runtime, not in standalone)
+# Copy db and lib for worker and runtime helpers
+COPY --from=builder /app/db ./db
+COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/worker.ts ./worker.ts
-COPY --from=builder /app/lib/transcode-queue.ts ./lib/transcode-queue.ts
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy nginx config

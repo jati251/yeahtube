@@ -100,14 +100,14 @@ export async function GET(request: NextRequest) {
     // Determine status: 206 Partial Content for ranged requests, 200 otherwise
     const status = rangeHeader ? 206 : 200;
 
-    // ── Convert Node.js Readable stream to Web ReadableStream ──
-    // The S3 SDK returns a Node.js Readable stream in the Node.js runtime.
-    // Response accepts a Web ReadableStream, so we convert using
-    // Readable.toWeb() (available in Node 18+).
-    const nodeStream = s3Response.Body as Readable;
-    const webStream = Readable.toWeb(nodeStream) as ReadableStream;
+    // Use native AWS SDK SdkStream.transformToWebStream() for high performance zero-copy streaming
+    const streamBody = s3Response.Body;
+    const webStream =
+      streamBody && "transformToWebStream" in streamBody && typeof streamBody.transformToWebStream === "function"
+        ? (streamBody.transformToWebStream as () => ReadableStream)()
+        : Readable.toWeb(streamBody as Readable);
 
-    return new Response(webStream, {
+    return new Response(webStream as unknown as BodyInit, {
       status,
       headers,
     });
