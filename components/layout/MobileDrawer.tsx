@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Film, X } from "lucide-react";
+import { X } from "lucide-react";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { clsx } from "clsx";
 import { useAppStore } from "@/stores/appStore";
 import { MobileDrawerProps } from "@/types";
@@ -43,7 +44,6 @@ export function MobileDrawer({ isOpen, onClose, isAdmin }: MobileDrawerProps) {
         <div className="mb-8 flex items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-2 text-xl font-bold text-zinc-900 dark:text-zinc-50"
             onClick={(e) => {
               onClose();
               if (pathname === "/") {
@@ -52,8 +52,7 @@ export function MobileDrawer({ isOpen, onClose, isAdmin }: MobileDrawerProps) {
               }
             }}
           >
-            <Film className="h-6 w-6 text-zinc-900 dark:text-zinc-50" />
-            <span>YeahTube</span>
+            <BrandLogo size="md" />
           </Link>
           <button
             onClick={onClose}

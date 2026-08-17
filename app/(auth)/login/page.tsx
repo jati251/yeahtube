@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Film } from "lucide-react";
+import { YeahTubeIcon } from "@/components/ui/BrandLogo";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useLoginMutation } from "@/services/queries";
@@ -42,13 +42,13 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 dark:bg-zinc-100 shadow-lg">
-            <Film className="h-8 w-8 text-white dark:text-zinc-950" />
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-xl">
+            <YeahTubeIcon size={44} />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            YeahTube
+          <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Yeah<span className="text-rose-600 dark:text-rose-500">Tube</span>
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
             Sign in to your account
           </p>
         </div>

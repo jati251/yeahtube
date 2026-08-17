@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Film } from "lucide-react";
+import { Menu } from "lucide-react";
+import { BrandLogo } from "@/components/ui/BrandLogo";
 import { useAppStore } from "@/stores/appStore";
 import { SearchBar } from "./SearchBar";
 import { UserNav } from "./UserNav";
@@ -42,10 +43,9 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
                 useAppStore.getState().triggerFeedReset();
               }
             }}
-            className="flex items-center gap-2 text-xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight"
+            className="flex items-center"
           >
-            <Film className="h-6 w-6 text-zinc-900 dark:text-zinc-50" />
-            <span className="hidden sm:inline">YeahTube</span>
+            <BrandLogo size="md" iconOnlyOnMobile />
           </Link>
 
           {/* Search bar (Desktop) */}
