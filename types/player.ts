@@ -64,3 +64,15 @@ export interface PlayerControlsProps {
   onToggleFullscreen: () => void;
   formatTime: (t: number) => string;
 }
+
+export interface PlayerSettingsMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentQualityLabel: string;
+  qualityOptions?: QualityOption[];
+  hasQualityOptions?: boolean;
+  playbackSpeed: number;
+  onSelectQuality?: (option: QualityOption) => void;
+  onSelectSpeed: (speed: number) => void;
+}
+

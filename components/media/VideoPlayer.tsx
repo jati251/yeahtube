@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { getQualityLabel, formatDuration } from "@/utils";
 import { PlayerOverlays } from "./player/PlayerOverlays";
 import { PlayerControls } from "./player/PlayerControls";
+import { PlayerSettingsMenu } from "./player/PlayerSettingsMenu";
 import { usePlayerFullscreen } from "@/hooks/player/usePlayerFullscreen";
 import { usePlayerScrub } from "@/hooks/player/usePlayerScrub";
 import { usePlayerShortcuts } from "@/hooks/player/usePlayerShortcuts";
@@ -238,7 +239,7 @@ export function VideoPlayer({
         onTogglePlay={togglePlay}
       />
 
-      {/* Controls Bar & Settings Modal */}
+      {/* Controls Bar */}
       <PlayerControls
         progressRef={progressRef}
         showControls={showControls}
@@ -272,6 +273,23 @@ export function VideoPlayer({
         onTogglePiP={togglePiP}
         onToggleFullscreen={toggleFullscreen}
         formatTime={formatDuration}
+      />
+
+      {/* Responsive Settings Menu (Desktop Popover & Mobile Bottom Sheet) */}
+      <PlayerSettingsMenu
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        currentQualityLabel={currentQualityLabel}
+        qualityOptions={qualityOptions}
+        hasQualityOptions={hasQualityOptions}
+        playbackSpeed={playbackSpeed}
+        onSelectQuality={onQualityChange}
+        onSelectSpeed={(speed) => {
+          setPlaybackSpeed(speed);
+          if (videoRef.current) {
+            videoRef.current.playbackRate = speed;
+          }
+        }}
       />
     </div>
   );
