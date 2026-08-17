@@ -248,15 +248,15 @@ export const ReelItem = React.memo(function ReelItem({
       {/* Timeline Progress Bar (Clickable Area) */}
       <div
         className={clsx(
-          "absolute bottom-0 left-0 right-0 h-4 cursor-pointer z-30 flex items-end group transition-opacity duration-300",
+          "absolute bottom-16 lg:bottom-0 left-0 right-0 h-6 cursor-pointer z-30 flex items-end group transition-opacity duration-300",
           isActive ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         onClick={handleTimelineClick}
       >
-        <div className="w-full h-[3px] group-hover:h-[6px] transition-all bg-white/25 relative">
+        <div className="w-full h-1.5 group-hover:h-2.5 transition-all bg-white/30 relative overflow-hidden">
           <div
             ref={progressRef}
-            className="absolute top-0 left-0 h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"
+            className="absolute top-0 left-0 h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.9)]"
             style={{ width: "0%" }}
           />
         </div>
@@ -265,7 +265,7 @@ export const ReelItem = React.memo(function ReelItem({
       {/* Full-width Seamless Bottom Gradient Backdrop */}
       <div
         className={clsx(
-          "absolute inset-x-0 bottom-0 h-56 pointer-events-none z-15 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300",
+          "absolute inset-x-0 bottom-0 h-64 pointer-events-none z-15 bg-gradient-to-t from-black/95 via-black/50 to-transparent transition-opacity duration-300",
           effectiveShowControls ? "opacity-100" : "opacity-0",
         )}
       />
@@ -273,7 +273,7 @@ export const ReelItem = React.memo(function ReelItem({
       {/* Interaction Sidebar (Right) */}
       <div
         className={clsx(
-          "absolute right-3 bottom-8 z-20 flex flex-col items-center gap-3.5 transition-opacity duration-300",
+          "absolute right-3 bottom-24 lg:bottom-8 z-20 flex flex-col items-center gap-3.5 transition-opacity duration-300",
           effectiveShowControls ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
@@ -331,7 +331,7 @@ export const ReelItem = React.memo(function ReelItem({
       {/* Video Info Bottom Overlay */}
       <div
         className={clsx(
-          "absolute left-0 right-20 bottom-3 p-4 z-20 flex flex-col gap-2 transition-opacity duration-300 pointer-events-auto",
+          "absolute left-0 right-20 bottom-18 lg:bottom-3 p-4 z-20 flex flex-col gap-2 transition-opacity duration-300 pointer-events-auto",
           effectiveShowControls ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
@@ -364,7 +364,7 @@ export const ReelItem = React.memo(function ReelItem({
 
       {/* Comments Drawer / Modal */}
       {showComments && (
-        <div className="absolute inset-x-0 bottom-0 top-1/4 bg-zinc-900 border-t border-zinc-800 rounded-t-3xl z-40 flex flex-col p-4 animate-in slide-in-from-bottom duration-300 shadow-2xl">
+        <div className="absolute inset-x-0 bottom-16 lg:bottom-0 top-1/4 bg-zinc-900 border-t border-zinc-800 rounded-t-3xl z-40 flex flex-col p-4 animate-in slide-in-from-bottom duration-300 shadow-2xl">
           <div className="flex justify-between items-center pb-3 border-b border-zinc-800">
             <h3 className="text-white font-semibold text-sm">Comments</h3>
             <button

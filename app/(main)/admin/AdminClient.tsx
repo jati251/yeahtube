@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { CategoryManager } from "@/components/admin/CategoryManager";
 import { UserManager } from "@/components/admin/UserManager";
 import { SystemMetrics } from "@/components/admin/SystemMetrics";
 import { AdminClientProps } from "@/types/admin";
+import { useAppStore } from "@/stores/appStore";
 
 const TABS = [
   { id: "users", label: "Users" },
@@ -20,7 +22,33 @@ export function AdminClient({
   categories = [],
   stats,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<TabId>("users");
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get("tab") as TabId | null;
+
+  const adminActiveTab = useAppStore((s) => s.adminActiveTab);
+  const setAdminActiveTab = useAppStore((s) => s.setAdminActiveTab);
+
+  // Determine active tab: URL query param > Zustand persisted store > fallback "users"
+  const activeTab: TabId =
+    urlTab && (urlTab === "users" || urlTab === "categories" || urlTab === "system")
+      ? urlTab
+      : adminActiveTab || "users";
+
+  // Sync URL with persisted tab if no query param present
+  useEffect(() => {
+    if (urlTab && urlTab !== adminActiveTab) {
+      setAdminActiveTab(urlTab);
+    }
+  }, [urlTab, adminActiveTab, setAdminActiveTab]);
+
+  const handleTabChange = (tabId: TabId) => {
+    setAdminActiveTab(tabId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tabId);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
@@ -40,7 +68,7 @@ export function AdminClient({
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`flex-shrink-0 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"

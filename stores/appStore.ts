@@ -51,6 +51,10 @@ interface AppState {
   globalMuted: boolean;
   setGlobalMuted: (muted: boolean) => void;
 
+  // ── Admin Panel Active Tab ───────────────────────────
+  adminActiveTab: "users" | "categories" | "system";
+  setAdminActiveTab: (tab: "users" | "categories" | "system") => void;
+
   // ── Global Modals & Hover Previews ──────────────────
   activePreviewCardId: number | null;
   setActivePreviewCardId: (id: number | null) => void;
@@ -111,6 +115,10 @@ export const useAppStore = create<AppState>()(
       globalMuted: false,
       setGlobalMuted: (globalMuted) => set({ globalMuted }),
 
+      // Admin active tab
+      adminActiveTab: "users",
+      setAdminActiveTab: (adminActiveTab) => set({ adminActiveTab }),
+
       // Global Modals & Hover Previews
       activePreviewCardId: null,
       setActivePreviewCardId: (activePreviewCardId) => set({ activePreviewCardId }),
@@ -145,10 +153,11 @@ export const useAppStore = create<AppState>()(
           }
         },
       },
-      // Keep feed view mode, volume, and cache across session
+      // Keep feed view mode, volume, admin tab, and cache across session
       partialize: (state: AppState) => ({
         feedViewMode: state.feedViewMode,
         globalVolume: state.globalVolume,
+        adminActiveTab: state.adminActiveTab,
         feedScrollY: state.feedScrollY,
         browseScrollY: state.browseScrollY,
         cachedFeedPage: state.cachedFeedPage,

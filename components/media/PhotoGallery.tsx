@@ -81,13 +81,14 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
   // Single photo: large display
   if (photos.length === 1) {
     return (
-      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 cursor-pointer" onClick={() => openLightbox(0)}>
+      <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-900 cursor-pointer" onClick={() => openLightbox(0)}>
         <NextImage
           src={photos[0].imageUrl}
           alt={photos[0].filename}
           fill
-          className="object-contain"
+          className="object-contain transition-opacity duration-500"
           sizes="(max-width: 1024px) 100vw, 800px"
+          priority
         />
       </div>
     );
@@ -100,15 +101,16 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
         {photos.map((photo, index) => (
           <div
             key={photo.id}
-            className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800"
+            className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-900"
             onClick={() => openLightbox(index)}
           >
             <NextImage
               src={photo.thumbnailUrl || photo.imageUrl}
               alt={photo.filename}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-cover transition-all duration-500 group-hover:scale-105"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              loading="lazy"
             />
           </div>
         ))}

@@ -18,6 +18,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [previewTriggered, setPreviewTriggered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -102,21 +103,40 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
         )}
         {post.thumbnailUrl ? (
           <>
+            {/* Shimmer Placeholder while thumbnail is loading */}
+            <div
+              className={clsx(
+                "absolute inset-0 z-0 bg-zinc-200/70 dark:bg-zinc-800/70 animate-pulse transition-opacity duration-500",
+                imageLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
+              )}
+            />
+
+            {/* Blurred ambient background */}
             <NextImage
               src={post.thumbnailUrl}
               alt=""
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="absolute inset-0 z-0 h-full w-full object-cover blur-[2px] scale-[1.02] opacity-50 dark:opacity-30 transition-all duration-300"
+              className={clsx(
+                "absolute inset-0 z-0 h-full w-full object-cover blur-[2px] scale-[1.02] transition-all duration-500",
+                imageLoaded ? "opacity-50 dark:opacity-30" : "opacity-0"
+              )}
             />
+
+            {/* Foreground crisp thumbnail */}
             <NextImage
               src={post.thumbnailUrl}
               alt={post.title}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              onLoad={() => setImageLoaded(true)}
               className={clsx(
                 "relative z-10 mx-auto h-full w-full object-contain transition-all duration-500",
-                isPlaying ? "scale-110 opacity-0" : "scale-100 group-hover:scale-105 opacity-100"
+                imageLoaded
+                  ? isPlaying
+                    ? "scale-110 opacity-0"
+                    : "scale-100 group-hover:scale-105 opacity-100"
+                  : "opacity-0 scale-95"
               )}
               loading="lazy"
               decoding="async"

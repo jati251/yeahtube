@@ -12,9 +12,6 @@ export function MobileNav() {
   const searchParams = useSearchParams();
   const currentType = searchParams.get("type");
 
-  if (pathname === "/shorts") {
-    return null;
-  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200/50 bg-white/90 dark:border-zinc-800/50 dark:bg-zinc-950/90 backdrop-blur-xl lg:hidden transition-colors duration-300">

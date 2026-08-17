@@ -93,7 +93,7 @@ export function SystemMetrics({ initialStats }: SystemMetricsProps) {
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           Activity & Entity Overview
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
           {[
             { icon: <FileText className="h-5 w-5" />, label: "Total Posts", value: stats.totalPosts.toLocaleString(), color: "blue" },
             { icon: <Users className="h-5 w-5" />, label: "Registered Users", value: stats.totalUsers.toLocaleString(), color: "indigo" },

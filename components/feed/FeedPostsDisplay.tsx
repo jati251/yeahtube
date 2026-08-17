@@ -56,37 +56,45 @@ export function FeedPostsDisplay({
     );
   }
 
-  return viewMode === "grid" ? (
-    <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 animate-slide-up">
-      {posts.map((post) => (
-        <MediaCard
-          key={post.id}
-          post={post}
-          isAdmin={isAdmin}
-          selectMode={selectMode}
-          selected={selectedIds.has(post.id)}
-          onToggleSelect={onToggleSelect}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          deleting={deletingId === post.id}
-        />
-      ))}
-    </div>
-  ) : (
-    <div className="space-y-3 animate-slide-up">
-      {posts.map((post) => (
-        <MediaListItem
-          key={post.id}
-          post={post}
-          isAdmin={isAdmin}
-          selectMode={selectMode}
-          selected={selectedIds.has(post.id)}
-          onToggleSelect={onToggleSelect}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          deleting={deletingId === post.id}
-        />
-      ))}
+  return (
+    <div
+      className={`transition-all duration-300 ease-out ${
+        loading ? "opacity-50 pointer-events-none scale-[0.998]" : "opacity-100 scale-100"
+      }`}
+    >
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 animate-slide-up">
+          {posts.map((post) => (
+            <MediaCard
+              key={post.id}
+              post={post}
+              isAdmin={isAdmin}
+              selectMode={selectMode}
+              selected={selectedIds.has(post.id)}
+              onToggleSelect={onToggleSelect}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              deleting={deletingId === post.id}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3 animate-slide-up">
+          {posts.map((post) => (
+            <MediaListItem
+              key={post.id}
+              post={post}
+              isAdmin={isAdmin}
+              selectMode={selectMode}
+              selected={selectedIds.has(post.id)}
+              onToggleSelect={onToggleSelect}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              deleting={deletingId === post.id}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

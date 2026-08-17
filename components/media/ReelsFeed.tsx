@@ -177,26 +177,23 @@ export function ReelsFeed({
       {/* Top Navigation Overlay */}
       <div
         className={clsx(
-          "absolute top-0 left-0 right-0 z-30 flex items-center justify-between p-4 bg-gradient-to-b from-black/70 to-transparent transition-opacity duration-300 pointer-events-auto",
+          "absolute top-0 left-0 right-0 z-30 flex items-center justify-between p-4 transition-opacity duration-300 pointer-events-auto",
           topControlsVisible ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
         <button
           onClick={onClose}
-          className="p-2.5 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-colors border border-white/10 shadow-lg active:scale-95"
+          className="p-2.5 bg-black/30 rounded-full text-white hover:bg-black/50 transition-colors active:scale-95 shadow-md"
           aria-label="Back"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-black/30 backdrop-blur-md rounded-full border border-white/10">
-          <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-          <span className="text-xs font-bold tracking-wide uppercase">Shorts</span>
-        </div>
+        <div />
 
         <button
           onClick={toggleSound}
-          className="p-2.5 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-colors border border-white/10 shadow-lg active:scale-95"
+          className="p-2.5 bg-black/30 rounded-full text-white hover:bg-black/50 transition-colors active:scale-95 shadow-md"
           aria-label="Toggle Sound"
         >
           {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
