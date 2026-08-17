@@ -18,6 +18,8 @@ export interface VideoPlayerProps {
   height?: number | null;
   qualityOptions?: QualityOption[];
   onQualityChange?: (option: QualityOption) => void;
+  onViewThresholdReached?: () => void;
+  viewThresholdSeconds?: number;
 }
 
 export interface PlayerOverlaysProps {

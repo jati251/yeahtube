@@ -15,6 +15,8 @@ interface UseVideoPlaybackEngineProps {
   type?: string;
   qualityOptions?: QualityOption[];
   onQualityChange?: (opt: QualityOption) => void;
+  onViewThresholdReached?: () => void;
+  viewThresholdSeconds?: number;
   videoRef: RefObject<HTMLVideoElement | null>;
 }
 
@@ -24,6 +26,8 @@ export function useVideoPlaybackEngine({
   type = "video/mp4",
   qualityOptions,
   onQualityChange,
+  onViewThresholdReached,
+  viewThresholdSeconds = 5,
   videoRef,
 }: UseVideoPlaybackEngineProps) {
   const { globalPiP } = useAppStore();
@@ -340,6 +344,58 @@ export function useVideoPlaybackEngine({
     }
     prevPipActiveRef.current = globalPiP.isActive;
   }, [globalPiP.isActive, globalPiP.videoUrl, globalPiP.currentTime, src, videoRef]);
+
+  // View count threshold tracking (accumulates actual wall-clock playback time)
+  const onViewThresholdReachedRef = useRef(onViewThresholdReached);
+  useEffect(() => {
+    onViewThresholdReachedRef.current = onViewThresholdReached;
+  }, [onViewThresholdReached]);
+
+  const viewTriggeredRef = useRef(false);
+  const accumulatedPlayTimeRef = useRef(0);
+  const lastTickRef = useRef<number | null>(null);
+
+  // Reset tracking state on source change
+  useEffect(() => {
+    viewTriggeredRef.current = false;
+    accumulatedPlayTimeRef.current = 0;
+    lastTickRef.current = null;
+  }, [src]);
+
+  useEffect(() => {
+    if (!playing || viewTriggeredRef.current || !onViewThresholdReachedRef.current) {
+      lastTickRef.current = null;
+      return;
+    }
+
+    lastTickRef.current = performance.now();
+    const interval = setInterval(() => {
+      if (!lastTickRef.current) {
+        lastTickRef.current = performance.now();
+        return;
+      }
+      const now = performance.now();
+      const delta = (now - lastTickRef.current) / 1000;
+      lastTickRef.current = now;
+
+      // Ignore suspended / large interval jumps
+      if (delta > 0 && delta < 2) {
+        accumulatedPlayTimeRef.current += delta;
+      }
+
+      const targetThreshold = viewThresholdSeconds ?? 5;
+      // If duration is known and very short (<10s), adjust threshold to 50% of duration
+      const effectiveThreshold =
+        duration > 0 && duration < 10 ? Math.min(targetThreshold, duration * 0.5) : targetThreshold;
+
+      if (accumulatedPlayTimeRef.current >= effectiveThreshold && !viewTriggeredRef.current) {
+        viewTriggeredRef.current = true;
+        onViewThresholdReachedRef.current?.();
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [playing, duration, viewThresholdSeconds, src]);
 
   return {
     playing,

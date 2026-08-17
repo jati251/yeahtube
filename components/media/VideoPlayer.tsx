@@ -23,6 +23,8 @@ export function VideoPlayer({
   height,
   qualityOptions,
   onQualityChange,
+  onViewThresholdReached,
+  viewThresholdSeconds,
 }: VideoPlayerProps) {
   const quality = getQualityLabel(width, height);
   const currentQualityLabel = quality?.label ?? (height ? "SD" : "Auto");
@@ -72,6 +74,8 @@ export function VideoPlayer({
     type,
     qualityOptions,
     onQualityChange,
+    onViewThresholdReached,
+    viewThresholdSeconds,
     videoRef,
   });
 

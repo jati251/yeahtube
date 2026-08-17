@@ -12,7 +12,7 @@ import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { attachHlsOrNative } from "@/lib/hls-helper";
 import { useReelItem } from "@/hooks/player/useReelItem";
-import { useLikeMutation } from "@/services/queries";
+import { useLikeMutation, trackPostView } from "@/services/queries";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export const ReelItem = React.memo(function ReelItem({
@@ -125,6 +125,25 @@ export const ReelItem = React.memo(function ReelItem({
       videoRef.current.pause();
     }
   }, [isActive, isPaused, onForceMute, setIsPaused]);
+
+  // Track view after 3s of active unpaused playback
+  const viewTrackedRef = useRef(false);
+  useEffect(() => {
+    viewTrackedRef.current = false;
+  }, [post.id]);
+
+  useEffect(() => {
+    if (!isActive || isPaused || viewTrackedRef.current) return;
+
+    const timer = setTimeout(() => {
+      if (!viewTrackedRef.current) {
+        viewTrackedRef.current = true;
+        trackPostView(post.id);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [isActive, isPaused, post.id]);
 
   const effectiveShowControls =
     showControls || isPaused || showComments || showSaveModal || skipInfo !== null;

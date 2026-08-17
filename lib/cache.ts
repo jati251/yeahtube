@@ -102,6 +102,16 @@ export async function invalidatePostCache(postId: number): Promise<void> {
 }
 
 /**
+ * Invalidate only a specific post's detail cache without clearing the entire feed cache.
+ */
+export async function invalidatePostDetailCache(postId: number): Promise<void> {
+  await Promise.all([
+    deleteCachePattern(`cache:post:detail:*:${postId}`),
+    deleteCachePattern(`cache:post:detail:*:${postId}:*`),
+  ]);
+}
+
+/**
  * Invalidate taxonomy caches (tags and categories).
  */
 export async function invalidateTaxonomyCache(): Promise<void> {
@@ -111,3 +121,4 @@ export async function invalidateTaxonomyCache(): Promise<void> {
     invalidateFeedCache(),
   ]);
 }
+

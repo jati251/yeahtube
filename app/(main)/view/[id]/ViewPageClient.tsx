@@ -33,9 +33,12 @@ export function ViewPageClient({
   const [showEditModal, setShowEditModal] = useState(false);
   const [postData, setPostData] = useState(post);
 
-  // Track view
+  // Track view after 3s dwell time
   useEffect(() => {
-    trackPostView(post.id);
+    const timer = setTimeout(() => {
+      trackPostView(post.id);
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [post.id]);
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -109,13 +109,16 @@ export function WatchPageClient({
 
   const { data: session } = useSessionQuery();
 
-  // Fire-and-forget tracking
+  // Record user watch history
   useEffect(() => {
     if (session?.authenticated) {
       trackWatchHistory(post.id);
     }
-    trackPostView(post.id);
   }, [post.id, session?.authenticated]);
+
+  const handleViewThresholdReached = useCallback(() => {
+    trackPostView(post.id);
+  }, [post.id]);
 
   const qualityOptions =
     videos.length > 1
@@ -150,6 +153,8 @@ export function WatchPageClient({
             height={currentVideo.height}
             qualityOptions={qualityOptions}
             onQualityChange={handleQualityChange}
+            onViewThresholdReached={handleViewThresholdReached}
+            viewThresholdSeconds={5}
           />
         </div>
 
