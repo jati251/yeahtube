@@ -137,6 +137,7 @@ export const getPlaylistDetails = cache(async (playlistId: number, currentUserId
   const items = await db
     .select({
       id: schema.posts.id,
+      slug: schema.posts.slug,
       title: schema.posts.title,
       description: schema.posts.description,
       channel: schema.posts.channel,

@@ -146,7 +146,7 @@ export function ViewPageClient({
                 {videos.map((video) => (
                   <Link
                     key={video.id}
-                    href={`/watch/${post.id}`}
+                    href={`/watch?v=${post.slug || post.id}`}
                     className="flex items-center gap-2 rounded-lg border border-zinc-200 p-2 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900 min-w-0"
                   >
                     <div className="relative h-12 w-16 flex-shrink-0 overflow-hidden rounded bg-zinc-100 dark:bg-zinc-800">

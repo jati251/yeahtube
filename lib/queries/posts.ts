@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getDb, schema } from "@/db";
-import { eq, desc, sql, ilike, inArray, and, SQL } from "drizzle-orm";
+import { eq, desc, sql, ilike, inArray, and, or, SQL } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/lib/constants";
 import { getCache, setCache } from "@/lib/cache";
@@ -72,48 +72,39 @@ export async function buildFilterConditions(
   if (tagSlugs) {
     const slugs = tagSlugs.split(",").map((s) => s.trim()).filter(Boolean);
     if (slugs.length > 0) {
-      const matchingTags = await db
-        .select({ id: schema.tags.id })
-        .from(schema.tags)
-        .where(inArray(schema.tags.slug, slugs));
-      const tagIds = matchingTags.map((t) => t.id);
-
-      if (tagIds.length > 0) {
-        const postIdsWithTags = db
-          .select({ postId: schema.postTags.postId })
-          .from(schema.postTags)
-          .where(inArray(schema.postTags.tagId, tagIds));
-        conditions.push(inArray(schema.posts.id, postIdsWithTags));
-      } else {
-        // No matching tags → force empty result
-        conditions.push(sql`1 = 0`);
-      }
+      // Filter posts that have ANY of the selected tags
+      conditions.push(
+        inArray(
+          schema.posts.id,
+          db
+            .select({ postId: schema.postTags.postId })
+            .from(schema.postTags)
+            .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
+            .where(inArray(schema.tags.slug, slugs)),
+        ),
+      );
     }
   }
 
   // Media type filter
-  if (mediaType) {
-    const postIdsWithMediaType = db
-      .select({ postId: schema.media.postId })
-      .from(schema.media)
-      .where(eq(schema.media.mediaType, mediaType as "image" | "video"));
-    conditions.push(inArray(schema.posts.id, postIdsWithMediaType));
+  if (mediaType && (mediaType === "image" || mediaType === "video")) {
+    conditions.push(
+      inArray(
+        schema.posts.id,
+        db
+          .select({ postId: schema.media.postId })
+          .from(schema.media)
+          .where(eq(schema.media.mediaType, mediaType)),
+      ),
+    );
   }
 
   return conditions;
 }
 
-interface CursorData {
-  id?: number;
-  createdAt?: string;
-  title?: string;
-  updatedAt?: string;
-  mediaCount?: number;
-  views?: number;
-}
-
-interface PostQueryResult {
+export interface PostQueryResult {
   id: number;
+  slug: string | null;
   title: string;
   description: string | null;
   userId: number;
@@ -123,6 +114,15 @@ interface PostQueryResult {
   createdAt: string | Date;
   updatedAt: string | Date;
   mediaCount?: number;
+}
+
+export interface CursorData {
+  id?: number;
+  createdAt?: string;
+  title?: string;
+  updatedAt?: string;
+  mediaCount?: number;
+  views?: number;
 }
 
 /**
@@ -179,6 +179,7 @@ export async function getFeedPosts(
 
   const baseSelect = {
     id: schema.posts.id,
+    slug: schema.posts.slug,
     title: schema.posts.title,
     description: schema.posts.description,
     userId: schema.posts.userId,
@@ -383,13 +384,14 @@ export async function getFeedPosts(
  * Wrapped in React cache to deduplicate metadata + page execution within the same request lifecycle.
  */
 export const getPostDetail = cache(async function getPostDetail(
-  postId: number,
+  idOrSlug: string | number,
   user: { id: number; isAdmin: boolean } | null,
 ) {
-  const cacheKey = `cache:post:${postId}`;
+  const cacheKey = `cache:post:${idOrSlug}`;
   const cached = await getCache<{
     post: {
       id: number;
+      slug: string | null;
       title: string;
       description: string | null;
       createdAt: string;
@@ -451,10 +453,20 @@ export const getPostDetail = cache(async function getPostDetail(
 
   const db = getDb();
 
+  const isNumeric =
+    typeof idOrSlug === "number" ||
+    (!isNaN(Number(idOrSlug)) &&
+      !isNaN(parseInt(String(idOrSlug), 10)) &&
+      String(Number(idOrSlug)) === String(idOrSlug));
+
+  const whereCondition = isNumeric
+    ? or(eq(schema.posts.id, Number(idOrSlug)), eq(schema.posts.slug, String(idOrSlug)))
+    : eq(schema.posts.slug, String(idOrSlug));
+
   const [post] = await db
     .select()
     .from(schema.posts)
-    .where(eq(schema.posts.id, postId))
+    .where(whereCondition)
     .limit(1);
 
   if (!post) return null;
@@ -536,6 +548,7 @@ export const getPostDetail = cache(async function getPostDetail(
   const payload = {
     post: {
       id: post.id,
+      slug: post.slug || null,
       title: post.title,
       description: post.description,
       createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt),

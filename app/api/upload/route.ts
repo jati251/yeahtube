@@ -13,6 +13,7 @@ import sharp from "sharp";
 import path from "path";
 import { eq, inArray } from "drizzle-orm";
 import { invalidateFeedCache, invalidateTaxonomyCache } from "@/lib/cache";
+import { generateYouTubeId } from "@/lib/slug";
 
 // ── Validation ─────────────────────────────────────────
 
@@ -217,10 +218,12 @@ export async function POST(request: NextRequest) {
         ? (title?.trim() || filename.replace(/\.[^/.]+$/, "") || "Quick Post")
         : title!.trim();
 
+      const slug = generateYouTubeId(11);
       const [newPost] = await db
         .insert(schema.posts)
         .values({
           userId: user.id,
+          slug,
           title: postTitle,
           channel,
           ...(categoryId !== null ? { categoryId } : {}),

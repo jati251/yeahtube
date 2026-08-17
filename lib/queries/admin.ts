@@ -178,6 +178,7 @@ export async function getAdminStats(): Promise<AdminStats> {
       .select({
         id: schema.media.id,
         postId: schema.media.postId,
+        slug: schema.posts.slug,
         filename: schema.media.filename,
         fileSize: schema.media.fileSize,
         thumbnailKey: schema.media.thumbnailKey,
@@ -198,6 +199,7 @@ export async function getAdminStats(): Promise<AdminStats> {
       lf.map(async (f) => ({
         id: f.id,
         postId: f.postId,
+        slug: f.slug || null,
         filename: f.filename,
         fileSize: f.fileSize,
         postTitle: f.postTitle,

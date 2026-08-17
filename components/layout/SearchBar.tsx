@@ -80,7 +80,7 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
                 ? `/playlists/${result.id}`
                 : result.mediaType === "image"
                 ? `/view/${result.id}`
-                : `/watch/${result.id}`;
+                : `/watch?v=${result.slug || result.id}`;
               return (
                 <button
                   key={`${result.type || "post"}-${result.id}`}

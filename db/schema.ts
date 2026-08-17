@@ -41,6 +41,7 @@ export const channelEnum = ["public", "private"] as const;
 
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
+  slug: text("slug").unique(),
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -57,6 +58,7 @@ export const posts = pgTable("posts", {
     .notNull()
     .default(sql`now()`),
 }, (table) => ({
+  slugIndex: uniqueIndex("posts_slug_idx").on(table.slug),
   createdAtIndex: index("posts_created_at_idx").on(table.createdAt),
   categoryIndex: index("posts_category_id_idx").on(table.categoryId),
   userIdIndex: index("posts_user_id_idx").on(table.userId),

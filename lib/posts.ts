@@ -2,6 +2,7 @@ import { getPresignedUrl, getStreamUrl } from "./storage";
 
 export interface PostDbItem {
   id: number;
+  slug?: string | null;
   title: string;
   description: string | null;
   createdAt: string | Date;
@@ -82,6 +83,7 @@ export async function formatPostItem(
 
   return {
     id: post.id,
+    slug: post.slug || null,
     title: post.title,
     description: post.description,
     createdAt: formattedCreatedAt,

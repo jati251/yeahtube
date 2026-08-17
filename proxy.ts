@@ -26,6 +26,7 @@ function isPublicRoute(pathname: string, method: string): boolean {
     pathname === "/" ||
     pathname === "/trending" ||
     pathname === "/shorts" ||
+    pathname === "/watch" ||
     pathname.startsWith("/watch/") ||
     pathname.startsWith("/view/") ||
     pathname.startsWith("/user/") ||

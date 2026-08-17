@@ -26,6 +26,7 @@ import type { PostAuthor } from "./post";
 
 export interface PostData {
   id: number;
+  slug?: string | null;
   title: string;
   description: string | null;
   createdAt: string;

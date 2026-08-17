@@ -4,6 +4,7 @@ import { like, desc, and, eq, sql } from "drizzle-orm";
 
 export interface SearchResult {
   id: number;
+  slug?: string | null;
   title: string;
   type: string;
   mediaType?: string | null;
@@ -26,6 +27,7 @@ export async function searchSuggestions(
     db
       .select({
         id: schema.posts.id,
+        slug: schema.posts.slug,
         title: schema.posts.title,
         type: sql<string>`'post'`,
         mediaType: schema.media.mediaType,
@@ -33,7 +35,7 @@ export async function searchSuggestions(
       .from(schema.posts)
       .leftJoin(schema.media, eq(schema.posts.id, schema.media.postId))
       .where(and(...postConditions))
-      .groupBy(schema.posts.id, schema.media.mediaType)
+      .groupBy(schema.posts.id, schema.posts.slug, schema.media.mediaType)
       .orderBy(desc(schema.posts.createdAt))
       .limit(5),
     db

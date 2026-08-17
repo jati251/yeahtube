@@ -20,7 +20,7 @@ export const MediaListItem = React.memo(function MediaListItem({
 }: MediaListItemProps) {
   const quality = getQualityLabel(post.width, post.height);
   const href =
-    post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
+    post.mediaType === "video" ? `/watch?v=${post.slug || post.id}` : `/view/${post.id}`;
 
   const timeAgo = useMemo(() => getTimeAgo(post.createdAt), [post.createdAt]);
   const [menuOpen, setMenuOpen] = useState(false);

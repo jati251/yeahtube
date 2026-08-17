@@ -111,6 +111,7 @@ export async function getUserUploads(
     db
       .select({
         id: schema.posts.id,
+        slug: schema.posts.slug,
         title: schema.posts.title,
         description: schema.posts.description,
         userId: schema.posts.userId,
@@ -211,6 +212,7 @@ export async function getUserLikedVideos(
     db
       .select({
         id: schema.posts.id,
+        slug: schema.posts.slug,
         title: schema.posts.title,
         description: schema.posts.description,
         userId: schema.posts.userId,

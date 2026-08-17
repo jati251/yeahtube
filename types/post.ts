@@ -12,6 +12,7 @@ export interface PostAuthor {
 
 export interface PostItem {
   id: number;
+  slug?: string | null;
   title: string;
   description: string | null;
   createdAt: string;

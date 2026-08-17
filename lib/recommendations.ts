@@ -49,6 +49,7 @@ export async function getRecommendations(
     recommendedPosts = await db
       .select({
         id: schema.posts.id,
+        slug: schema.posts.slug,
         userId: schema.posts.userId,
         title: schema.posts.title,
         description: schema.posts.description,
@@ -73,6 +74,7 @@ export async function getRecommendations(
     const recentPosts = await db
       .select({
         id: schema.posts.id,
+        slug: schema.posts.slug,
         userId: schema.posts.userId,
         title: schema.posts.title,
         description: schema.posts.description,

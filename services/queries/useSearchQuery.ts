@@ -5,6 +5,7 @@ import { api } from "@/lib/api-client";
 
 export interface SearchResultItem {
   id: number;
+  slug?: string | null;
   title: string;
   type?: "post" | "playlist";
   mediaType?: string;
