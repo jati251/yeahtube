@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useCategoriesQuery, useUpdatePostMutation } from "@/services/queries";
 import { EditablePost, EditPostModalProps } from "@/types";
+import { Lock, Globe } from "lucide-react";
+import { clsx } from "clsx";
 
 export type { EditablePost, EditPostModalProps };
 
@@ -16,6 +18,7 @@ export function EditPostModal({
   const [prevPost, setPrevPost] = useState<EditablePost | null>(post);
   const [title, setTitle] = useState(post?.title || "");
   const [description, setDescription] = useState(post?.description || "");
+  const [channel, setChannel] = useState<"public" | "private">(post?.channel || "private");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -29,6 +32,7 @@ export function EditPostModal({
     setPrevPost(post);
     setTitle(post?.title || "");
     setDescription(post?.description || "");
+    setChannel(post?.channel || "private");
 
     // Match category
     let matchedCatId: number | null = null;
@@ -56,6 +60,7 @@ export function EditPostModal({
         title: title.trim(),
         description: description.trim(),
         categoryId,
+        channel,
       },
       {
         onSuccess: (data) => {
@@ -66,6 +71,7 @@ export function EditPostModal({
               description: data.post.description,
               category: data.post.category ?? null,
               categoryId: data.post.categoryId ?? null,
+              channel: data.post.channel ?? channel,
             });
           }
           onClose();
@@ -98,6 +104,41 @@ export function EditPostModal({
             placeholder="Enter title"
             required
           />
+        </div>
+
+        {/* Channel Visibility */}
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            Channel Visibility
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setChannel("private")}
+              className={clsx(
+                "flex items-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition-all cursor-pointer",
+                channel === "private"
+                  ? "border-blue-500 bg-blue-50/50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-500"
+                  : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+              )}
+            >
+              <Lock className="h-4 w-4 text-amber-500" />
+              Private (Logged-in)
+            </button>
+            <button
+              type="button"
+              onClick={() => setChannel("public")}
+              className={clsx(
+                "flex items-center gap-2 rounded-xl border p-2.5 text-xs font-semibold transition-all cursor-pointer",
+                channel === "public"
+                  ? "border-emerald-500 bg-emerald-50/50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-500"
+                  : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+              )}
+            >
+              <Globe className="h-4 w-4 text-emerald-500" />
+              Public (Everyone)
+            </button>
+          </div>
         </div>
 
         <div>

@@ -171,6 +171,7 @@ export async function PATCH(
 
     const body = await request.json();
     const name = body.name !== undefined ? String(body.name).trim() : undefined;
+    const channel = body.channel !== undefined ? (body.channel === "public" ? ("public" as const) : ("private" as const)) : undefined;
     const isPublic = body.isPublic !== undefined ? (body.isPublic ? 1 : 0) : undefined;
 
     if (name !== undefined && !name) {
@@ -189,8 +190,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const updateData: { name?: string; isPublic?: number } = {};
+    const updateData: { name?: string; channel?: "public" | "private"; isPublic?: number } = {};
     if (name !== undefined) updateData.name = name;
+    if (channel !== undefined) updateData.channel = channel;
     if (isPublic !== undefined) updateData.isPublic = isPublic;
 
     const [updated] = await db

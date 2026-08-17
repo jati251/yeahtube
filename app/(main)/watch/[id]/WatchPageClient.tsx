@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 import { getQualityLabel, formatDate } from "@/utils";
 import { WatchPageClientProps, VideoData, ImageData, PostData } from "@/types";
 import { trackWatchHistory, trackPostView } from "@/services/queries";
+import { clsx } from "clsx";
 
 export type { VideoData, ImageData, PostData };
 
@@ -95,11 +96,47 @@ export function WatchPageClient({
               {postData.title}
             </h1>
 
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-                <Calendar className="h-4 w-4" />
-                {formatDate(postData.createdAt)}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-100 pb-4 dark:border-zinc-800">
+              <div className="flex items-center gap-3">
+                {postData.author ? (
+                  <Link
+                    href={`/user/${postData.author.username}`}
+                    className="flex items-center gap-3 group/owner"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-md">
+                      {postData.author.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-zinc-900 group-hover/owner:text-blue-600 dark:text-zinc-50 dark:group-hover/owner:text-blue-400 text-sm sm:text-base">
+                          @{postData.author.username}
+                        </span>
+                        {postData.channel && (
+                          <span
+                            className={clsx(
+                              "rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider border",
+                              postData.channel === "public"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
+                                : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50"
+                            )}
+                          >
+                            {postData.channel}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Uploaded {formatDate(postData.createdAt)}
+                      </span>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    <Calendar className="h-4 w-4" />
+                    {formatDate(postData.createdAt)}
+                  </div>
+                )}
               </div>
+
               <div className="flex items-center gap-2">
                 {canEdit && (
                   <button

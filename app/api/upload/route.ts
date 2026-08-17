@@ -13,6 +13,7 @@ import sharp from "sharp";
 import path from "path";
 import { eq, inArray } from "drizzle-orm";
 import { invalidateFeedCache, invalidateTaxonomyCache } from "@/lib/cache";
+import { generateYouTubeId } from "@/lib/slug";
 
 // ── Validation ─────────────────────────────────────────
 
@@ -136,6 +137,8 @@ export async function POST(request: NextRequest) {
     ) {
       mimeType = "video/mp2t";
     }
+    const channelHeader = request.headers.get("x-post-channel");
+    const channel = channelHeader === "public" ? "public" : "private";
     const title = decodeURIComponent(request.headers.get("x-post-title") || "");
     const categorySlug = request.headers.get("x-post-category") || null;
     const tagsRaw = decodeURIComponent(request.headers.get("x-post-tags") || "[]");
@@ -215,11 +218,14 @@ export async function POST(request: NextRequest) {
         ? (title?.trim() || filename.replace(/\.[^/.]+$/, "") || "Quick Post")
         : title!.trim();
 
+      const slug = generateYouTubeId(11);
       const [newPost] = await db
         .insert(schema.posts)
         .values({
           userId: user.id,
+          slug,
           title: postTitle,
+          channel,
           ...(categoryId !== null ? { categoryId } : {}),
         } as const)
         .returning();

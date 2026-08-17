@@ -24,9 +24,9 @@ export default async function HomePage({
   const page = Math.max(1, parseInt(urlSearchParams.get("page") || "1", 10) || 1);
   const sort = (urlSearchParams.get("sort") || "newest") as SortValue;
 
-  const [user, feedData, tags, categories] = await Promise.all([
-    getCurrentUser(),
-    getFeedPosts(urlSearchParams),
+  const user = await getCurrentUser();
+  const [feedData, tags, categories] = await Promise.all([
+    getFeedPosts(urlSearchParams, user),
     getAllTags(),
     getAllCategories(),
   ]);

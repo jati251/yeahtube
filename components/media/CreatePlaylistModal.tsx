@@ -2,78 +2,68 @@
 
 import React, { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { Users, Lock, Globe, Trash2 } from "lucide-react";
-import { useUpdatePlaylistMutation, useDeletePlaylistMutation } from "@/services/queries";
-import { useRouter } from "next/navigation";
+import { Users, Lock, Globe } from "lucide-react";
+import { useCreatePlaylistMutation } from "@/services/queries";
 import { Playlist } from "@/types";
 import { clsx } from "clsx";
 
-interface EditPlaylistModalProps {
-  playlist: Playlist;
+interface CreatePlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdated?: () => void;
+  onCreated?: (playlist: Playlist) => void;
 }
 
-export function EditPlaylistModal({
-  playlist,
+export function CreatePlaylistModal({
   isOpen,
   onClose,
-  onUpdated,
-}: EditPlaylistModalProps) {
-  const router = useRouter();
-  const [name, setName] = useState(playlist.name);
-  const [channel, setChannel] = useState<"public" | "private">(playlist.channel || "private");
-  const [isPublic, setIsPublic] = useState(Boolean(playlist.isPublic));
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  onCreated,
+}: CreatePlaylistModalProps) {
+  const [name, setName] = useState("");
+  const [channel, setChannel] = useState<"public" | "private">("private");
+  const [isPublic, setIsPublic] = useState(true);
 
-  const updateMutation = useUpdatePlaylistMutation(playlist.id);
-  const deleteMutation = useDeletePlaylistMutation();
+  const createMutation = useCreatePlaylistMutation();
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    updateMutation.mutate(
+    createMutation.mutate(
       { name: name.trim(), channel, isPublic },
       {
-        onSuccess: () => {
+        onSuccess: (resData) => {
+          setName("");
+          setChannel("private");
+          setIsPublic(true);
           onClose();
-          if (onUpdated) onUpdated();
-          router.refresh();
+          if (onCreated) {
+            onCreated(resData.playlist);
+          }
         },
-      },
+      }
     );
   };
 
-  const handleDelete = () => {
-    deleteMutation.mutate(playlist.id, {
-      onSuccess: () => {
-        onClose();
-        router.push("/playlists");
-        router.refresh();
-      },
-    });
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Playlist" size="sm">
-      <form onSubmit={handleSave} className="space-y-5">
-        {/* Title */}
+    <Modal isOpen={isOpen} onClose={onClose} title="Create New Playlist" size="sm">
+      <form onSubmit={handleCreate} className="space-y-5">
+        {/* Title Input */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
             Playlist Title
           </label>
           <input
             type="text"
+            placeholder="e.g. Favorite Gaming Moments"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            autoFocus
             className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
           />
         </div>
 
-        {/* Channel Option (Public vs Private Channel) */}
+        {/* Channel Option (Public Channel vs Private Channel) */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
             Channel Media Option
@@ -119,7 +109,7 @@ export function EditPlaylistModal({
           </div>
         </div>
 
-        {/* Playlist Sharing Visibility */}
+        {/* Sharing Visibility Option (Shared vs Personal) */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
             Sharing & Visibility
@@ -159,52 +149,22 @@ export function EditPlaylistModal({
           </p>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800">
-          {confirmDelete ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-                className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors cursor-pointer"
-              >
-                Confirm Delete
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                className="rounded-xl bg-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(true)}
-              className="inline-flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 font-medium transition-colors cursor-pointer"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Playlist
-            </button>
-          )}
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending || !name.trim()}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
-            >
-              {updateMutation.isPending ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!name.trim() || createMutation.isPending}
+            className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+          >
+            {createMutation.isPending ? "Creating..." : "Create Playlist"}
+          </button>
         </div>
       </form>
     </Modal>

@@ -12,7 +12,6 @@ export function Modal({
   title,
   children,
   size = "md",
-  isMinimized = false,
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -39,41 +38,33 @@ export function Modal({
   return (
     <div
       ref={overlayRef}
-      className={clsx(
-        "fixed inset-0 z-50 flex p-4",
-        isMinimized ? "pointer-events-none items-end justify-center sm:justify-end" : "items-center justify-center"
-      )}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
       onClick={(e) => {
-        if (!isMinimized && e.target === overlayRef.current) onClose();
+        if (e.target === overlayRef.current) onClose();
       }}
     >
       {/* Backdrop */}
-      {!isMinimized && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />}
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" />
 
-      {/* Modal content */}
+      {/* Modal Dialog */}
       <div
         className={clsx(
-          "relative z-10 flex w-full flex-col",
-          !isMinimized && "max-h-[90vh] rounded-xl bg-white shadow-xl dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/80",
-          !isMinimized && MODAL_SIZE_STYLES[size],
-          isMinimized && "pointer-events-auto"
+          "relative z-10 flex w-full max-h-[90vh] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 animate-in zoom-in-95 fade-in duration-200",
+          MODAL_SIZE_STYLES[size]
         )}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        {/* Scrollable body container */}
-        <div className={clsx("overflow-y-auto", !isMinimized && "rounded-xl p-6")}>
-
         {/* Header */}
-        {!isMinimized && title && (
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+        {title && (
+          <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800/80">
+            <h2 className="text-base sm:text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X className="h-5 w-5" />
@@ -81,8 +72,9 @@ export function Modal({
           </div>
         )}
 
-        {/* Body */}
-        {children}
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          {children}
         </div>
       </div>
     </div>

@@ -24,6 +24,7 @@ const queue = new Queue("yeahtube-transcode", {
 });
 
 const shouldClean = process.argv.includes("--clean");
+const shouldRetry = process.argv.includes("--retry");
 
 async function main() {
   if (shouldClean) {
@@ -32,6 +33,14 @@ async function main() {
     await queue.clean(0, 1000, "failed");
     await queue.clean(0, 1000, "completed");
     console.log("✅ Queue successfully flushed!");
+  }
+
+  if (shouldRetry) {
+    const failedJobs = await queue.getJobs(["failed"]);
+    for (const job of failedJobs) {
+      await job.retry();
+    }
+    console.log(`🔄 Retried ${failedJobs.length} failed job(s)!`);
   }
 
   const counts = await queue.getJobCounts();

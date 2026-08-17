@@ -26,6 +26,7 @@ export interface QueueHealth {
 export interface TopVideoItem {
   id?: number;
   postId: number;
+  slug?: string | null;
   filename: string;
   fileSize: number;
   postTitle: string;

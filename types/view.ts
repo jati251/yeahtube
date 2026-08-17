@@ -22,14 +22,19 @@ export interface VideoData {
   orderIndex?: number;
 }
 
+import type { PostAuthor } from "./post";
+
 export interface PostData {
   id: number;
+  slug?: string | null;
   title: string;
   description: string | null;
   createdAt: string;
   categoryId?: number | null;
   userId?: number;
   views?: number;
+  author?: PostAuthor | null;
+  channel?: "public" | "private";
 }
 
 export interface ViewPageClientProps {

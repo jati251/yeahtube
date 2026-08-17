@@ -35,6 +35,8 @@ export interface FilePreviewGridProps {
 export interface UploadMetadataFieldsProps {
   title: string;
   onTitleChange: (title: string) => void;
+  channel: "public" | "private";
+  onChannelChange: (channel: "public" | "private") => void;
   category: string;
   onCategoryChange: (category: string) => void;
   categories: CategoryItem[];

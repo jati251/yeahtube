@@ -13,31 +13,39 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Verify the requesting user is whitelisted (IDOR protection)
-    const db = getDb();
-    const [requestingUser] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, user.id));
-
-    if (!requestingUser || !requestingUser.isWhitelisted) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const { id } = await params;
+    const postId = Number(id);
+    if (isNaN(postId)) {
+      return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+    }
 
+    const db = getDb();
     const [post] = await db
       .select()
       .from(schema.posts)
-      .where(eq(schema.posts.id, Number(id)));
+      .where(eq(schema.posts.id, postId));
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    const user = await getCurrentUser();
+
+    // If not logged in, only public channel posts are accessible
+    if (!user) {
+      if (post.channel !== "public") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else {
+      // Verify the requesting user is whitelisted
+      const [requestingUser] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id));
+
+      if (!requestingUser || !requestingUser.isWhitelisted) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
     const media = await db
@@ -184,7 +192,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, description, categoryId } = body;
+    const { title, description, categoryId, channel } = body;
 
     if (title !== undefined && (typeof title !== "string" || !title.trim())) {
       return NextResponse.json({ error: "Title cannot be empty" }, { status: 400 });
@@ -194,6 +202,7 @@ export async function PATCH(
       title?: string;
       description?: string | null;
       categoryId?: number | null;
+      channel?: "public" | "private";
       updatedAt: ReturnType<typeof sql>;
     } = {
       updatedAt: sql`now()`,
@@ -202,6 +211,7 @@ export async function PATCH(
     if (title !== undefined) updateData.title = title.trim();
     if (description !== undefined) updateData.description = description ? description.trim() : null;
     if (categoryId !== undefined) updateData.categoryId = categoryId ? Number(categoryId) : null;
+    if (channel === "public" || channel === "private") updateData.channel = channel;
 
     const [updatedPost] = await db
       .update(schema.posts)

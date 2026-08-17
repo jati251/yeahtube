@@ -15,7 +15,7 @@ function TopVideoCard({ video, index }: { video: TopVideoItem; index: number }) 
   const href =
     video.mediaType === "image"
       ? `/view/${video.postId}`
-      : `/watch/${video.postId}`;
+      : `/watch?v=${video.slug || video.postId}`;
 
   return (
     <Link

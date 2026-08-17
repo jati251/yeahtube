@@ -62,8 +62,8 @@ export function useCreatePlaylistMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ name, isPublic }: { name: string; isPublic: boolean }) =>
-      api.post<{ playlist: Playlist }>("/api/playlists", { name, isPublic }),
+    mutationFn: ({ name, channel = "private", isPublic }: { name: string; channel?: "public" | "private"; isPublic: boolean }) =>
+      api.post<{ playlist: Playlist }>("/api/playlists", { name, channel, isPublic }),
     onSuccess: (data) => {
       queryClient.setQueryData<{ playlists: Playlist[] }>(["playlists"], (old) => ({
         playlists: [data.playlist, ...(old?.playlists || [])],
@@ -76,8 +76,8 @@ export function useUpdatePlaylistMutation(playlistId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ name, isPublic }: { name?: string; isPublic?: boolean }) =>
-      api.patch<{ playlist: Playlist }>(`/api/playlists/${playlistId}`, { name, isPublic }),
+    mutationFn: ({ name, channel, isPublic }: { name?: string; channel?: "public" | "private"; isPublic?: boolean }) =>
+      api.patch<{ playlist: Playlist }>(`/api/playlists/${playlistId}`, { name, channel, isPublic }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
       queryClient.invalidateQueries({ queryKey: ["public-playlists"] });

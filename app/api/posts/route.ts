@@ -8,12 +8,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
-    const result = await getFeedPosts(searchParams);
+    const result = await getFeedPosts(searchParams, user);
 
     return NextResponse.json(result, {
       headers: {

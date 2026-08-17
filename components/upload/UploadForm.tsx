@@ -8,6 +8,7 @@ import { UploadMetadataFields } from "./UploadMetadataFields";
 import { useUploadPipeline } from "@/hooks/useUploadPipeline";
 import { Button } from "@/components/ui/Button";
 import { UploadFormProps } from "@/types";
+import { RotateCcw, FolderPlus } from "lucide-react";
 
 export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: UploadFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -15,11 +16,15 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
 
   const {
     selectedFiles,
+    setSelectedFiles,
     title,
     setTitle,
+    channel,
+    setChannel,
     category,
     setCategory,
     tags,
+    setTags,
     tagInput,
     setTagInput,
     uploading,
@@ -32,7 +37,6 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
     albumMode,
     setAlbumMode,
     windowDragOver,
-    isMinimized,
     statusText,
     isVideoFile,
     addFiles,
@@ -62,10 +66,33 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
     }
   };
 
+  const handleClearAll = () => {
+    selectedFiles.forEach((sf) => URL.revokeObjectURL(sf.preview));
+    setSelectedFiles([]);
+    setTitle("");
+    setTags([]);
+    setTagInput("");
+  };
+
   const hasFiles = selectedFiles.length > 0;
 
   return (
     <>
+      {/* Hidden file input for "Add More" and file dropzone */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept={acceptType}
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            addFiles(Array.from(e.target.files));
+            e.target.value = "";
+          }
+        }}
+      />
+
       {/* Full window drag overlay */}
       {windowDragOver && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-blue-600/20 backdrop-blur-md border-4 border-dashed border-blue-500 animate-in fade-in duration-150 pointer-events-none">
@@ -77,18 +104,6 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
         </div>
       )}
 
-      {/* Floating Progress Bar (when minimized during background upload) */}
-      {uploading && isMinimized && (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-2xl border border-zinc-200/80 bg-white/95 p-4 shadow-2xl backdrop-blur-xl dark:border-zinc-700/80 dark:bg-zinc-900/95 animate-in slide-in-from-bottom-4 duration-200">
-          <UploadProgress
-            progress={uploadProgress}
-            totalProgress={totalProgress}
-            isBulk={isBulk}
-            statusText={statusText}
-          />
-        </div>
-      )}
-
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -96,52 +111,53 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
         }}
         className="space-y-6"
       >
-        {/* Dropzone area */}
-        <FileDropzone
-          fileInputRef={fileInputRef}
-          onFilesSelected={(files) => addFiles(Array.from(files))}
-          acceptType={acceptType}
-          isDragOver={isDragOver}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          uploading={uploading}
-        />
-
-        {/* Selected files preview grid */}
-        <FilePreviewGrid
-          files={selectedFiles}
-          onRemoveFile={removeFile}
-          onAddMoreClick={() => fileInputRef.current?.click()}
-          isVideoFile={isVideoFile}
-          uploading={uploading}
-        />
-
-        {/* Metadata fields (Title, Category, Tags, Album Mode, Instant Upload) */}
-        {hasFiles && (
-          <UploadMetadataFields
-            title={title}
-            onTitleChange={setTitle}
-            category={category}
-            onCategoryChange={setCategory}
-            categories={categories}
-            tags={tags}
-            tagInput={tagInput}
-            onTagInputChange={setTagInput}
-            onAddTag={handleAddTag}
-            onRemoveTag={handleRemoveTag}
-            albumMode={albumMode}
-            onAlbumModeChange={setAlbumMode}
-            instantUpload={instantUpload}
-            onInstantUploadChange={setInstantUpload}
-            fileCount={selectedFiles.length}
+        {/* File Selection Area */}
+        {!hasFiles ? (
+          <FileDropzone
+            fileInputRef={fileInputRef}
+            onFilesSelected={(files) => addFiles(Array.from(files))}
+            acceptType={acceptType}
+            isDragOver={isDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            uploading={uploading}
+          />
+        ) : (
+          <FilePreviewGrid
+            files={selectedFiles}
+            onRemoveFile={removeFile}
+            onAddMoreClick={() => fileInputRef.current?.click()}
+            isVideoFile={isVideoFile}
             uploading={uploading}
           />
         )}
 
-        {/* Progress bar inside form (when not minimized) */}
-        {uploading && !isMinimized && (
+        {/* Form Metadata Fields (Always visible so user can configure Channel, Title, Category, Tags, Instant Upload) */}
+        <UploadMetadataFields
+          title={title}
+          onTitleChange={setTitle}
+          channel={channel}
+          onChannelChange={setChannel}
+          category={category}
+          onCategoryChange={setCategory}
+          categories={categories}
+          tags={tags}
+          tagInput={tagInput}
+          onTagInputChange={setTagInput}
+          onAddTag={handleAddTag}
+          onRemoveTag={handleRemoveTag}
+          albumMode={albumMode}
+          onAlbumModeChange={setAlbumMode}
+          instantUpload={instantUpload}
+          onInstantUploadChange={setInstantUpload}
+          fileCount={selectedFiles.length}
+          uploading={uploading}
+        />
+
+        {/* Progress bar inside modal during upload */}
+        {uploading && (
           <UploadProgress
             progress={uploadProgress}
             totalProgress={totalProgress}
@@ -151,23 +167,49 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
         )}
 
         {/* Action buttons */}
-        {hasFiles && (
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-            <Button
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+          {hasFiles ? (
+            <button
               type="button"
-              variant="secondary"
+              onClick={handleClearAll}
               disabled={uploading}
-              onClick={() => doUpload(selectedFiles, true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-red-600 dark:text-zinc-400 dark:hover:text-red-400 disabled:opacity-50 transition-colors cursor-pointer"
             >
-              Quick Upload ⚡
-            </Button>
+              <RotateCcw className="h-3.5 w-3.5" />
+              Clear Selection
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              <FolderPlus className="h-4 w-4" />
+              Browse Files...
+            </button>
+          )}
+
+          <div className="flex items-center gap-3">
+            {hasFiles && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={uploading}
+                onClick={() => doUpload(selectedFiles, true)}
+              >
+                Quick Upload ⚡
+              </Button>
+            )}
             <Button
               type="submit"
               variant="primary"
-              disabled={uploading}
+              disabled={uploading || !hasFiles}
             >
               {uploading
                 ? "Uploading..."
+                : !hasFiles
+                ? "Select Files to Publish"
                 : albumMode
                 ? "Publish Album"
                 : selectedFiles.length > 1
@@ -175,7 +217,7 @@ export function UploadForm({ onSuccess, categories = [], onMinimizedChange }: Up
                 : "Publish Post"}
             </Button>
           </div>
-        )}
+        </div>
       </form>
     </>
   );
