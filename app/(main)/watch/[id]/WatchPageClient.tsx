@@ -41,7 +41,13 @@ export function WatchPageClient({
   const [showSaveModal, setShowSaveModal] = React.useState(false);
   const [showEditModal, setShowEditModal] = React.useState(false);
   const [postData, setPostData] = React.useState(post);
-  const currentVideo = videos[currentVideoIndex];
+  const currentVideo = videos[currentVideoIndex] || videos[0];
+
+  // Re-sync state when navigating to another video via recommendations
+  React.useEffect(() => {
+    setPostData(post);
+    setCurrentVideoIndex(0);
+  }, [post]);
 
   const { ref: loadMoreRef, inView } = useInView({
     rootMargin: "200px",
