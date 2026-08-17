@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useAppStore } from "@/stores/appStore";
 import { SearchBarProps } from "@/types";
 import { useSearchSuggestionsQuery } from "@/services/queries";
@@ -41,15 +41,31 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
     setSearchQuery(value);
   }, []);
 
+  const handleClear = useCallback(() => {
+    setSearchQuery("");
+    useAppStore.getState().setFeedSearchQuery("");
+    setShowDropdown(false);
+    // Only navigate if we're not on the home page;
+    // on home, syncUrl in FeedClient will handle the URL update
+    if (pathname !== "/") {
+      router.push("/");
+    }
+  }, [pathname, router]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
-
     setShowDropdown(false);
     if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
 
-    useAppStore.getState().setFeedSearchQuery(searchQuery.trim());
-    router.push(`/?q=${encodeURIComponent(searchQuery.trim())}`);
+    const trimmed = searchQuery.trim();
+    useAppStore.getState().setFeedSearchQuery(trimmed);
+
+    // Only use router.push when navigating from a different page to home.
+    // On the home page, Zustand drives the data fetch and syncUrl handles
+    // the URL — avoids race condition between router.push and replaceState.
+    if (pathname !== "/") {
+      router.push("/");
+    }
   };
 
   return (
@@ -80,8 +96,21 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
             blurTimeoutRef.current = setTimeout(() => setShowDropdown(false), 200);
           }}
           placeholder="Search media..."
-          className="w-full rounded-full border border-zinc-200/60 bg-zinc-50/50 py-2.5 pl-10 pr-4 text-sm focus:border-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
+          className="w-full rounded-full border border-zinc-200/60 bg-zinc-50/50 py-2.5 pl-10 pr-9 text-sm focus:border-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
         />
+
+        {/* Clear Button (X) */}
+        {searchQuery.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+            aria-label="Clear search"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+
         <AnimatePresence>
           {showDropdown && searchResults.length > 0 && (
             <motion.div
@@ -128,3 +157,4 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
     </form>
   );
 }
+
