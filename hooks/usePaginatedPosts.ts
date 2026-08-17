@@ -50,6 +50,7 @@ export function usePaginatedPosts({
     (!fetchParams.q) &&
     (!fetchParams.category) &&
     (!fetchParams.year) &&
+    (!fetchParams.channel) &&
     (fetchParams.sort === "newest" || !fetchParams.sort);
 
   const shouldProvideInitialData = isInitialParams && initialPosts.length > 0;
