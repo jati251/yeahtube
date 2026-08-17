@@ -5,20 +5,22 @@ import { MessageSquare, Send } from "lucide-react";
 import { useCommentsQuery, useAddCommentMutation } from "@/services/queries";
 import { CommentsProps } from "@/types";
 import { getTimeAgo } from "@/utils";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export function Comments({ postId }: CommentsProps) {
+  const requireAuth = useRequireAuth();
   const [newComment, setNewComment] = useState("");
 
   const { data: comments = [], isLoading: loading } = useCommentsQuery(postId);
   const addCommentMutation = useAddCommentMutation(postId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = requireAuth((e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || addCommentMutation.isPending) return;
     addCommentMutation.mutate(newComment, {
       onSuccess: () => setNewComment(""),
     });
-  };
+  });
 
   if (loading) {
     return <div className="animate-pulse h-24 bg-zinc-100 dark:bg-zinc-900 rounded-lg mt-8" />;

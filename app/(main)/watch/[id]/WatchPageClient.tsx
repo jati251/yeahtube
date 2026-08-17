@@ -18,6 +18,7 @@ import { useInView } from "react-intersection-observer";
 
 import { useRecommendationsQuery } from "@/services/queries";
 import { useAppStore } from "@/stores/appStore";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export type { VideoData, ImageData, PostData };
 
@@ -34,6 +35,7 @@ export function WatchPageClient({
   tags = [],
   recommendations = [],
 }: WatchPageClientProps) {
+  const requireAuth = useRequireAuth();
   const [currentVideoIndex, setCurrentVideoIndex] = React.useState(0);
   const [showSaveModal, setShowSaveModal] = React.useState(false);
   const [showEditModal, setShowEditModal] = React.useState(false);
@@ -177,7 +179,7 @@ export function WatchPageClient({
                   </button>
                 )}
                 <button
-                  onClick={() => setShowSaveModal(true)}
+                  onClick={requireAuth(() => setShowSaveModal(true))}
                   className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 cursor-pointer shadow-sm"
                 >
                   <BookmarkPlus className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />

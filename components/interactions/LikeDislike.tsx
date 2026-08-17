@@ -4,15 +4,18 @@ import React, { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useLikeQuery, useLikeMutation, LikeData } from "@/services/queries";
 import { LikeDislikeProps } from "@/types";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps) {
+  const requireAuth = useRequireAuth();
+  
   const { data = { likes: 0, dislikes: 0, userAction: null }, isLoading: loading } = useLikeQuery(postId);
   const likeMutation = useLikeMutation(postId);
 
   const [optimisticState, setOptimisticState] = useState<LikeData | null>(null);
   const current = optimisticState || data;
 
-  const handleAction = (action: "like" | "dislike") => {
+  const handleAction = requireAuth((action: "like" | "dislike") => {
     const prevAction = current.userAction;
     const newAction = prevAction === action ? "none" : action;
 
@@ -34,7 +37,7 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
     likeMutation.mutate(newAction, {
       onSettled: () => setOptimisticState(null),
     });
-  };
+  });
 
   if (variant === "vertical") {
     return (

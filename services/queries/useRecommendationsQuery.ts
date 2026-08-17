@@ -21,7 +21,6 @@ export function useRecommendationsQuery(
         sort: "random",
         limit: "10",
         page: String(pageParam),
-        _t: String(Date.now()), // Bypass browser Cache-Control to prevent stale private posts on logout
       });
       if (channel) params.set("channel", channel);
       return api.get<RecommendationsResponse>(`/api/posts?${params.toString()}`);

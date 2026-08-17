@@ -66,6 +66,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
           ? ((responseData as Record<string, unknown>).message as string)
           : `Request failed with status ${response.status}`;
 
+    // Global Interceptor: Auto-redirect to login on 401 Unauthorized
+    if (response.status === 401 && typeof window !== "undefined") {
+      const currentPath = window.location.pathname + window.location.search;
+      // Use window.location to force a hard redirect
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+    }
+
     throw new ApiError(errorMessage, response.status, responseData);
   }
 
