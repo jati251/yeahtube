@@ -52,6 +52,7 @@ jobs:
           git push origin master
 
       - name: Ensure Cloudflare DNS Record
+        if: env.CLOUDFLARE_API_TOKEN != ''
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
