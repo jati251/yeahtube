@@ -1,14 +1,12 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
-import { getCurrentUser } from "@/lib/auth";
 import { count } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
     const db = getDb();
     const allTags = await db.select().from(schema.tags).orderBy(schema.tags.name);
 
