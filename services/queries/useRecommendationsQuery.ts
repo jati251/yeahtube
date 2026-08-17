@@ -16,9 +16,9 @@ export function useRecommendationsQuery(
   return useInfiniteQuery({
     queryKey: ["recommendations", postId, "random"],
     queryFn: async ({ pageParam = 1 }) => {
-      // The endpoint returns random posts, so we don't actually need to pass pageParam to it
-      // unless we want to track it for logging. We just use pageParam to know how many times we've fetched.
-      return api.get<RecommendationsResponse>("/api/posts?sort=random&limit=10");
+      // The endpoint returns random posts, we append pageParam to bypass browser cache
+      // since the API route might have Cache-Control max-age headers.
+      return api.get<RecommendationsResponse>(`/api/posts?sort=random&limit=10&page=${pageParam}`);
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
@@ -34,5 +34,6 @@ export function useRecommendationsQuery(
           pageParams: [1],
         }
       : undefined,
+    staleTime: Infinity,
   });
 }
