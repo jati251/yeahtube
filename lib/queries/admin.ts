@@ -72,23 +72,50 @@ export async function getAdminStats(): Promise<AdminStats> {
 
   const { databaseSize, pgLatency, redisStatus, redisLatency, queueStats } = await fetchAdminSystemMetrics(db);
 
+  let pgInfo = "Connected";
+  try {
+    const rawDbUrl = process.env.DATABASE_URL;
+    if (rawDbUrl) {
+      const u = new URL(rawDbUrl);
+      pgInfo = `Host: ${u.hostname}:${u.port || 5432} (${u.pathname.replace(/^\//, "") || "yeahtube"})`;
+    }
+  } catch {}
+
+  let redisInfo = "Connected (SWR & BullMQ)";
+  try {
+    const rawRedisUrl = process.env.REDIS_URL;
+    if (rawRedisUrl) {
+      const u = new URL(rawRedisUrl);
+      redisInfo = `Host: ${u.hostname}:${u.port || 6379} (SWR & BullMQ)`;
+    }
+  } catch {}
+
+  let s3Info = `Bucket: ${process.env.S3_BUCKET || "yeahtube"}`;
+  try {
+    const rawS3Endpoint = process.env.S3_ENDPOINT;
+    if (rawS3Endpoint) {
+      const u = new URL(rawS3Endpoint);
+      s3Info = `Bucket: ${process.env.S3_BUCKET || "yeahtube"} (${u.hostname})`;
+    }
+  } catch {}
+
   const services = [
     {
       name: "PostgreSQL Database",
       status: (databaseSize > 0 ? "online" : "offline") as "online" | "offline",
       latencyMs: pgLatency,
-      info: "Host: 192.168.1.41:5432 (yeahtube)",
+      info: pgInfo,
     },
     {
       name: "Redis Multi-Layer Cache",
       status: redisStatus,
       latencyMs: redisLatency,
-      info: "Host: 192.168.1.41:6379 (SWR & BullMQ)",
+      info: redisInfo,
     },
     {
       name: "MinIO S3 Storage",
       status: "online" as const,
-      info: "Bucket: yeahtube (api.s3.homelab.local)",
+      info: s3Info,
     },
     {
       name: "Transcode Pipeline",

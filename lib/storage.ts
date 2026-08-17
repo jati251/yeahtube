@@ -1,9 +1,8 @@
 /**
  * YeahTube — S3/MinIO Storage Client
  *
- * Provides a configured S3 client for the MinIO instance running on the
- * Proxmox VM at 192.168.1.206:9000. All file operations (upload, download,
- * delete, presigned URLs) go through this module.
+ * Provides a configured S3 client for MinIO storage.
+ * All file operations (upload, download, delete, streaming) go through this module.
  *
  * ⚠️ IMPORTANT: All config is LAZY — validated only when getS3Client() or
  * getStorageConfig() is called, NOT at module import time. This allows

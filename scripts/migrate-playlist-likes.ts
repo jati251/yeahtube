@@ -3,7 +3,7 @@ import { Pool } from "pg";
 
 const connectionString =
   process.env.DATABASE_URL ||
-  "postgresql://yeahtube:yeahtube@192.168.1.206:5432/yeahtube";
+  "postgresql://postgres:password@localhost:5432/yeahtube";
 
 async function main() {
   console.log("🚀 Running playlist_likes DB migration...");

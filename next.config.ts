@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
-    const s3Endpoint = process.env.S3_ENDPOINT || "http://dev-minio.dev-storage.svc.cluster.local:9000";
+    const s3Endpoint = process.env.S3_ENDPOINT || "http://localhost:9000";
     return [
       {
         source: "/storage/:path*",

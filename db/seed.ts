@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 
 const connectionString =
   process.env.DATABASE_URL ||
-  "postgresql://yeahtube:yeahtube@192.168.1.206:5432/yeahtube";
+  "postgresql://postgres:password@localhost:5432/yeahtube";
 
 async function seed() {
   console.log("🌱 Seeding database...");

@@ -4,7 +4,7 @@ import * as schema from "./schema";
 
 const connectionString =
   process.env.DATABASE_URL ||
-  "postgresql://yeahtube:yeahtube@192.168.1.206:5432/yeahtube";
+  "postgresql://postgres:password@localhost:5432/yeahtube";
 
 const globalForDb = globalThis as unknown as {
   pool: Pool | undefined;
