@@ -42,3 +42,6 @@ export const TOAST_ICON_COLORS = {
   info: "text-zinc-900 dark:text-zinc-100",
   warning: "text-amber-500",
 } as const;
+
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://yeahtube.cekcok.my.id";

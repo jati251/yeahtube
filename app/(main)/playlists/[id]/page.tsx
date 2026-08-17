@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { MediaCard } from "@/components/media/MediaCard";
 import { PlaylistDetailHeader } from "@/components/media/PlaylistDetailHeader";
 import { getPlaylistDetails } from "@/lib/queries";
+import { SITE_URL } from "@/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export default async function PlaylistPage({
   }
 
   const canEdit = Boolean(user && user.id === playlist.userId);
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://yeahtube.local";
+  const siteUrl = SITE_URL;
 
   // Schema.org ItemList JSON-LD
   const jsonLd = {

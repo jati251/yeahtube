@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries/posts";
 import { formatDurationISO } from "@/utils";
 import { WatchPageClient } from "./[id]/WatchPageClient";
+import { SITE_URL } from "@/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,7 @@ export default async function WatchPage({ searchParams }: WatchQueryPageProps) {
 
   const { post, videos, tags } = detail;
   const primaryVideo = videos[0];
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://yeahtube.local";
+  const siteUrl = SITE_URL;
   const watchUrl = `${siteUrl}/watch?v=${post.slug || post.id}`;
 
   // Google VideoObject JSON-LD Schema (Compliant with Google Video Search Rich Snippets)

@@ -1,11 +1,12 @@
 import { MetadataRoute } from "next";
 import { getDb, schema } from "@/db";
 import { eq, desc, and } from "drizzle-orm";
+import { SITE_URL } from "@/constants";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://yeahtube.local";
+  const siteUrl = SITE_URL;
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {

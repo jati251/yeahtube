@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries/posts";
 import { ViewPageClient } from "./ViewPageClient";
 import { RouteIdPageProps } from "@/types";
+import { SITE_URL } from "@/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ export default async function ViewPage({ params }: RouteIdPageProps) {
   }
 
   const { post, images: galleryImages, tags } = detail;
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://yeahtube.local";
+  const siteUrl = SITE_URL;
 
   // Google ImageGallery / ImageObject JSON-LD Schema for Google Images
   const jsonLd = {
