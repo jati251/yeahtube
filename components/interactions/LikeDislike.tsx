@@ -6,6 +6,8 @@ import { useLikeQuery, useLikeMutation, LikeData } from "@/services/queries";
 import { LikeDislikeProps } from "@/types";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
+import { motion } from "framer-motion";
+
 export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps) {
   const requireAuth = useRequireAuth();
   
@@ -42,7 +44,8 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
   if (variant === "vertical") {
     return (
       <div className="flex flex-col items-center gap-4">
-        <button
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={() => handleAction("like")}
           disabled={loading}
           className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer disabled:opacity-50"
@@ -57,9 +60,10 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
             <ThumbsUp className={`h-6 w-6 ${current.userAction === "like" ? "fill-current" : ""}`} />
           </div>
           <span className="text-xs text-white font-medium drop-shadow">{current.likes}</span>
-        </button>
+        </motion.button>
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={() => handleAction("dislike")}
           disabled={loading}
           className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer disabled:opacity-50"
@@ -74,14 +78,15 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
             <ThumbsDown className={`h-6 w-6 ${current.userAction === "dislike" ? "fill-current" : ""}`} />
           </div>
           <span className="text-xs text-white font-medium drop-shadow">{current.dislikes}</span>
-        </button>
+        </motion.button>
       </div>
     );
   }
 
   return (
     <div className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/50 shadow-sm overflow-hidden">
-      <button
+      <motion.button
+        whileTap={{ scale: 0.92 }}
         onClick={() => handleAction("like")}
         disabled={loading}
         className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-1.5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 ${
@@ -92,11 +97,12 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
       >
         <ThumbsUp className={`h-4 w-4 ${current.userAction === "like" ? "fill-current text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-300"}`} />
         <span>{current.likes}</span>
-      </button>
+      </motion.button>
 
       <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-700 shrink-0" />
 
-      <button
+      <motion.button
+        whileTap={{ scale: 0.92 }}
         onClick={() => handleAction("dislike")}
         disabled={loading}
         className={`flex items-center gap-1.5 pl-2.5 pr-3.5 py-1.5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 ${
@@ -107,7 +113,7 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
       >
         <ThumbsDown className={`h-4 w-4 ${current.userAction === "dislike" ? "fill-current text-red-600 dark:text-red-400" : "text-zinc-600 dark:text-zinc-300"}`} />
         <span>{current.dislikes}</span>
-      </button>
+      </motion.button>
     </div>
   );
 }

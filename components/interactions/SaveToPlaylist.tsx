@@ -9,6 +9,7 @@ import {
 } from "@/services/queries";
 import { SaveToPlaylistProps } from "@/types";
 import { clsx } from "clsx";
+import { motion } from "framer-motion";
 
 export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
   const [creating, setCreating] = useState(false);
@@ -54,8 +55,24 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal Dialog */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 8 }}
+        transition={{ type: "spring", damping: 25, stiffness: 350 }}
+        className="relative z-10 w-full max-w-sm rounded-2xl bg-zinc-900 border border-zinc-800 p-6 shadow-2xl"
+      >
         <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
           <div className="flex items-center gap-2">
             <ListVideo className="h-5 w-5 text-blue-400" />
@@ -195,7 +212,7 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
             </div>
           </form>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }

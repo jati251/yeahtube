@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
 import { useAppStore } from "@/stores/appStore";
 import { MediaCardProps } from "@/types";
+import { motion } from "framer-motion";
 
 export const MediaCard = React.memo(function MediaCard({
   post,
@@ -175,14 +176,16 @@ export const MediaCard = React.memo(function MediaCard({
   );
 
   return (
-    <div
+    <motion.div
+      whileHover={{ y: -4 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onClick={() => {
         if (selectMode) {
           onToggleSelect?.(post.id);
         }
       }}
       className={clsx(
-        "group relative flex flex-col min-w-0 overflow-hidden rounded-2xl glass-card premium-hover transition-all duration-300",
+        "group relative flex flex-col min-w-0 overflow-hidden rounded-2xl glass-card transition-all duration-300",
         selectMode && "select-none cursor-pointer",
         selectMode && selected && "ring-2 ring-zinc-900 dark:ring-zinc-100 bg-zinc-50/50 dark:bg-zinc-800/50"
       )}
@@ -359,6 +362,6 @@ export const MediaCard = React.memo(function MediaCard({
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 });
