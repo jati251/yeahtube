@@ -29,27 +29,31 @@ export const getUserPlaylistsWithThumbnails = cache(async (userId: number) => {
   const playlistThumbnailsMap: Record<number, PlaylistSampleThumbnail[]> = {};
 
   if (playlistIds.length > 0) {
+    const { or } = await import("drizzle-orm");
     const sampleMediaItems = await db
       .select({
         playlistId: schema.playlistItems.playlistId,
         postId: schema.playlistItems.postId,
         thumbnailKey: schema.media.thumbnailKey,
+        storageKey: schema.media.storageKey,
+        mediaType: schema.media.mediaType,
       })
       .from(schema.playlistItems)
       .innerJoin(schema.media, eq(schema.playlistItems.postId, schema.media.postId))
       .where(
         and(
           inArray(schema.playlistItems.playlistId, playlistIds),
-          isNotNull(schema.media.thumbnailKey),
+          or(isNotNull(schema.media.thumbnailKey), isNotNull(schema.media.storageKey)),
         ),
       )
       .orderBy(desc(schema.playlistItems.addedAt), asc(schema.media.orderIndex));
 
     const seenPerPlaylist = new Map<number, Set<number>>();
-    const itemsToResolve: { playlistId: number; id: number; thumbnailKey: string }[] = [];
+    const itemsToResolve: { playlistId: number; id: number; key: string }[] = [];
 
     for (const item of sampleMediaItems) {
-      if (!item.thumbnailKey) continue;
+      const keyToResolve = item.thumbnailKey || item.storageKey;
+      if (!keyToResolve) continue;
       if (!seenPerPlaylist.has(item.playlistId)) {
         seenPerPlaylist.set(item.playlistId, new Set());
       }
@@ -59,20 +63,28 @@ export const getUserPlaylistsWithThumbnails = cache(async (userId: number) => {
         itemsToResolve.push({
           playlistId: item.playlistId,
           id: item.postId,
-          thumbnailKey: item.thumbnailKey,
+          key: keyToResolve,
         });
       }
     }
 
     const resolvedThumbnails = await Promise.all(
-      itemsToResolve.map(async (it) => ({
-        playlistId: it.playlistId,
-        id: it.id,
-        thumbnailUrl: await getPresignedUrl(it.thumbnailKey),
-      })),
+      itemsToResolve.map(async (it) => {
+        try {
+          const url = await getPresignedUrl(it.key);
+          return {
+            playlistId: it.playlistId,
+            id: it.id,
+            thumbnailUrl: url,
+          };
+        } catch {
+          return null;
+        }
+      }),
     );
 
     for (const res of resolvedThumbnails) {
+      if (!res || !res.thumbnailUrl) continue;
       if (!playlistThumbnailsMap[res.playlistId]) {
         playlistThumbnailsMap[res.playlistId] = [];
       }

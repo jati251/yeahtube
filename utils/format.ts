@@ -27,6 +27,23 @@ export function formatDuration(seconds: number | null | undefined): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+/**
+ * Formats duration in ISO 8601 format (e.g. PT1M30S) for Schema.org VideoObject.
+ */
+export function formatDurationISO(seconds: number | null | undefined): string {
+  if (seconds == null || isNaN(seconds) || !isFinite(seconds) || seconds <= 0) return "PT0S";
+  const totalSeconds = Math.floor(seconds);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+
+  let result = "PT";
+  if (h > 0) result += `${h}H`;
+  if (m > 0) result += `${m}M`;
+  if (s > 0 || (h === 0 && m === 0)) result += `${s}S`;
+  return result;
+}
+
 // ── Relative Time ─────────────────────────────────────
 
 export function getTimeAgo(dateStr: string | Date): string {

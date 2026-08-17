@@ -365,6 +365,7 @@ export const getPostDetail = cache(async function getPostDetail(
       createdAt: string;
       categoryId: number | null;
       userId: number;
+      views: number;
     };
     videos: {
       id: number;
@@ -472,6 +473,7 @@ export const getPostDetail = cache(async function getPostDetail(
       createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt),
       categoryId: post.categoryId,
       userId: post.userId,
+      views: post.views || 0,
     },
     videos: videosWithUrls,
     images: imagesWithUrls,

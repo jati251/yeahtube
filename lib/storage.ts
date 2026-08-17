@@ -138,9 +138,18 @@ export async function getPresignedUrl(key: string, expiresInSeconds: number = 36
 
   const url = await getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
 
-  // Proxy through Next.js to avoid Local Network Access prompt on iOS/macOS
+  // Proxy through Next.js to avoid Local Network Access prompt on iOS/macOS and internal cluster DNS issues
   const { endpoint } = getStorageConfig();
-  if (endpoint.includes("192.168.") || endpoint.includes("dev-minio")) {
+  if (
+    endpoint.includes("192.168.") ||
+    endpoint.includes("10.") ||
+    endpoint.includes("172.") ||
+    endpoint.includes("dev-minio") ||
+    endpoint.includes("homelab.local") ||
+    endpoint.includes("localhost") ||
+    endpoint.includes("127.0.0.1") ||
+    endpoint.includes(".svc.cluster.local")
+  ) {
     return url.replace(endpoint, "/storage");
   }
 

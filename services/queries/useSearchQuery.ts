@@ -7,6 +7,7 @@ export interface SearchResultItem {
   id: number;
   title: string;
   type?: "post" | "playlist";
+  mediaType?: string;
 }
 
 export function useSearchSuggestionsQuery(query: string, enabled = true) {

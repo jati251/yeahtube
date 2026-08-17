@@ -76,16 +76,17 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
           <div className="absolute top-full mt-2 w-full rounded-2xl border border-zinc-200/50 bg-white py-2 shadow-2xl dark:border-zinc-800/50 dark:bg-zinc-950 z-50">
             {searchResults.map((result) => {
               const isPlaylist = result.type === "playlist";
+              const resultHref = isPlaylist
+                ? `/playlists/${result.id}`
+                : result.mediaType === "image"
+                ? `/view/${result.id}`
+                : `/watch/${result.id}`;
               return (
                 <button
                   key={`${result.type || "post"}-${result.id}`}
                   type="button"
                   onClick={() => {
-                    if (isPlaylist) {
-                      router.push(`/playlists/${result.id}`);
-                    } else {
-                      router.push(`/watch/${result.id}`);
-                    }
+                    router.push(resultHref);
                     setShowDropdown(false);
                     setSearchQuery("");
                   }}

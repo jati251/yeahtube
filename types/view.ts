@@ -28,6 +28,8 @@ export interface PostData {
   description: string | null;
   createdAt: string;
   categoryId?: number | null;
+  userId?: number;
+  views?: number;
 }
 
 export interface ViewPageClientProps {

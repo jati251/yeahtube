@@ -28,21 +28,21 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "http",
-        hostname: "api.s3.homelab.local",
+        hostname: "**",
       },
       {
-        protocol: "http",
-        hostname: "192.168.1.206",
-        port: "9000",
+        protocol: "https",
+        hostname: "**",
       },
     ],
   },
 
   async rewrites() {
+    const s3Endpoint = process.env.S3_ENDPOINT || "http://dev-minio.dev-storage.svc.cluster.local:9000";
     return [
       {
         source: "/storage/:path*",
-        destination: "http://dev-minio.dev-storage.svc.cluster.local:9000/:path*", // Proxy to MinIO
+        destination: `${s3Endpoint}/:path*`, // Proxy to MinIO
       },
     ];
   },
@@ -93,9 +93,9 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: http://192.168.1.206:9000 http://api.s3.homelab.local",
-              "media-src 'self' blob: http://192.168.1.206:9000 http://api.s3.homelab.local",
-              "connect-src 'self' http://192.168.1.206:9000 http://api.s3.homelab.local",
+              "img-src 'self' data: blob: http: https:",
+              "media-src 'self' blob: http: https:",
+              "connect-src 'self' http: https:",
               "font-src 'self'",
             ].join("; "),
           },
