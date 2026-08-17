@@ -87,10 +87,10 @@ export function usePlayerFullscreen(
       lockLandscape();
     }
 
-    // 4. Fallback / mobile viewport fullscreen
-    setIsMobileFullscreen(true);
-    document.body.classList.add("is-player-fullscreen");
-    document.body.style.overflow = "hidden";
+    // 4. Fallback: viewport fullscreen for restricted mobile webviews
+    if (!nativeSuccess) {
+      setIsMobileFullscreen(true);
+    }
   }, [containerRef, isFullscreenActive, exitFullscreen, isLandscape, lockLandscape]);
 
   // Sync body class with fullscreen state
