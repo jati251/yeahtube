@@ -9,10 +9,6 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const db = getDb();
     const allTags = await db.select().from(schema.tags).orderBy(schema.tags.name);
 

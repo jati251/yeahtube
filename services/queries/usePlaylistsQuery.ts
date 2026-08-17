@@ -4,22 +4,25 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { Playlist, PlaylistLikeData } from "@/types";
 
-export function usePlaylistsQuery(postId?: number) {
+export function usePlaylistsQuery(postId?: number, enabled = true) {
   return useQuery<{ playlists: Playlist[] }>({
     queryKey: ["playlists", postId],
     queryFn: () => {
       const url = postId ? `/api/playlists?postId=${postId}` : "/api/playlists";
       return api.get<{ playlists: Playlist[] }>(url);
     },
+    enabled,
   });
 }
 
 export function usePublicPlaylistsQuery({
   q = "",
   sort = "recent",
+  enabled = true,
 }: {
   q?: string;
   sort?: "recent" | "popular";
+  enabled?: boolean;
 } = {}) {
   const cleanQ = q.trim();
   return useQuery<{ playlists: Playlist[] }>({
@@ -32,13 +35,15 @@ export function usePublicPlaylistsQuery({
       return api.get<{ playlists: Playlist[] }>(`/api/playlists?${sp.toString()}`);
     },
     staleTime: 1000 * 30,
+    enabled,
   });
 }
 
-export function usePlaylistLikeQuery(playlistId: number) {
+export function usePlaylistLikeQuery(playlistId: number, enabled = true) {
   return useQuery<PlaylistLikeData>({
     queryKey: ["playlist-like", playlistId],
     queryFn: () => api.get<PlaylistLikeData>(`/api/playlists/${playlistId}/like`),
+    enabled: enabled && !isNaN(playlistId) && playlistId > 0,
   });
 }
 

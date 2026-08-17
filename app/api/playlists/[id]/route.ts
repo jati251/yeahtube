@@ -27,7 +27,10 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (!playlist.isPublic && (!user || playlist.userId !== user.id)) {
+    const isOwner = Boolean(user && playlist.userId === user.id);
+    const isPublicAccess = playlist.isPublic === 1 && playlist.channel === "public";
+
+    if (!isOwner && !isPublicAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

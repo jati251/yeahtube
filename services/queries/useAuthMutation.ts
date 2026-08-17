@@ -1,15 +1,20 @@
-"use client";
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
+import { SessionUser } from "./useSessionQuery";
 
 export function useLoginMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (credentials: { username: string; password?: string }) =>
-      api.post<{ success: boolean; user: unknown }>("/api/auth/login", credentials),
-    onSuccess: () => {
+      api.post<{ success: boolean; user: SessionUser }>("/api/auth/login", credentials),
+    onSuccess: (data) => {
       queryClient.clear();
+      if (data?.user) {
+        queryClient.setQueryData(["session"], {
+          authenticated: true,
+          user: data.user,
+        });
+      }
     },
   });
 }
@@ -20,6 +25,9 @@ export function useLogoutMutation() {
     mutationFn: () => api.post<{ success: boolean }>("/api/auth/logout"),
     onSuccess: () => {
       queryClient.clear();
+      queryClient.setQueryData(["session"], {
+        authenticated: false,
+      });
     },
   });
 }

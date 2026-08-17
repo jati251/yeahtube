@@ -1,5 +1,5 @@
 import { useRouter, usePathname } from "next/navigation";
-import { useAppStore } from "@/stores/appStore";
+import { useSessionQuery } from "@/services/queries/useSessionQuery";
 
 /**
  * A hook that returns a wrapper function for event handlers.
@@ -10,12 +10,13 @@ import { useAppStore } from "@/stores/appStore";
 export function useRequireAuth() {
   const router = useRouter();
   const pathname = usePathname();
-  const username = useAppStore((s) => s.username);
+  const { data: session, isLoading } = useSessionQuery();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requireAuth = <T extends (...args: any[]) => any>(callback: T) => {
     return (...args: Parameters<T>): ReturnType<T> | void => {
-      if (!username) {
+      if (isLoading) return; // Prevent action while checking auth status
+      if (!session?.authenticated) {
         // Redirect to login page, appending the current path so they come back after auth
         router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
         return;

@@ -23,6 +23,25 @@ export async function searchSuggestions(
     postConditions.push(eq(schema.posts.channel, "public"));
   }
 
+  const playlistConditions = [like(schema.playlists.name, `%${q}%`)];
+  if (!user) {
+    playlistConditions.push(
+      eq(schema.playlists.channel, "public"),
+      eq(schema.playlists.isPublic, 1),
+    );
+  } else {
+    const { or } = await import("drizzle-orm");
+    playlistConditions.push(
+      or(
+        and(
+          eq(schema.playlists.channel, "public"),
+          eq(schema.playlists.isPublic, 1),
+        ),
+        eq(schema.playlists.userId, user.id),
+      )!,
+    );
+  }
+
   const [postResults, playlistResults] = await Promise.all([
     db
       .select({
@@ -46,12 +65,7 @@ export async function searchSuggestions(
         mediaType: sql<string | null>`null`,
       })
       .from(schema.playlists)
-      .where(
-        and(
-          eq(schema.playlists.isPublic, 1),
-          like(schema.playlists.name, `%${q}%`),
-        ),
-      )
+      .where(and(...playlistConditions))
       .orderBy(desc(schema.playlists.createdAt))
       .limit(3),
   ]);

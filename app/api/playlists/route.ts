@@ -20,15 +20,41 @@ export async function GET(request: NextRequest) {
     const searchQuery = searchParams.get("q");
     const sortBy = searchParams.get("sort") || "recent"; // "recent" | "popular"
     const targetPostId = parseInt(searchParams.get("postId") || "", 10);
+    const channelParam = searchParams.get("channel");
 
     const db = getDb();
 
     // Query playlists with videoCount, likesCount, and author username
-    const baseWhere = isPublicQuery
-      ? user
-        ? or(eq(schema.playlists.isPublic, 1), eq(schema.playlists.userId, user.id))
-        : eq(schema.playlists.isPublic, 1)
-      : eq(schema.playlists.userId, user!.id);
+    let baseWhere;
+    if (!user) {
+      // Non-logged-in visitors ONLY see public channel playlists that are set to public
+      baseWhere = and(
+        eq(schema.playlists.channel, "public"),
+        eq(schema.playlists.isPublic, 1),
+      );
+    } else if (channelParam === "private") {
+      baseWhere = and(
+        eq(schema.playlists.userId, user.id),
+        eq(schema.playlists.channel, "private"),
+      );
+    } else if (channelParam === "public") {
+      baseWhere = and(
+        eq(schema.playlists.channel, "public"),
+        eq(schema.playlists.isPublic, 1),
+      );
+    } else if (isPublicQuery) {
+      // Public browse: show all public playlists, plus any playlists owned by the current user
+      baseWhere = or(
+        and(
+          eq(schema.playlists.channel, "public"),
+          eq(schema.playlists.isPublic, 1),
+        ),
+        eq(schema.playlists.userId, user.id),
+      );
+    } else {
+      // Personal playlist management (e.g. Save to Playlist modal)
+      baseWhere = eq(schema.playlists.userId, user.id);
+    }
 
     const whereClause = searchQuery
       ? and(baseWhere, sql`lower(${schema.playlists.name}) LIKE ${`%${searchQuery.toLowerCase()}%`}`)

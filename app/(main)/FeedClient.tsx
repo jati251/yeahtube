@@ -102,6 +102,7 @@ export function FeedClient({
   const { data: publicPlaylistsData, isLoading: loadingPlaylists } = usePublicPlaylistsQuery({
     q: activeSearchQuery || "",
     sort: activeSort === "views" ? "popular" : "recent",
+    enabled: isPlaylistMode,
   });
   const publicPlaylists = publicPlaylistsData?.playlists || [];
 

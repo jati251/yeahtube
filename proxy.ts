@@ -8,52 +8,54 @@ export const config = {
 };
 
 /**
+ * Matches a pathname against a list of route patterns.
+ * Patterns ending with `*` are treated as prefixes, otherwise exact match.
+ * Examples: "/login" (exact), "/api/posts*" (matches /api/posts, /api/posts/123, etc.)
+ */
+function matchesAny(pathname: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => {
+    if (pattern.endsWith("*")) {
+      const prefix = pattern.slice(0, -1);
+      return pathname === prefix || pathname.startsWith(prefix);
+    }
+    return pathname === pattern;
+  });
+}
+
+// Routes accessible without authentication (any HTTP method)
+const PUBLIC_ROUTES = [
+  "/login",
+  "/api/auth/login",
+  "/api/auth/session",
+  "/api/media/stream*",
+  "/",
+  "/trending",
+  "/shorts",
+  "/watch*",
+  "/view/*",
+  "/user/*",
+  "/playlists/*",
+];
+
+// API routes accessible via GET without authentication
+const PUBLIC_GET_API_ROUTES = [
+  "/api/posts*",
+  "/api/playlists*",
+  "/api/search*",
+  "/api/categories*",
+  "/api/tags*",
+  "/api/user/*",
+];
+
+/**
  * Checks if a pathname is publicly accessible without authentication.
  */
 function isPublicRoute(pathname: string, method: string): boolean {
-  // Authentication routes
-  if (pathname === "/login" || pathname === "/api/auth/login" || pathname === "/api/auth/session") {
-    return true;
-  }
-
-  // Media streaming API route (Range requests for video seeking/playing)
-  if (pathname.startsWith("/api/media/stream")) {
-    return true;
-  }
-
-  // Public browse pages
-  if (
-    pathname === "/" ||
-    pathname === "/trending" ||
-    pathname === "/shorts" ||
-    pathname === "/watch" ||
-    pathname.startsWith("/watch/") ||
-    pathname.startsWith("/view/") ||
-    pathname.startsWith("/user/") ||
-    pathname.startsWith("/playlists/")
-  ) {
-    return true;
-  }
-
-  // Public GET API routes
-  if (method === "GET") {
-    if (
-      pathname === "/api/posts" ||
-      pathname.startsWith("/api/posts/") ||
-      pathname.startsWith("/api/playlists/") ||
-      pathname.startsWith("/api/search") ||
-      pathname.startsWith("/api/categories") ||
-      pathname.startsWith("/api/tags") ||
-      pathname.startsWith("/api/user/")
-    ) {
-      return true;
-    }
-  }
+  if (matchesAny(pathname, PUBLIC_ROUTES)) return true;
+  if (method === "GET" && matchesAny(pathname, PUBLIC_GET_API_ROUTES)) return true;
 
   // View count increment is allowed for public
-  if (method === "POST" && pathname.match(/^\/api\/posts\/\d+\/view$/)) {
-    return true;
-  }
+  if (method === "POST" && /^\/api\/posts\/\d+\/view$/.test(pathname)) return true;
 
   return false;
 }
