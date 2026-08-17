@@ -12,6 +12,7 @@ import { clsx } from "clsx";
 import { attachHlsOrNative } from "@/lib/hls-helper";
 import { useReelItem } from "@/hooks/player/useReelItem";
 import { useLikeMutation } from "@/services/queries";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export const ReelItem = React.memo(function ReelItem({
   post,
@@ -41,12 +42,15 @@ export const ReelItem = React.memo(function ReelItem({
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
+  const requireAuth = useRequireAuth();
   const likeMutation = useLikeMutation(post.id);
 
   const handleDoubleTap = useCallback(() => {
     onUserActivity();
-    likeMutation.mutate("like");
-  }, [likeMutation, onUserActivity]);
+    requireAuth(() => {
+      likeMutation.mutate("like");
+    });
+  }, [likeMutation, onUserActivity, requireAuth]);
 
   const {
     isPaused,
@@ -182,8 +186,6 @@ export const ReelItem = React.memo(function ReelItem({
             </div>
           )}
 
-
-
           {/* Skip Forward/Backward Overlay */}
           {skipInfo && (
             <div
@@ -254,7 +256,9 @@ export const ReelItem = React.memo(function ReelItem({
         <button
           onClick={() => {
             onUserActivity();
-            setShowSaveModal(true);
+            requireAuth(() => {
+              setShowSaveModal(true);
+            });
           }}
           className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer active:scale-95 transition-transform"
         >

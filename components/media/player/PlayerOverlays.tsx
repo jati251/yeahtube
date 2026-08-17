@@ -25,8 +25,6 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
 
   return (
     <>
-
-
       {/* 2X Fast Forward Top Badge */}
       {isFastForwarding && (
         <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/80 px-4 py-1.5 border border-white/20 shadow-xl animate-in fade-in zoom-in duration-150 pointer-events-none">

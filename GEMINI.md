@@ -4,13 +4,14 @@ Panduan arsitektur, konvensi, dan aturan penting untuk AI agents (Gemini / Antig
 
 ---
 
-## 1. Arsitektur & Tech Stack
-- **Framework**: Next.js (App Router, dynamic rendering with `server-only`).
+## 1. Arsitektur & Modern Tech Stack
+- **Framework**: Next.js 16 (App Router, Turbopack, Dynamic Rendering dengan `server-only`).
 - **Database & ORM**: PostgreSQL + Drizzle ORM (`db/schema.ts`).
 - **State Management & Data Fetching**: TanStack React Query (`services/queries/`) + Zustand (`stores/appStore.ts`).
 - **HTTP Client**: Custom fetch wrapper (`lib/api-client.ts`).
-- **Auth & Session**: Custom JWT session cookie (`yeahtube_session`) via `jose` + Edge Proxy Middleware (`proxy.ts`).
-- **Storage & Media**: AWS S3 compatible object storage with Sharp image processing & FFmpeg worker.
+- **Auth & Session**: Custom JWT session cookie (`yeahtube_session`) via `jose` + Next.js 16 Proxy Middleware (`proxy.ts`).
+- **Storage & Media**: AWS S3 compatible object storage (MinIO / AWS S3) dengan Sharp image processing & FFmpeg background worker.
+- **Cache & Queue**: Redis (`ioredis` via `lib/cache.ts`) + BullMQ (`lib/transcode-queue.ts`).
 
 ---
 
@@ -29,7 +30,7 @@ Panduan arsitektur, konvensi, dan aturan penting untuk AI agents (Gemini / Antig
 
 3. **Event Handler Interaktif (`useRequireAuth`)**:
    - Jangan melakukan redirect auth di level render komponen.
-   - Gunakan wrapper hook `useRequireAuth` untuk membungkus interaksi user (contoh: onClick Like, Comment, Save to Playlist), sehingga redirect ke `/login` hanya terpicu saat user menekan aksi tersebut.
+   - Gunakan wrapper hook `useRequireAuth` untuk membungkus interaksi user (contoh: onClick Like, Comment, Save to Playlist, Double-Tap Like), sehingga redirect ke `/login` hanya terpicu saat user menekan aksi tersebut secara sengaja.
 
 ---
 
@@ -49,7 +50,7 @@ Panduan arsitektur, konvensi, dan aturan penting untuk AI agents (Gemini / Antig
 
 ---
 
-## 4. Konvensi TanStack Query (`services/queries/`)
+## 4. Konvensi TanStack Query & Zustand (`services/queries/` & `stores/`)
 
 1. **Struktur File**:
    - Semua custom query hooks ditaruh di `services/queries/` dan diekspor melalui `services/queries/index.ts`.
@@ -60,12 +61,17 @@ Panduan arsitektur, konvensi, dan aturan penting untuk AI agents (Gemini / Antig
 
 ---
 
-## 5. Drizzle ORM & Database Query Rules
+## 5. Drizzle ORM, Cache & Database Query Rules
 
-1. **Pemisahan Server & Client**:
-   - File database queries di `lib/queries/` harus menyertakan `import "server-only";`.
+1. **Pemisahan Server & Client (`server-only`)**:
+   - Semua file query database di `lib/queries/` dan `lib/recommendations.ts` **WAJIB** menyertakan `import "server-only";` di baris pertama.
    - Gunakan `getCurrentUser()` dari `lib/auth.ts` (yang sudah di-cache per request via `React.cache`) untuk mendapatkan user aktif.
-2. **Prepared Statements & Performance**:
-   - Gunakan prepared statements atau indeks yang ada di `db/schema.ts` untuk query berfrekuensi tinggi.
-3. **Invalidasi Cache**:
-   - Saat ada mutasi post atau taxonomy, panggil `invalidateFeedCache()`, `invalidateTaxonomyCache()`, atau `invalidatePostCache(id)` dari `lib/cache.ts`.
+2. **Standarisasi Cache Redis (`lib/cache.ts`)**:
+   - Semua key cache Redis wajib menggunakan prefix seragam:
+     - Feed: `cache:feed:*`
+     - Post Detail: `cache:post:detail:${user ? "auth" : "pub"}:${channelPref || "all"}:${idOrSlug}`
+     - Recommendations: `cache:recommendations:${user ? "auth" : "pub"}:${channelPref || "all"}:${postId}`
+     - Taxonomy: `cache:tags:all`, `cache:categories:all`
+   - Saat ada mutasi post atau taxonomy, panggil `invalidatePostCache(id)`, `invalidateFeedCache()`, atau `invalidateTaxonomyCache()`.
+3. **Shared Query Helpers**:
+   - Gunakan helper bersama seperti `resolvePlaylistSampleThumbnails` dari `lib/queries/playlists.ts` untuk menghindari duplikasi logika resolusi sample presigned URL media.

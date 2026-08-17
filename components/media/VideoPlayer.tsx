@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { getQualityLabel } from "@/lib/media-utils";
+import { getQualityLabel, formatDuration } from "@/utils";
 import { PlayerOverlays } from "./player/PlayerOverlays";
 import { PlayerControls } from "./player/PlayerControls";
 import { usePlayerFullscreen } from "@/hooks/player/usePlayerFullscreen";
@@ -23,7 +23,8 @@ export function VideoPlayer({
   qualityOptions,
   onQualityChange,
 }: VideoPlayerProps) {
-  const currentQualityLabel = getQualityLabel(width, height)?.label ?? (height ? "SD" : "Auto");
+  const quality = getQualityLabel(width, height);
+  const currentQualityLabel = quality?.label ?? (height ? "SD" : "Auto");
   const hasQualityOptions = Boolean(qualityOptions && qualityOptions.length > 1);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -130,15 +131,6 @@ export function VideoPlayer({
     setCurrentTime,
     showToastBadge,
   });
-
-  const formatTime = (t: number) => {
-    if (isNaN(t) || !isFinite(t)) return "0:00";
-    const h = Math.floor(t / 3600);
-    const m = Math.floor((t % 3600) / 60);
-    const s = Math.floor(t % 60);
-    if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-    return `${m}:${String(s).padStart(2, "0")}`;
-  };
 
   return (
     <div
@@ -264,7 +256,7 @@ export function VideoPlayer({
         }}
         onTogglePiP={togglePiP}
         onToggleFullscreen={toggleFullscreen}
-        formatTime={formatTime}
+        formatTime={formatDuration}
       />
     </div>
   );

@@ -1,3 +1,4 @@
+import "server-only";
 import { cache } from "react";
 import { getDb, schema } from "@/db";
 import { eq, desc, sql, ilike, inArray, and, or, SQL } from "drizzle-orm";
@@ -23,8 +24,27 @@ export async function buildFilterConditions(
   const channelParam = searchParams.get("channel");
   if (!user) {
     conditions.push(eq(schema.posts.channel, "public"));
-  } else if (channelParam === "public" || channelParam === "private") {
-    conditions.push(eq(schema.posts.channel, channelParam));
+  } else if (channelParam === "public") {
+    conditions.push(eq(schema.posts.channel, "public"));
+  } else if (channelParam === "private") {
+    if (!user.isAdmin) {
+      conditions.push(
+        and(
+          eq(schema.posts.channel, "private"),
+          eq(schema.posts.userId, user.id),
+        )!,
+      );
+    } else {
+      conditions.push(eq(schema.posts.channel, "private"));
+    }
+  } else if (!user.isAdmin) {
+    // Default feed for logged-in non-admin: public posts + own private posts
+    conditions.push(
+      or(
+        eq(schema.posts.channel, "public"),
+        eq(schema.posts.userId, user.id),
+      )!,
+    );
   }
 
   const searchQuery = searchParams.get("q");
@@ -41,13 +61,11 @@ export async function buildFilterConditions(
   // Category filter
   if (category) {
     try {
-      const getCategoryBySlugPrepared = db
+      const [cat] = await db
         .select()
         .from(schema.categories)
-        .where(eq(schema.categories.slug, sql.placeholder("slug")))
-        .prepare("get_category_by_slug");
-
-      const [cat] = await getCategoryBySlugPrepared.execute({ slug: category });
+        .where(eq(schema.categories.slug, category))
+        .limit(1);
       if (cat) {
         conditions.push(eq(schema.posts.categoryId, cat.id));
       } else {
@@ -138,7 +156,7 @@ export async function getFeedPosts(
   
   const normalizedParams = new URLSearchParams(searchParams);
   normalizedParams.sort();
-  const cacheKey = `cache:feed:${user ? "auth" : "pub"}:${normalizedParams.toString() || "default"}`;
+  const cacheKey = `cache:feed:${user ? `auth:${user.id}` : "pub"}:${normalizedParams.toString() || "default"}`;
 
   if (shouldCache) {
     const cached = await getCache<{
@@ -388,7 +406,7 @@ export const getPostDetail = cache(async (
   user?: { id: number; isAdmin: boolean } | null,
   channelPref?: string | null
 ) => {
-  const cacheKey = `post:detail:${user ? "auth" : "pub"}:${channelPref || "all"}:${idOrSlug}`;
+  const cacheKey = `cache:post:detail:${user ? `auth:${user.id}` : "pub"}:${channelPref || "all"}:${idOrSlug}`;
   const cached = await getCache<{
     post: {
       id: number;
@@ -427,8 +445,8 @@ export const getPostDetail = cache(async (
   }>(cacheKey);
 
   if (cached) {
-    // Access control: if post is private and user is not logged in, deny access
-    if (cached.post.channel === "private" && !user) {
+    // Access control: if post is private and user is not owner or admin, deny access
+    if (cached.post.channel === "private" && (!user || (!user.isAdmin && user.id !== cached.post.userId))) {
       return {
         post: null,
         isPrivate: true,
@@ -474,7 +492,7 @@ export const getPostDetail = cache(async (
 
   // Access control check for private channel
   const postChannel = (post.channel as "public" | "private") || "private";
-  if (postChannel === "private" && !user) {
+  if (postChannel === "private" && (!user || (!user.isAdmin && user.id !== post.userId))) {
     return {
       post: null,
       isPrivate: true,

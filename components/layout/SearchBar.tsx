@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { useAppStore } from "@/stores/appStore";
@@ -12,6 +12,13 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    };
+  }, []);
 
   const { data: searchData } = useSearchSuggestionsQuery(searchQuery, showDropdown);
   const searchResults = searchData?.results || [];
@@ -67,13 +74,21 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
             handleSearchChange(e.target.value);
             setShowDropdown(true);
           }}
-          onFocus={() => setShowDropdown(true)}
-          onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+          onFocus={() => {
+            if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+            setShowDropdown(true);
+          }}
+          onBlur={() => {
+            blurTimeoutRef.current = setTimeout(() => setShowDropdown(false), 200);
+          }}
           placeholder="Search media..."
           className="w-full rounded-full border border-zinc-200/60 bg-zinc-50/50 py-2.5 pl-10 pr-4 text-sm focus:border-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
         />
         {showDropdown && searchResults.length > 0 && (
-          <div className="absolute top-full mt-2 w-full rounded-2xl border border-zinc-200/50 bg-white py-2 shadow-2xl dark:border-zinc-800/50 dark:bg-zinc-950 z-50">
+          <div
+            onMouseDown={(e) => e.preventDefault()}
+            className="absolute top-full mt-2 w-full rounded-2xl border border-zinc-200/50 bg-white py-2 shadow-2xl dark:border-zinc-800/50 dark:bg-zinc-950 z-50"
+          >
             {searchResults.map((result) => {
               const isPlaylist = result.type === "playlist";
               const resultHref = isPlaylist

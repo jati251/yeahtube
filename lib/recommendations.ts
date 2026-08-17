@@ -1,3 +1,4 @@
+import "server-only";
 import { getDb, schema } from "@/db";
 import { eq, ne, or, inArray, and, desc, notInArray } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
@@ -13,7 +14,7 @@ export async function getRecommendations(
   user?: { id: number; isAdmin: boolean } | null,
   channelPref?: string | null
 ): Promise<RecommendedPost[]> {
-  const cacheKey = `cache:recommendations:${user ? "auth" : "pub"}:${channelPref || "all"}:${currentPostId}`;
+  const cacheKey = `cache:recommendations:${user ? `auth:${user.id}` : "pub"}:${channelPref || "all"}:${currentPostId}`;
   const cached = await getCache<RecommendedPost[]>(cacheKey);
   if (cached) {
     return cached;
@@ -24,11 +25,19 @@ export async function getRecommendations(
   let recommendedPosts: { id: number; userId: number; title: string; description: string | null; channel: string; createdAt: string | Date; views: number }[] = [];
 
   // Channel filter condition
-  const channelCondition = !user 
-    ? eq(schema.posts.channel, "public") 
-    : channelPref === "private"
+  const channelCondition = !user
+    ? eq(schema.posts.channel, "public")
+    : user.isAdmin
+    ? channelPref === "private"
       ? eq(schema.posts.channel, "private")
-      : undefined;
+      : channelPref === "public"
+      ? eq(schema.posts.channel, "public")
+      : undefined
+    : channelPref === "private"
+    ? and(eq(schema.posts.channel, "private"), eq(schema.posts.userId, user.id))
+    : channelPref === "public"
+    ? eq(schema.posts.channel, "public")
+    : or(eq(schema.posts.channel, "public"), eq(schema.posts.userId, user.id));
 
   // 1. Try to fetch posts sharing the same category or sharing any tag
   const matches = [];

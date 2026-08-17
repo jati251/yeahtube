@@ -7,8 +7,10 @@ import { PlaylistCoverCollage } from "./PlaylistCoverCollage";
 import { PlaylistCardProps, PlaylistLikeData } from "@/types";
 import { usePlaylistLikeQuery, usePlaylistLikeMutation } from "@/services/queries";
 import { clsx } from "clsx";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export function PlaylistCard({ playlist }: PlaylistCardProps) {
+  const requireAuth = useRequireAuth();
   const initialLikes = playlist.likesCount || 0;
   const initialUserLiked = Boolean(playlist.userLiked);
 
@@ -20,7 +22,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
   const currentLikes = optimisticLike?.likes ?? likeData?.likes ?? initialLikes;
   const isLiked = optimisticLike?.userLiked ?? likeData?.userLiked ?? initialUserLiked;
 
-  const handleLike = (e: React.MouseEvent) => {
+  const handleLike = requireAuth((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -35,7 +37,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
     likeMutation.mutate(undefined, {
       onSettled: () => setOptimisticLike(null),
     });
-  };
+  });
 
   const totalItems = playlist.videoCount ?? playlist.itemCount ?? 0;
   const isPublic = Boolean(playlist.isPublic);

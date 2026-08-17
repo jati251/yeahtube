@@ -1,9 +1,10 @@
+import "server-only";
 import { cache } from "react";
 import { getDb, schema } from "@/db";
-import { eq, and, desc, sql, inArray, isNotNull, asc } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
-import { getPresignedUrl } from "@/lib/storage";
-import { PostItem, PlaylistSampleThumbnail } from "@/types";
+import { PostItem } from "@/types";
+import { resolvePlaylistSampleThumbnails } from "./playlists";
 
 export interface UserProfileData {
   id: number;
@@ -36,10 +37,11 @@ export const getUserProfile = cache(async function getUserProfile(
   if (!user) return null;
 
   const isOwner = viewer && viewer.id === user.id;
+  const isPrivileged = Boolean(isOwner || (viewer && viewer.isAdmin));
 
-  // 1. Upload count (visitors only count public uploads)
+  // 1. Upload count (visitors & other users only count public uploads)
   const uploadConditions = [eq(schema.posts.userId, user.id)];
-  if (!viewer) {
+  if (!isPrivileged) {
     uploadConditions.push(eq(schema.posts.channel, "public"));
   }
 
@@ -52,7 +54,7 @@ export const getUserProfile = cache(async function getUserProfile(
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.playlists)
       .where(
-        isOwner
+        isPrivileged
           ? eq(schema.playlists.userId, user.id)
           : !viewer
           ? and(
@@ -67,7 +69,7 @@ export const getUserProfile = cache(async function getUserProfile(
       .from(schema.likes)
       .innerJoin(schema.posts, eq(schema.likes.postId, schema.posts.id))
       .where(
-        !viewer
+        !isPrivileged
           ? and(
               eq(schema.likes.userId, user.id),
               eq(schema.likes.isLike, 1),
@@ -97,9 +99,10 @@ export async function getUserUploads(
   offset = 0,
 ): Promise<{ posts: PostItem[]; total: number }> {
   const db = getDb();
+  const isPrivileged = Boolean(viewer && (viewer.isAdmin || viewer.id === userId));
 
   const conditions = [eq(schema.posts.userId, userId)];
-  if (!viewer) {
+  if (!isPrivileged) {
     conditions.push(eq(schema.posts.channel, "public"));
   }
 
@@ -193,13 +196,14 @@ export async function getUserLikedVideos(
   offset = 0,
 ): Promise<{ posts: PostItem[]; total: number }> {
   const db = getDb();
+  const isPrivileged = Boolean(viewer && (viewer.isAdmin || viewer.id === userId));
 
   const conditions = [
     eq(schema.likes.userId, userId),
     eq(schema.likes.isLike, 1),
   ];
 
-  if (!viewer) {
+  if (!isPrivileged) {
     conditions.push(eq(schema.posts.channel, "public"));
   }
 
@@ -323,74 +327,7 @@ export async function getUserPlaylists(
     .orderBy(desc(schema.playlists.createdAt));
 
   const playlistIds = playlistsData.map((p) => p.id);
-  const playlistThumbnailsMap: Record<number, PlaylistSampleThumbnail[]> = {};
-
-  if (playlistIds.length > 0) {
-    const { or } = await import("drizzle-orm");
-    const sampleMediaItems = await db
-      .select({
-        playlistId: schema.playlistItems.playlistId,
-        postId: schema.playlistItems.postId,
-        thumbnailKey: schema.media.thumbnailKey,
-        storageKey: schema.media.storageKey,
-        mediaType: schema.media.mediaType,
-      })
-      .from(schema.playlistItems)
-      .innerJoin(schema.media, eq(schema.playlistItems.postId, schema.media.postId))
-      .where(
-        and(
-          inArray(schema.playlistItems.playlistId, playlistIds),
-          or(isNotNull(schema.media.thumbnailKey), isNotNull(schema.media.storageKey)),
-        ),
-      )
-      .orderBy(desc(schema.playlistItems.addedAt), asc(schema.media.orderIndex));
-
-    const seenPerPlaylist = new Map<number, Set<number>>();
-    const itemsToResolve: { playlistId: number; id: number; key: string }[] = [];
-
-    for (const item of sampleMediaItems) {
-      const keyToResolve = item.thumbnailKey || item.storageKey;
-      if (!keyToResolve) continue;
-      if (!seenPerPlaylist.has(item.playlistId)) {
-        seenPerPlaylist.set(item.playlistId, new Set());
-      }
-      const seen = seenPerPlaylist.get(item.playlistId)!;
-      if (seen.size < 5 && !seen.has(item.postId)) {
-        seen.add(item.postId);
-        itemsToResolve.push({
-          playlistId: item.playlistId,
-          id: item.postId,
-          key: keyToResolve,
-        });
-      }
-    }
-
-    const resolvedThumbnails = await Promise.all(
-      itemsToResolve.map(async (it) => {
-        try {
-          const url = await getPresignedUrl(it.key);
-          return {
-            playlistId: it.playlistId,
-            id: it.id,
-            thumbnailUrl: url,
-          };
-        } catch {
-          return null;
-        }
-      }),
-    );
-
-    for (const res of resolvedThumbnails) {
-      if (!res || !res.thumbnailUrl) continue;
-      if (!playlistThumbnailsMap[res.playlistId]) {
-        playlistThumbnailsMap[res.playlistId] = [];
-      }
-      playlistThumbnailsMap[res.playlistId].push({
-        id: res.id,
-        thumbnailUrl: res.thumbnailUrl,
-      });
-    }
-  }
+  const playlistThumbnailsMap = await resolvePlaylistSampleThumbnails(playlistIds, db);
 
   return playlistsData.map((p) => ({
     ...p,

@@ -5,6 +5,7 @@ import { Heart } from "lucide-react";
 import { usePlaylistLikeQuery, usePlaylistLikeMutation } from "@/services/queries";
 import { PlaylistLikeData } from "@/types";
 import { clsx } from "clsx";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export function PlaylistLikeButton({
   playlistId,
@@ -15,6 +16,7 @@ export function PlaylistLikeButton({
   initialLikes?: number;
   initialUserLiked?: boolean;
 }) {
+  const requireAuth = useRequireAuth();
   const { data: likeData } = usePlaylistLikeQuery(playlistId);
   const likeMutation = usePlaylistLikeMutation(playlistId);
 
@@ -23,7 +25,7 @@ export function PlaylistLikeButton({
   const currentLikes = optimisticLike?.likes ?? likeData?.likes ?? initialLikes;
   const isLiked = optimisticLike?.userLiked ?? likeData?.userLiked ?? initialUserLiked;
 
-  const handleToggle = () => {
+  const handleToggle = requireAuth(() => {
     const nextLiked = !isLiked;
     const nextCount = nextLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
 
@@ -35,7 +37,7 @@ export function PlaylistLikeButton({
     likeMutation.mutate(undefined, {
       onSettled: () => setOptimisticLike(null),
     });
-  };
+  });
 
   return (
     <button

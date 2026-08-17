@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb, schema } from "@/db";
-import { like, desc, and, eq, sql } from "drizzle-orm";
+import { like, desc, and, or, eq, sql } from "drizzle-orm";
 
 export interface SearchResult {
   id: number;
@@ -21,6 +21,13 @@ export async function searchSuggestions(
   const postConditions = [like(schema.posts.title, `%${q}%`)];
   if (!user) {
     postConditions.push(eq(schema.posts.channel, "public"));
+  } else if (!user.isAdmin) {
+    postConditions.push(
+      or(
+        eq(schema.posts.channel, "public"),
+        eq(schema.posts.userId, user.id),
+      )!,
+    );
   }
 
   const playlistConditions = [like(schema.playlists.name, `%${q}%`)];
@@ -29,8 +36,7 @@ export async function searchSuggestions(
       eq(schema.playlists.channel, "public"),
       eq(schema.playlists.isPublic, 1),
     );
-  } else {
-    const { or } = await import("drizzle-orm");
+  } else if (!user.isAdmin) {
     playlistConditions.push(
       or(
         and(

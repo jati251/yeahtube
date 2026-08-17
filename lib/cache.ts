@@ -78,21 +78,25 @@ export async function deleteCachePattern(pattern: string): Promise<void> {
 }
 
 /**
- * Invalidate all feed caches (e.g. after upload, edit, delete).
+ * Invalidate all feed caches and recommendation caches (e.g. after upload, edit, delete).
  */
 export async function invalidateFeedCache(): Promise<void> {
   await Promise.all([
     deleteCachePattern("cache:feed:*"),
+    deleteCachePattern("cache:recommendations:*"),
     deleteCache("cache:shorts:initial"),
   ]);
 }
 
 /**
- * Invalidate a specific post's cache and all feed queries.
+ * Invalidate a specific post's cache, recommendation cache, and all feed queries.
  */
 export async function invalidatePostCache(postId: number): Promise<void> {
   await Promise.all([
-    deleteCache(`cache:post:${postId}`),
+    deleteCachePattern(`cache:post:detail:*:${postId}`),
+    deleteCachePattern(`cache:post:detail:*:${postId}:*`),
+    deleteCachePattern(`cache:recommendations:*:${postId}`),
+    deleteCachePattern(`cache:recommendations:*:${postId}:*`),
     invalidateFeedCache(),
   ]);
 }
@@ -104,5 +108,6 @@ export async function invalidateTaxonomyCache(): Promise<void> {
   await Promise.all([
     deleteCache("cache:tags:all"),
     deleteCache("cache:categories:all"),
+    invalidateFeedCache(),
   ]);
 }

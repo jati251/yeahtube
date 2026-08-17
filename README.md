@@ -10,15 +10,15 @@ YeahTube is a self-hosted, cloud-native media streaming and gallery platform bui
 graph TD
     subgraph Client ["Client Layer (Browser)"]
         UI["Next.js 16 + React 19 UI"]
-        SWR["SWR In-Memory Cache (0ms instant nav)"]
+        QUERY["TanStack Query + Zustand Cache"]
         HLS_PLAYER["Custom Video Player (Dynamic Hls.js)"]
     end
 
     subgraph AppServer ["Next.js Application Server"]
-        SSR["Server-Side Rendering (RSC)"]
+        SSR["Server-Side Rendering (RSC + server-only)"]
         API["API Route Handlers"]
         REDIS_CACHE["Redis Caching Layer (<5ms queries)"]
-        DRIZZLE["Drizzle ORM (Prepared Statements)"]
+        DRIZZLE["Drizzle ORM (PostgreSQL)"]
     end
 
     subgraph StorageQueue ["Storage & Queue Infrastructure"]
@@ -31,9 +31,9 @@ graph TD
         WORKER["FFmpeg Transcoder (Node.js Worker)"]
     end
 
-    UI --> SWR
-    SWR --> SSR
-    SWR --> API
+    UI --> QUERY
+    QUERY --> SSR
+    QUERY --> API
     SSR --> REDIS_CACHE
     API --> REDIS_CACHE
     REDIS_CACHE --> DRIZZLE
@@ -50,22 +50,22 @@ graph TD
 
 ## ⚡ Multi-Layer Caching & Performance Engine
 
-1. **Client-Side SWR In-Memory Cache (`hooks/usePaginatedPosts.ts`)**:
-   - Memorizes visited pages and filter combinations in memory.
-   - Forward/Back and filter switching updates the UI **instantly (0ms)** without blocking spinners.
-   - Silently performs background revalidation for stale data (> 30s).
-2. **Server-Side Redis Cache (`lib/redis.ts` & `lib/cache.ts`)**:
-   - `getFeedPosts`: Query results cached in Redis with normalized filter keys (TTL: 60s). Latency drops from ~150ms to **< 5ms**.
-   - `getPostDetail`: Post metadata & recommendations cached in Redis (TTL: 120s) with dynamic per-user permission evaluation.
-   - `tags` & `categories`: Cached in Redis (TTL: 10m).
-3. **Smart Invalidation Pipeline**:
+1. **Client-Side Cache & SWR Navigation (`services/queries/` & `hooks/usePaginatedPosts.ts`)**:
+   - TanStack React Query + Zustand stores active filters and page states in memory.
+   - Forward/Back and tab switching updates UI instantly without unnecessary blocking spinners.
+2. **Server-Side Redis Cache Layer (`lib/redis.ts` & `lib/cache.ts`)**:
+   - `getFeedPosts`: Query results cached in Redis with normalized filter keys (TTL: 300s). Latency drops to **< 5ms**.
+   - `getPostDetail`: Post metadata & recommendations cached in Redis (`cache:post:detail:*`, `cache:recommendations:*`).
+   - `tags` & `categories`: Cached in Redis (`cache:tags:all`, `cache:categories:all`).
+3. **Smart Cache Invalidation Pipeline**:
    - Mutations (uploads, edits, deletions, batch deletions, category updates) automatically purge affected Redis cache keys using non-blocking Redis `SCAN`.
 4. **Code Splitting & Bundle Optimization**:
-   - **Dynamic Hls.js**: `hls.js` (~200KB) is dynamically imported only when playing non-native HLS/MPEG-TS videos.
-   - **Dynamic Modals**: `EditPostModal` and `ConfirmModal` are loaded via `next/dynamic` on demand.
-   - **Turbopack Package Optimization**: `optimizePackageImports: ["lucide-react"]` eliminates tree-shaking overhead.
-5. **Database Prepared Statements (`lib/queries/posts.ts`)**:
-   - PostgreSQL execution plans are pre-compiled for hot single-item lookups (`get_category_by_slug`, `get_post_detail_by_id`).
+   - **Dynamic Hls.js**: `hls.js` is loaded on demand for streaming segments.
+   - **Dynamic Modals**: Heavy modals like `EditPostModal` and `ConfirmModal` are loaded via `next/dynamic`.
+   - **Modern Next.js 16 Config**: Built with Turbopack, package optimization for icon sets, and fast routing.
+5. **Database Isolation & Performance (`lib/queries/`)**:
+   - All server query modules use `server-only` to guarantee database logic is never bundled into client chunks.
+   - Parallel batch resolving for playlist sample thumbnails (`resolvePlaylistSampleThumbnails`).
 
 ---
 
@@ -92,46 +92,42 @@ yeahtube/
 │   ├── (main)/             # Main application layout & pages
 │   │   ├── admin/          # Admin management dashboard
 │   │   ├── history/        # Watch history
-│   │   ├── playlists/      # User playlists
+│   │   ├── playlists/      # User & public playlists
 │   │   ├── shorts/         # Reels / Shorts vertical feed
 │   │   ├── trending/       # Trending media
 │   │   ├── upload/         # Media upload interface
+│   │   ├── user/[username] # Public user profile & showcase
 │   │   ├── view/[id]/      # Photo gallery viewer
-│   │   ├── watch/[id]/     # Video player view
-│   │   ├── FeedClient.tsx  # Feed client container & filtering UI
+│   │   ├── watch/          # Video player route (?v=...)
 │   │   └── page.tsx        # Server-rendered home page
 │   ├── api/                # API Route handlers (REST endpoints)
-│   │   ├── auth/           # Login, logout, session
-│   │   ├── categories/     # Category CRUD & invalidation
-│   │   ├── media/          # Media streaming proxy
-│   │   ├── posts/          # Feed queries, single post CRUD, batch delete
-│   │   ├── search/         # Quick search autocomplete
-│   │   └── upload/         # Chunked/direct file upload & validation
 │   └── globals.css         # Tailwind CSS v4 design system
 ├── components/
-│   ├── admin/              # Admin panels & category management
-│   ├── filters/            # Filter sidebar, mobile filters, tag clouds
-│   ├── interactions/       # Comments, like/dislike, playlist modal
-│   ├── layout/             # Header, navigation, theme toggle
-│   ├── media/              # MediaCard, MediaListItem, VideoPlayer, PhotoGallery
+│   ├── admin/              # Admin panels & metrics
+│   ├── feed/               # Feed header, display & bulk action bars
+│   ├── filters/            # Filter sidebar, mobile filters, tag cloud
+│   ├── interactions/       # Comments, like/dislike, save to playlist
+│   ├── layout/             # Header, navigation, search bar, user drawer
+│   ├── media/              # MediaCard, MediaListItem, VideoPlayer, ReelItem, PhotoGallery
 │   ├── providers/          # QueryProvider, ThemeProvider
-│   └── ui/                 # Modals, Toast, PaginationControls, Button
+│   ├── ui/                 # Modals, Button, Toast, PaginationControls
+│   └── upload/             # FileDropzone, UploadForm, MetadataFields
 ├── db/
 │   ├── schema.ts           # Drizzle PostgreSQL schema definition
 │   ├── index.ts            # Database client pool
 │   └── seed.ts             # Initial database seeder
-├── hooks/
-│   ├── useFeedFilters.ts   # URL sync & filter state management
-│   ├── usePaginatedPosts.ts# SWR in-memory caching & pagination hook
-│   └── usePostSelection.ts # Batch selection & bulk deletion hook
+├── hooks/                  # Custom React hooks (feed, player, auth, upload)
 ├── lib/
 │   ├── cache.ts            # Redis cache helpers & domain invalidators
+│   ├── queries/            # Server-only PostgreSQL queries (posts, playlists, users)
 │   ├── redis.ts            # Singleton Redis connection client
-│   ├── queries/posts.ts    # Optimized PostgreSQL queries & prepared statements
 │   ├── storage.ts          # S3/MinIO client & presigned URL generator
 │   └── transcode-queue.ts  # BullMQ transcode producer
+├── services/queries/       # TanStack Query custom hooks & mutations
+├── stores/                 # Zustand global application state
+├── utils/                  # Shared formatting & duration utilities
 ├── worker.ts               # Background FFmpeg transcoding worker
-└── next.config.ts          # Turbopack & Next.js production configuration
+└── proxy.ts                # Next.js 16 Edge Proxy & Auth Middleware
 ```
 
 ---
@@ -184,10 +180,10 @@ npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 4. Run Transcoding Worker (Optional for video processing)
+### 4. Run Transcoding Worker (Optional for background video transcoding)
 In a separate terminal, launch the background transcode worker:
 ```bash
-npx tsx worker.ts
+npm run worker
 ```
 
 ---
@@ -211,4 +207,3 @@ docker run -p 3000:3000 --env-file .env yeahtube:latest
 
 ## 📜 License
 Private personal project. All rights reserved.
-

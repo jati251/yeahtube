@@ -1,9 +1,87 @@
+import "server-only";
 import { cache } from "react";
 import { getDb, schema } from "@/db";
-import { eq, desc, sql, inArray, and, isNotNull, asc } from "drizzle-orm";
+import { eq, desc, sql, inArray, and, or, isNotNull, asc } from "drizzle-orm";
 import { getPresignedUrl } from "@/lib/storage";
 import { formatPostItem } from "@/lib/posts";
 import { PlaylistSampleThumbnail } from "@/types";
+
+/**
+ * Resolves up to 5 sample presigned thumbnails per playlist efficiently in batch.
+ */
+export async function resolvePlaylistSampleThumbnails(
+  playlistIds: number[],
+  db: ReturnType<typeof getDb> = getDb(),
+): Promise<Record<number, PlaylistSampleThumbnail[]>> {
+  const playlistThumbnailsMap: Record<number, PlaylistSampleThumbnail[]> = {};
+  if (playlistIds.length === 0) return playlistThumbnailsMap;
+
+  const sampleMediaItems = await db
+    .select({
+      playlistId: schema.playlistItems.playlistId,
+      postId: schema.playlistItems.postId,
+      thumbnailKey: schema.media.thumbnailKey,
+      storageKey: schema.media.storageKey,
+      mediaType: schema.media.mediaType,
+    })
+    .from(schema.playlistItems)
+    .innerJoin(schema.media, eq(schema.playlistItems.postId, schema.media.postId))
+    .where(
+      and(
+        inArray(schema.playlistItems.playlistId, playlistIds),
+        or(isNotNull(schema.media.thumbnailKey), isNotNull(schema.media.storageKey)),
+      ),
+    )
+    .orderBy(desc(schema.playlistItems.addedAt), asc(schema.media.orderIndex));
+
+  const seenPerPlaylist = new Map<number, Set<number>>();
+  const itemsToResolve: { playlistId: number; id: number; key: string }[] = [];
+
+  for (const item of sampleMediaItems) {
+    const keyToResolve = item.thumbnailKey || item.storageKey;
+    if (!keyToResolve) continue;
+    if (!seenPerPlaylist.has(item.playlistId)) {
+      seenPerPlaylist.set(item.playlistId, new Set());
+    }
+    const seen = seenPerPlaylist.get(item.playlistId)!;
+    if (seen.size < 5 && !seen.has(item.postId)) {
+      seen.add(item.postId);
+      itemsToResolve.push({
+        playlistId: item.playlistId,
+        id: item.postId,
+        key: keyToResolve,
+      });
+    }
+  }
+
+  const resolvedThumbnails = await Promise.all(
+    itemsToResolve.map(async (it) => {
+      try {
+        const url = await getPresignedUrl(it.key);
+        return {
+          playlistId: it.playlistId,
+          id: it.id,
+          thumbnailUrl: url,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  for (const res of resolvedThumbnails) {
+    if (!res || !res.thumbnailUrl) continue;
+    if (!playlistThumbnailsMap[res.playlistId]) {
+      playlistThumbnailsMap[res.playlistId] = [];
+    }
+    playlistThumbnailsMap[res.playlistId].push({
+      id: res.id,
+      thumbnailUrl: res.thumbnailUrl,
+    });
+  }
+
+  return playlistThumbnailsMap;
+}
 
 /**
  * Fetch all playlists owned by user with their 5 dynamic sample thumbnails.
@@ -27,74 +105,7 @@ export const getUserPlaylistsWithThumbnails = cache(async (userId: number) => {
     .orderBy(desc(schema.playlists.createdAt));
 
   const playlistIds = playlistsData.map((p) => p.id);
-  const playlistThumbnailsMap: Record<number, PlaylistSampleThumbnail[]> = {};
-
-  if (playlistIds.length > 0) {
-    const { or } = await import("drizzle-orm");
-    const sampleMediaItems = await db
-      .select({
-        playlistId: schema.playlistItems.playlistId,
-        postId: schema.playlistItems.postId,
-        thumbnailKey: schema.media.thumbnailKey,
-        storageKey: schema.media.storageKey,
-        mediaType: schema.media.mediaType,
-      })
-      .from(schema.playlistItems)
-      .innerJoin(schema.media, eq(schema.playlistItems.postId, schema.media.postId))
-      .where(
-        and(
-          inArray(schema.playlistItems.playlistId, playlistIds),
-          or(isNotNull(schema.media.thumbnailKey), isNotNull(schema.media.storageKey)),
-        ),
-      )
-      .orderBy(desc(schema.playlistItems.addedAt), asc(schema.media.orderIndex));
-
-    const seenPerPlaylist = new Map<number, Set<number>>();
-    const itemsToResolve: { playlistId: number; id: number; key: string }[] = [];
-
-    for (const item of sampleMediaItems) {
-      const keyToResolve = item.thumbnailKey || item.storageKey;
-      if (!keyToResolve) continue;
-      if (!seenPerPlaylist.has(item.playlistId)) {
-        seenPerPlaylist.set(item.playlistId, new Set());
-      }
-      const seen = seenPerPlaylist.get(item.playlistId)!;
-      if (seen.size < 5 && !seen.has(item.postId)) {
-        seen.add(item.postId);
-        itemsToResolve.push({
-          playlistId: item.playlistId,
-          id: item.postId,
-          key: keyToResolve,
-        });
-      }
-    }
-
-    const resolvedThumbnails = await Promise.all(
-      itemsToResolve.map(async (it) => {
-        try {
-          const url = await getPresignedUrl(it.key);
-          return {
-            playlistId: it.playlistId,
-            id: it.id,
-            thumbnailUrl: url,
-          };
-        } catch {
-          return null;
-        }
-      }),
-    );
-
-    for (const res of resolvedThumbnails) {
-      if (!res || !res.thumbnailUrl) continue;
-      if (!playlistThumbnailsMap[res.playlistId]) {
-        playlistThumbnailsMap[res.playlistId] = [];
-      }
-      playlistThumbnailsMap[res.playlistId].push({
-        id: res.id,
-        thumbnailUrl: res.thumbnailUrl,
-      });
-    }
-  }
+  const playlistThumbnailsMap = await resolvePlaylistSampleThumbnails(playlistIds, db);
 
   return playlistsData.map((p) => ({
     ...p,
@@ -132,6 +143,13 @@ export const getPlaylistDetails = cache(async (playlistId: number, currentUserId
   const itemConditions = [eq(schema.playlistItems.playlistId, playlistId)];
   if (!currentUserId) {
     itemConditions.push(eq(schema.posts.channel, "public"));
+  } else if (currentUserId !== playlist.userId) {
+    itemConditions.push(
+      or(
+        eq(schema.posts.channel, "public"),
+        eq(schema.posts.userId, currentUserId),
+      )!,
+    );
   }
 
   const items = await db

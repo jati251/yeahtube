@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { ReelsFeed } from "@/components/media/ReelsFeed";
 import { PostItem, ShortsClientProps } from "@/types";
 import { fetchRandomShorts } from "@/services/queries";
 import { useRouter } from "next/navigation";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 export function ShortsClient({ initialPosts }: ShortsClientProps) {
   const router = useRouter();
@@ -13,12 +14,7 @@ export function ShortsClient({ initialPosts }: ShortsClientProps) {
   const seenIdsRef = useRef<Set<number>>(new Set(initialPosts.map((p) => p.id)));
 
   // Hide global scrollbar on body when mounted
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, []);
+  useBodyScrollLock(true);
 
   const loadMore = useCallback(async () => {
     if (isLoadingMore) return;

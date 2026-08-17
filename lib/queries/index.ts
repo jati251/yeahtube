@@ -1,3 +1,4 @@
+import "server-only";
 export * from "./posts";
 export * from "./admin";
 export * from "./playlists";

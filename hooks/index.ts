@@ -3,6 +3,8 @@ export * from "./usePaginatedPosts";
 export * from "./usePostSelection";
 export * from "./useUploadPipeline";
 export * from "./useBodyScrollLock";
+export * from "./useChunkErrorRecovery";
+export * from "./useRequireAuth";
 export * from "./player/usePlayerFullscreen";
 export * from "./player/usePlayerGestures";
 export * from "./player/usePlayerScrub";
