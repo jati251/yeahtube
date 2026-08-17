@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Tag,
   X,
@@ -49,294 +49,118 @@ export function FeedFilterBar({
   onSortChange,
   onClearAll,
 }: FeedFilterBarProps) {
-  const [openDropdown, setOpenDropdown] = useState<
-    "type" | "category" | "year" | "tags" | "sort" | null
-  >(null);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [dropdownAlign, setDropdownAlign] = useState<"left" | "right">("left");
   const [tagSearch, setTagSearch] = useState("");
-  const [categorySearch, setCategorySearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const toggleDropdown = (
-    name: "type" | "category" | "year" | "tags" | "sort",
-    e: React.MouseEvent<HTMLButtonElement>,
-  ) => {
+  const toggleDropdown = (name: string, e: React.MouseEvent<HTMLButtonElement>) => {
     if (openDropdown === name) {
       setOpenDropdown(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      const align = rect.left + rect.width / 2 > window.innerWidth / 2 ? "right" : "left";
-      setDropdownAlign(align);
+      setDropdownAlign(rect.left + rect.width / 2 > window.innerWidth / 2 ? "right" : "left");
       setOpenDropdown(name);
     }
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpenDropdown(null);
       }
-    }
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 8 }, (_, i) => String(currentYear - i));
+  const years = useMemo(() => {
+    const current = new Date().getFullYear();
+    return Array.from({ length: 8 }, (_, i) => String(current - i));
+  }, []);
 
   const hasActiveFilters = Boolean(
     mediaType || category || year || selectedTags.length > 0 || sort !== "newest",
   );
 
+  const selectedCategoryObj = categories.find((c) => c.slug === category);
+  const selectedSortObj = SORT_OPTIONS.find((s) => s.value === sort);
   const filteredTags = tags.filter((t) =>
     t.name.toLowerCase().includes(tagSearch.toLowerCase()),
   );
 
-  const filteredCategories = categories.filter((c) =>
-    c.name.toLowerCase().includes(categorySearch.toLowerCase()),
-  );
-
-  const selectedCategoryObj = categories.find((c) => c.slug === category);
-  const selectedSortObj = SORT_OPTIONS.find((s) => s.value === sort);
-
-  const buttonBaseClass =
-    "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none active:scale-95";
-
   return (
-    <div ref={containerRef} className="flex flex-wrap items-center gap-2 py-1 relative">
-      {/* 1. Media Type Custom Dropdown */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={(e) => toggleDropdown("type", e)}
-          className={clsx(
-            buttonBaseClass,
-            mediaType
-              ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
-              : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
-          )}
-        >
-          <Layers className="h-3.5 w-3.5" />
-          <span>
-            {mediaType === "video"
-              ? "Videos"
-              : mediaType === "image"
-              ? "Photos"
-              : mediaType === "playlist"
-              ? "Playlists"
-              : "All Types"}
-          </span>
-          <ChevronDown
-            className={clsx(
-              "h-3 w-3 opacity-60 transition-transform duration-200",
-              openDropdown === "type" && "rotate-180",
-            )}
-          />
-        </button>
+    <div ref={containerRef} className="relative flex flex-wrap items-center gap-2 py-1">
+      {/* 1. Media Type */}
+      <FilterDropdown
+        label={
+          mediaType === "video"
+            ? "Videos"
+            : mediaType === "image"
+            ? "Photos"
+            : mediaType === "playlist"
+            ? "Playlists"
+            : "All Types"
+        }
+        icon={Layers}
+        isActive={Boolean(mediaType)}
+        isOpen={openDropdown === "type"}
+        align={dropdownAlign}
+        onToggle={(e) => toggleDropdown("type", e)}
+        options={[
+          { value: null, label: "All Types", icon: Sparkles },
+          { value: "video", label: "Videos", icon: Film },
+          { value: "image", label: "Photos", icon: ImageIcon },
+          { value: "playlist", label: "Playlists", icon: ListVideo },
+        ]}
+        selectedValue={mediaType}
+        onSelect={(val) => {
+          onMediaTypeChange(val);
+          setOpenDropdown(null);
+        }}
+      />
 
-        {openDropdown === "type" && (
-          <div
-            className={clsx(
-              "absolute top-full z-50 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
-              dropdownAlign === "right" ? "right-0" : "left-0",
-            )}
-          >
-            {[
-              { value: null, label: "All Types", icon: Sparkles },
-              { value: "video", label: "Videos", icon: Film },
-              { value: "image", label: "Photos", icon: ImageIcon },
-              { value: "playlist", label: "Playlists", icon: ListVideo },
-            ].map((opt) => {
-              const Icon = opt.icon;
-              const isSelected = mediaType === opt.value;
-              return (
-                <button
-                  key={opt.label}
-                  type="button"
-                  onClick={() => {
-                    onMediaTypeChange(opt.value);
-                    setOpenDropdown(null);
-                  }}
-                  className={clsx(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
-                    isSelected
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-3.5 w-3.5 opacity-70" />
-                    <span>{opt.label}</span>
-                  </div>
-                  {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 2. Category Custom Dropdown */}
+      {/* 2. Category */}
       {categories.length > 0 && (
-        <div className="relative">
-          <button
-            type="button"
-            onClick={(e) => toggleDropdown("category", e)}
-            className={clsx(
-              buttonBaseClass,
-              category
-                ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
-                : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span className="max-w-[120px] truncate">
-              {selectedCategoryObj ? selectedCategoryObj.name : "Categories"}
-            </span>
-            <ChevronDown
-              className={clsx(
-                "h-3 w-3 opacity-60 transition-transform duration-200",
-                openDropdown === "category" && "rotate-180",
-              )}
-            />
-          </button>
-
-          {openDropdown === "category" && (
-            <div
-              className={clsx(
-                "absolute top-full z-50 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
-                dropdownAlign === "right" ? "right-0" : "left-0",
-              )}
-            >
-              {categories.length > 6 && (
-                <input
-                  type="text"
-                  placeholder="Search categories..."
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  className="mb-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-                  autoFocus
-                />
-              )}
-
-              <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onCategoryChange(null);
-                    setOpenDropdown(null);
-                  }}
-                  className={clsx(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
-                    !category
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                  )}
-                >
-                  <span>All Categories</span>
-                  {!category && <Check className="h-3.5 w-3.5 shrink-0" />}
-                </button>
-
-                {filteredCategories.map((c) => {
-                  const isSelected = category === c.slug;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        onCategoryChange(c.slug);
-                        setOpenDropdown(null);
-                      }}
-                      className={clsx(
-                        "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
-                        isSelected
-                          ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                          : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                      )}
-                    >
-                      <span className="truncate">{c.name}</span>
-                      {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        <FilterDropdown
+          label={selectedCategoryObj ? selectedCategoryObj.name : "Categories"}
+          icon={Sparkles}
+          isActive={Boolean(category)}
+          isOpen={openDropdown === "category"}
+          align={dropdownAlign}
+          onToggle={(e) => toggleDropdown("category", e)}
+          widthClass="w-56"
+          options={[
+            { value: null, label: "All Categories" },
+            ...categories.map((c) => ({ value: c.slug, label: c.name })),
+          ]}
+          selectedValue={category}
+          onSelect={(val) => {
+            onCategoryChange(val);
+            setOpenDropdown(null);
+          }}
+        />
       )}
 
-      {/* 3. Release Year Custom Dropdown */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={(e) => toggleDropdown("year", e)}
-          className={clsx(
-            buttonBaseClass,
-            year
-              ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
-              : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
-          )}
-        >
-          <Calendar className="h-3.5 w-3.5" />
-          <span>{year ? year : "Year"}</span>
-          <ChevronDown
-            className={clsx(
-              "h-3 w-3 opacity-60 transition-transform duration-200",
-              openDropdown === "year" && "rotate-180",
-            )}
-          />
-        </button>
-
-        {openDropdown === "year" && (
-          <div
-            className={clsx(
-              "absolute top-full z-50 mt-2 w-44 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
-              dropdownAlign === "right" ? "right-0" : "left-0",
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                onYearChange(null);
-                setOpenDropdown(null);
-              }}
-              className={clsx(
-                "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
-                !year
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                  : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-              )}
-            >
-              <span>All Years</span>
-              {!year && <Check className="h-3.5 w-3.5 shrink-0" />}
-            </button>
-
-            {years.map((y) => {
-              const isSelected = year === y;
-              return (
-                <button
-                  key={y}
-                  type="button"
-                  onClick={() => {
-                    onYearChange(y);
-                    setOpenDropdown(null);
-                  }}
-                  className={clsx(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
-                    isSelected
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                  )}
-                >
-                  <span>{y}</span>
-                  {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* 3. Year */}
+      <FilterDropdown
+        label={year || "Year"}
+        icon={Calendar}
+        isActive={Boolean(year)}
+        isOpen={openDropdown === "year"}
+        align={dropdownAlign}
+        onToggle={(e) => toggleDropdown("year", e)}
+        widthClass="w-44"
+        options={[
+          { value: null, label: "All Years" },
+          ...years.map((y) => ({ value: y, label: y })),
+        ]}
+        selectedValue={year}
+        onSelect={(val) => {
+          onYearChange(val);
+          setOpenDropdown(null);
+        }}
+      />
 
       {/* 4. Tags Multi-Select Popover */}
       {tags.length > 0 && (
@@ -345,7 +169,7 @@ export function FeedFilterBar({
             type="button"
             onClick={(e) => toggleDropdown("tags", e)}
             className={clsx(
-              buttonBaseClass,
+              "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none active:scale-95",
               selectedTags.length > 0
                 ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
                 : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
@@ -413,9 +237,7 @@ export function FeedFilterBar({
                 <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => {
-                      selectedTags.forEach((slug) => onTagToggle(slug));
-                    }}
+                    onClick={() => selectedTags.forEach((s) => onTagToggle(s))}
                     className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 cursor-pointer"
                   >
                     Clear tags
@@ -427,62 +249,24 @@ export function FeedFilterBar({
         </div>
       )}
 
-      {/* 5. Sort By Custom Dropdown */}
-      <div className="relative">
-        <button
-          type="button"
-          onClick={(e) => toggleDropdown("sort", e)}
-          className={clsx(
-            buttonBaseClass,
-            sort !== "newest"
-              ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
-              : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
-          )}
-        >
-          <ArrowUpDown className="h-3.5 w-3.5" />
-          <span>{selectedSortObj ? selectedSortObj.label : "Sort"}</span>
-          <ChevronDown
-            className={clsx(
-              "h-3 w-3 opacity-60 transition-transform duration-200",
-              openDropdown === "sort" && "rotate-180",
-            )}
-          />
-        </button>
+      {/* 5. Sort By */}
+      <FilterDropdown
+        label={selectedSortObj ? selectedSortObj.label : "Sort"}
+        icon={ArrowUpDown}
+        isActive={sort !== "newest"}
+        isOpen={openDropdown === "sort"}
+        align={dropdownAlign}
+        onToggle={(e) => toggleDropdown("sort", e)}
+        widthClass="w-48"
+        options={SORT_OPTIONS.map((o) => ({ value: o.value as string | null, label: o.label }))}
+        selectedValue={sort}
+        onSelect={(val) => {
+          if (val) onSortChange(val);
+          setOpenDropdown(null);
+        }}
+      />
 
-        {openDropdown === "sort" && (
-          <div
-            className={clsx(
-              "absolute top-full z-50 mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
-              dropdownAlign === "right" ? "right-0" : "left-0",
-            )}
-          >
-            {SORT_OPTIONS.map((opt) => {
-              const isSelected = sort === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onSortChange(opt.value);
-                    setOpenDropdown(null);
-                  }}
-                  className={clsx(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
-                    isSelected
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                  )}
-                >
-                  <span>{opt.label}</span>
-                  {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 6. Clear All Filters Button */}
+      {/* 6. Reset */}
       {hasActiveFilters && (
         <button
           type="button"
@@ -491,11 +275,94 @@ export function FeedFilterBar({
             setOpenDropdown(null);
           }}
           className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30 transition-all cursor-pointer active:scale-95"
-          title="Reset all filters"
         >
           <X className="h-3.5 w-3.5" />
           <span>Reset</span>
         </button>
+      )}
+    </div>
+  );
+}
+
+interface FilterDropdownProps {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isActive: boolean;
+  isOpen: boolean;
+  align: "left" | "right";
+  widthClass?: string;
+  onToggle: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  options: { value: string | null; label: string; icon?: React.ComponentType<{ className?: string }> }[];
+  selectedValue: string | null;
+  onSelect: (value: string | null) => void;
+}
+
+function FilterDropdown({
+  label,
+  icon: Icon,
+  isActive,
+  isOpen,
+  align,
+  widthClass = "w-48",
+  onToggle,
+  options,
+  selectedValue,
+  onSelect,
+}: FilterDropdownProps) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={clsx(
+          "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none active:scale-95",
+          isActive
+            ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
+            : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
+        )}
+      >
+        <Icon className="h-3.5 w-3.5" />
+        <span className="max-w-[130px] truncate">{label}</span>
+        <ChevronDown
+          className={clsx(
+            "h-3 w-3 opacity-60 transition-transform duration-200",
+            isOpen && "rotate-180",
+          )}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className={clsx(
+            "absolute top-full z-50 mt-2 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150 max-h-56 overflow-y-auto space-y-0.5",
+            widthClass,
+            align === "right" ? "right-0" : "left-0",
+          )}
+        >
+          {options.map((opt) => {
+            const OptionIcon = opt.icon;
+            const isSelected = selectedValue === opt.value;
+            return (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => onSelect(opt.value)}
+                className={clsx(
+                  "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
+                  isSelected
+                    ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
+                    : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                )}
+              >
+                <div className="flex items-center gap-2 truncate">
+                  {OptionIcon && <OptionIcon className="h-3.5 w-3.5 opacity-70 shrink-0" />}
+                  <span className="truncate">{opt.label}</span>
+                </div>
+                {isSelected && <Check className="h-3.5 w-3.5 shrink-0 ml-1" />}
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );
