@@ -41,6 +41,7 @@ export function WatchPageClient({
   const [loadingMore, setLoadingMore] = React.useState(false);
   const hasMoreRef = React.useRef(true);
   const loadingRef = React.useRef(false);
+  const fetchCountRef = React.useRef(0);
 
   const { ref: loadMoreRef, inView } = useInView({
     rootMargin: "200px",
@@ -49,8 +50,15 @@ export function WatchPageClient({
   const loadMoreRecs = React.useCallback(async () => {
     if (loadingRef.current || !hasMoreRef.current) return;
     
+    if (fetchCountRef.current >= 3) {
+      hasMoreRef.current = false;
+      return;
+    }
+    
     loadingRef.current = true;
     setLoadingMore(true);
+    fetchCountRef.current += 1;
+    
     try {
       const res = await fetch("/api/posts?sort=random&limit=10");
       if (res.ok) {
