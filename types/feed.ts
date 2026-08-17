@@ -57,7 +57,9 @@ export interface FilterSidebarProps {
   category: string | null;
   categories: CategoryItem[];
   year: string | null;
+  channel: string | null;
   onMediaTypeChange: (type: string | null) => void;
+  onChannelChange: (channel: string | null) => void;
   onTagToggle: (slug: string) => void;
   onCategoryChange: (slug: string | null) => void;
   onYearChange: (year: string | null) => void;
@@ -73,7 +75,9 @@ export interface MobileFiltersProps {
   category: string | null;
   categories: CategoryItem[];
   year: string | null;
+  channel: string | null;
   onMediaTypeChange: (type: string | null) => void;
+  onChannelChange: (channel: string | null) => void;
   onTagToggle: (slug: string) => void;
   onCategoryChange: (slug: string | null) => void;
   onYearChange: (year: string | null) => void;
@@ -92,11 +96,13 @@ export interface ActiveFiltersProps {
   searchQuery: string | null;
   category: string | null;
   year: string | null;
+  channel: string | null;
   sort: string;
   onRemoveMediaType: () => void;
   onRemoveTag: (slug: string) => void;
   onRemoveSearch: () => void;
   onRemoveCategory: () => void;
   onRemoveYear: () => void;
+  onRemoveChannel: () => void;
   onClearAll: () => void;
 }

@@ -3,7 +3,7 @@
 import React from "react";
 import { clsx } from "clsx";
 import { FilterSidebarProps } from "@/types";
-import { Film, Image as ImageIcon, ListVideo, Layers, Calendar, Tag, Sparkles, X } from "lucide-react";
+import { Film, Image as ImageIcon, ListVideo, Layers, Calendar, Tag, Sparkles, X, Users, Eye, EyeOff } from "lucide-react";
 
 export function FilterSidebar({
   mediaType,
@@ -12,13 +12,15 @@ export function FilterSidebar({
   category,
   categories,
   year,
+  channel,
   onMediaTypeChange,
+  onChannelChange,
   onTagToggle,
   onCategoryChange,
   onYearChange,
   onClearAll,
 }: FilterSidebarProps) {
-  const activeFilters = (mediaType ? 1 : 0) + selectedTags.length + (category ? 1 : 0) + (year ? 1 : 0);
+  const activeFilters = (mediaType ? 1 : 0) + selectedTags.length + (category ? 1 : 0) + (year ? 1 : 0) + (channel ? 1 : 0);
 
   // Generate last 10 years
   const currentYear = new Date().getFullYear();
@@ -61,6 +63,39 @@ export function FilterSidebar({
               <button
                 key={option.label}
                 onClick={() => onMediaTypeChange(option.value)}
+                className={clsx(
+                  "flex items-center gap-2 rounded-xl p-2.5 text-xs font-semibold border transition-all active:scale-95 cursor-pointer shadow-sm",
+                  isSelected
+                    ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
+                    : "bg-zinc-50 dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                )}
+              >
+                <Icon className={clsx("h-3.5 w-3.5", isSelected ? "text-white dark:text-zinc-900" : "text-zinc-400")} />
+                <span className="truncate">{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Channel */}
+      <div>
+        <h4 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+          <Users className="h-3.5 w-3.5" />
+          Channel
+        </h4>
+        <div className="grid grid-cols-2 gap-1.5">
+          {[
+            { value: null, label: "All Channels", icon: Users },
+            { value: "public", label: "Public Only", icon: Eye },
+            { value: "private", label: "Subscribed", icon: EyeOff },
+          ].map((option) => {
+            const Icon = option.icon;
+            const isSelected = channel === option.value;
+            return (
+              <button
+                key={option.label}
+                onClick={() => onChannelChange(option.value)}
                 className={clsx(
                   "flex items-center gap-2 rounded-xl p-2.5 text-xs font-semibold border transition-all active:scale-95 cursor-pointer shadow-sm",
                   isSelected

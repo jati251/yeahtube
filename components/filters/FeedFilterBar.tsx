@@ -13,6 +13,9 @@ import {
   Calendar,
   Layers,
   ArrowUpDown,
+  Users,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { SORT_OPTIONS } from "@/lib/constants";
 import { TagItem } from "@/types";
@@ -31,6 +34,8 @@ interface FeedFilterBarProps {
   onTagToggle: (slug: string) => void;
   sort: string;
   onSortChange: (sort: string) => void;
+  channel: string | null;
+  onChannelChange: (channel: string | null) => void;
   onClearAll: () => void;
 }
 
@@ -47,6 +52,8 @@ export function FeedFilterBar({
   onTagToggle,
   sort,
   onSortChange,
+  channel,
+  onChannelChange,
   onClearAll,
 }: FeedFilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -80,7 +87,7 @@ export function FeedFilterBar({
   }, []);
 
   const hasActiveFilters = Boolean(
-    mediaType || category || year || selectedTags.length > 0 || sort !== "newest",
+    mediaType || category || year || selectedTags.length > 0 || sort !== "newest" || channel,
   );
 
   const selectedCategoryObj = categories.find((c) => c.slug === category);
@@ -116,6 +123,33 @@ export function FeedFilterBar({
         selectedValue={mediaType}
         onSelect={(val) => {
           onMediaTypeChange(val);
+          setOpenDropdown(null);
+        }}
+      />
+
+      {/* 1.5 Channel Visibility */}
+      <FilterDropdown
+        label={
+          channel === "public"
+            ? "Public Only"
+            : channel === "private"
+            ? "Subscribed"
+            : "All Channels"
+        }
+        icon={Users}
+        isActive={Boolean(channel)}
+        isOpen={openDropdown === "channel"}
+        align={dropdownAlign}
+        widthClass="w-48"
+        onToggle={(e) => toggleDropdown("channel", e)}
+        options={[
+          { value: null, label: "All Channels", icon: Users },
+          { value: "public", label: "Public Only", icon: Eye },
+          { value: "private", label: "Subscribed Only", icon: EyeOff },
+        ]}
+        selectedValue={channel}
+        onSelect={(val) => {
+          onChannelChange(val);
           setOpenDropdown(null);
         }}
       />
