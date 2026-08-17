@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pg", "sharp"],
 
   images: {
+    unoptimized: true,
     dangerouslyAllowLocalIP: true,
     localPatterns: [
       {
