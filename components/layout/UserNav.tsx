@@ -56,19 +56,12 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
         variant="primary"
         size="sm"
         onClick={onOpenUpload}
-        className="hidden sm:flex"
-      >
-        <Upload className="mr-1.5 h-4 w-4" />
-        Upload
-      </Button>
-
-      <button
-        onClick={onOpenUpload}
-        className="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 sm:hidden transition-colors cursor-pointer"
+        className="flex items-center gap-1.5 px-2.5 sm:px-3"
         aria-label="Upload"
       >
-        <Upload className="h-5 w-5" />
-      </button>
+        <Upload className="h-4 w-4" />
+        <span className="hidden sm:inline">Upload</span>
+      </Button>
 
       {/* User menu */}
       <div className="relative">
