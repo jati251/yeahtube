@@ -22,9 +22,7 @@ const defaultGlobalPiP: GlobalPiPState = {
 interface AppState {
   // ── Scroll ──────────────────────────────────────────
   feedScrollY: number;
-  browseScrollY: number;
   setFeedScrollY: (y: number) => void;
-  setBrowseScrollY: (y: number) => void;
 
   // ── Feed View & Filter Controls ──────────────────────
   feedViewMode: "grid" | "list";
@@ -53,10 +51,6 @@ interface AppState {
   activePreviewCardId: number | null;
   setActivePreviewCardId: (id: number | null) => void;
 
-  isUploadModalOpen: boolean;
-  openUploadModal: () => void;
-  closeUploadModal: () => void;
-
   // ── Global PiP ───────────────────────────────────────
   globalPiP: GlobalPiPState;
   activateGlobalPiP: (state: Omit<GlobalPiPState, "isActive">) => void;
@@ -68,9 +62,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       // Scroll positions
       feedScrollY: 0,
-      browseScrollY: 0,
       setFeedScrollY: (feedScrollY) => set({ feedScrollY }),
-      setBrowseScrollY: (browseScrollY) => set({ browseScrollY }),
 
       // Feed View Mode (persisted across visits)
       feedViewMode: "grid",
@@ -107,10 +99,6 @@ export const useAppStore = create<AppState>()(
       activePreviewCardId: null,
       setActivePreviewCardId: (activePreviewCardId) => set({ activePreviewCardId }),
 
-      isUploadModalOpen: false,
-      openUploadModal: () => set({ isUploadModalOpen: true }),
-      closeUploadModal: () => set({ isUploadModalOpen: false }),
-
       // Global PiP
       globalPiP: { ...defaultGlobalPiP },
       activateGlobalPiP: (state) =>
@@ -143,7 +131,6 @@ export const useAppStore = create<AppState>()(
         globalVolume: state.globalVolume,
         adminActiveTab: state.adminActiveTab,
         feedScrollY: state.feedScrollY,
-        browseScrollY: state.browseScrollY,
       }),
     },
   ),

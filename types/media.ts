@@ -70,13 +70,6 @@ export interface ReelsFeedProps {
   isLoadingMore?: boolean;
 }
 
-export interface FloatingHeart {
-  id: number;
-  x: number;
-  y: number;
-  rotation: number;
-}
-
 export interface LikeDislikeProps {
   postId: number;
   variant?: "horizontal" | "vertical";

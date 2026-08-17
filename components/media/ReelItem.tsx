@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { MessageCircle, Share2, BookmarkPlus, Play, FastForward, Rewind, Heart } from "lucide-react";
+import { MessageCircle, Share2, BookmarkPlus, Play, FastForward, Rewind } from "lucide-react";
 import { PostItem } from "@/types/post";
 import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
@@ -12,7 +12,6 @@ import { clsx } from "clsx";
 import { attachHlsOrNative } from "@/lib/hls-helper";
 import { useReelItem } from "@/hooks/player/useReelItem";
 import { useLikeMutation } from "@/services/queries";
-import { FloatingHeart } from "@/types";
 
 export const ReelItem = React.memo(function ReelItem({
   post,
@@ -40,33 +39,14 @@ export const ReelItem = React.memo(function ReelItem({
   const progressRef = useRef<HTMLDivElement>(null);
   const [showComments, setShowComments] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [hearts, setHearts] = useState<FloatingHeart[]>([]);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
   const likeMutation = useLikeMutation(post.id);
 
-  const handleDoubleTap = useCallback(
-    (x: number, y: number) => {
-      onUserActivity();
-      // Like the post immediately
-      likeMutation.mutate("like");
-
-      // Spawn animated heart at tap location
-      const newHeart: FloatingHeart = {
-        id: Date.now() + Math.random(),
-        x,
-        y,
-        rotation: (Math.random() - 0.5) * 30,
-      };
-
-      setHearts((prev) => [...prev, newHeart]);
-
-      setTimeout(() => {
-        setHearts((prev) => prev.filter((h) => h.id !== newHeart.id));
-      }, 900);
-    },
-    [likeMutation, onUserActivity],
-  );
+  const handleDoubleTap = useCallback(() => {
+    onUserActivity();
+    likeMutation.mutate("like");
+  }, [likeMutation, onUserActivity]);
 
   const {
     isPaused,
@@ -202,20 +182,7 @@ export const ReelItem = React.memo(function ReelItem({
             </div>
           )}
 
-          {/* Double-Tap Floating Hearts Animation (Instagram Style) */}
-          {hearts.map((h) => (
-            <div
-              key={h.id}
-              style={{
-                left: `${h.x}px`,
-                top: `${h.y}px`,
-                transform: `translate(-50%, -50%) rotate(${h.rotation}deg)`,
-              }}
-              className="absolute z-50 pointer-events-none animate-in zoom-in-50 fade-out-0 duration-700 ease-out"
-            >
-              <Heart className="h-24 w-24 text-rose-500 fill-rose-500 drop-shadow-[0_0_20px_rgba(244,63,94,0.9)] animate-pulse" />
-            </div>
-          ))}
+
 
           {/* Skip Forward/Backward Overlay */}
           {skipInfo && (
