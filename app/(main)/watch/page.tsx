@@ -42,12 +42,23 @@ export async function generateMetadata({ searchParams }: WatchQueryPageProps): P
   const { post, videos, tags } = detail;
   const description = post.description || `Watch ${post.title} on YeahTube`;
   const primaryThumb = videos[0]?.thumbnailUrl;
-  const images = primaryThumb ? [primaryThumb] : [];
   const primaryVideo = videos[0];
 
   const siteUrl = SITE_URL;
   const canonicalWatchUrl = `${siteUrl}/watch?v=${post.slug || post.id}`;
   const embedUrl = `${siteUrl}/embed/${post.slug || post.id}`;
+
+  const absoluteThumb = primaryThumb
+    ? primaryThumb.startsWith("http")
+      ? primaryThumb
+      : `${siteUrl}${primaryThumb.startsWith("/") ? "" : "/"}${primaryThumb}`
+    : `${siteUrl}/icon.png`;
+
+  const absoluteVideoStreamUrl = primaryVideo?.streamUrl
+    ? primaryVideo.streamUrl.startsWith("http")
+      ? primaryVideo.streamUrl
+      : `${siteUrl}${primaryVideo.streamUrl.startsWith("/") ? "" : "/"}${primaryVideo.streamUrl}`
+    : undefined;
 
   return {
     title: post.title,
@@ -63,25 +74,31 @@ export async function generateMetadata({ searchParams }: WatchQueryPageProps): P
       description,
       type: "video.other",
       url: canonicalWatchUrl,
-      images: images.map((img) => ({
-        url: img,
-        width: primaryVideo?.width || 1280,
-        height: primaryVideo?.height || 720,
-        alt: post.title,
-      })),
-      videos: primaryVideo
+      siteName: "YeahTube",
+      images: [
+        {
+          url: absoluteThumb,
+          secureUrl: absoluteThumb,
+          width: primaryVideo?.width || 1280,
+          height: primaryVideo?.height || 720,
+          alt: post.title,
+        },
+      ],
+      videos: absoluteVideoStreamUrl
         ? [
             {
-              url: embedUrl,
-              type: "text/html",
-              width: primaryVideo.width ?? 1280,
-              height: primaryVideo.height ?? 720,
+              url: absoluteVideoStreamUrl,
+              secureUrl: absoluteVideoStreamUrl,
+              type: primaryVideo?.mimeType || "video/mp4",
+              width: primaryVideo?.width ?? 1280,
+              height: primaryVideo?.height ?? 720,
             },
             {
-              url: primaryVideo.streamUrl,
-              type: primaryVideo.mimeType || "video/mp4",
-              width: primaryVideo.width ?? undefined,
-              height: primaryVideo.height ?? undefined,
+              url: embedUrl,
+              secureUrl: embedUrl,
+              type: "text/html",
+              width: primaryVideo?.width ?? 1280,
+              height: primaryVideo?.height ?? 720,
             },
           ]
         : undefined,
@@ -90,11 +107,11 @@ export async function generateMetadata({ searchParams }: WatchQueryPageProps): P
       card: "player",
       title: post.title,
       description,
-      images,
+      images: [absoluteThumb],
       players: [
         {
           playerUrl: embedUrl,
-          streamUrl: primaryVideo?.streamUrl || "",
+          streamUrl: absoluteVideoStreamUrl || "",
           width: primaryVideo?.width || 1280,
           height: primaryVideo?.height || 720,
         },

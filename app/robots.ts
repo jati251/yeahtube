@@ -8,16 +8,22 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
-        disallow: ["/api/", "/admin/", "/admin/*"],
+        allow: ["/", "/watch*", "/view*", "/embed*", "/shorts*", "/api/media/stream*", "/api/oembed*"],
+        disallow: ["/admin/", "/admin/*", "/api/admin/", "/api/auth/"],
       },
       {
-        userAgent: "Googlebot-Image",
-        allow: ["/", "/view*", "/storage/*", "/_next/image*"],
-      },
-      {
-        userAgent: "Googlebot-Video",
-        allow: ["/", "/watch*", "/shorts*", "/storage/*", "/api/media/stream*"],
+        userAgent: [
+          "LinkedInBot",
+          "Twitterbot",
+          "facebookexternalhit",
+          "Discordbot",
+          "TelegramBot",
+          "Googlebot",
+          "Googlebot-Image",
+          "Googlebot-Video",
+        ],
+        allow: ["/", "/watch*", "/view*", "/embed*", "/shorts*", "/api/media/stream*", "/api/oembed*"],
+        disallow: ["/admin/"],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,

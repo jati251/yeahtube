@@ -23,7 +23,13 @@ export async function generateMetadata({ params }: RouteIdPageProps): Promise<Me
   const { post, images: galleryImages, tags } = detail;
   const description = post.description || `View ${post.title} photos on YeahTube`;
   const primaryImage = galleryImages[0]?.imageUrl || galleryImages[0]?.thumbnailUrl;
-  const images = primaryImage ? [primaryImage] : [];
+  const siteUrl = SITE_URL;
+  const canonicalViewUrl = `${siteUrl}/view/${id}`;
+  const absolutePrimaryImage = primaryImage
+    ? primaryImage.startsWith("http")
+      ? primaryImage
+      : `${siteUrl}${primaryImage.startsWith("/") ? "" : "/"}${primaryImage}`
+    : `${siteUrl}/icon.png`;
 
   return {
     title: post.title,
@@ -33,18 +39,23 @@ export async function generateMetadata({ params }: RouteIdPageProps): Promise<Me
       title: post.title,
       description,
       type: "article",
-      images: galleryImages.map((img) => ({
-        url: img.imageUrl || img.thumbnailUrl || "",
-        width: img.width || 1200,
-        height: img.height || 800,
-        alt: post.title,
-      })),
+      url: canonicalViewUrl,
+      siteName: "YeahTube",
+      images: [
+        {
+          url: absolutePrimaryImage,
+          secureUrl: absolutePrimaryImage,
+          width: galleryImages[0]?.width || 1200,
+          height: galleryImages[0]?.height || 800,
+          alt: post.title,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description,
-      images,
+      images: [absolutePrimaryImage],
     },
   };
 }
