@@ -15,6 +15,7 @@ import { getQualityLabel, formatDate } from "@/utils";
 import { WatchPageClientProps, VideoData, ImageData, PostData } from "@/types";
 import { trackWatchHistory, trackPostView } from "@/services/queries";
 import { clsx } from "clsx";
+import { useInView } from "react-intersection-observer";
 
 export type { VideoData, ImageData, PostData };
 
@@ -38,6 +39,38 @@ export function WatchPageClient({
   const [showEditModal, setShowEditModal] = React.useState(false);
   const [postData, setPostData] = React.useState(post);
   const currentVideo = videos[currentVideoIndex];
+
+  const [recs, setRecs] = React.useState(recommendations);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const { ref: loadMoreRef, inView } = useInView({
+    rootMargin: "200px",
+  });
+
+  useEffect(() => {
+    if (inView && !loadingMore) {
+      loadMoreRecs();
+    }
+  }, [inView, loadingMore]);
+
+  const loadMoreRecs = async () => {
+    setLoadingMore(true);
+    try {
+      const res = await fetch("/api/posts?sort=random&limit=10");
+      if (res.ok) {
+        const data = await res.json();
+        setRecs((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          existingIds.add(post.id); // Exclude current post
+          const newRecs = data.posts.filter((p: any) => !existingIds.has(p.id));
+          return [...prev, ...newRecs];
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load more recommendations:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Fire-and-forget tracking
   useEffect(() => {
@@ -186,14 +219,22 @@ export function WatchPageClient({
             Recommendations
           </h2>
           <div className="flex flex-col gap-4">
-            {recommendations.length > 0 ? (
-              recommendations.map((rec) => (
+            {recs.length > 0 ? (
+              recs.map((rec) => (
                 <MediaListItem key={rec.id} post={rec} />
               ))
             ) : (
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 No recommendations found
               </p>
+            )}
+
+            {recs.length > 0 && (
+              <div ref={loadMoreRef} className="py-4 flex justify-center">
+                {loadingMore ? (
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
+                ) : null}
+              </div>
             )}
           </div>
         </div>
