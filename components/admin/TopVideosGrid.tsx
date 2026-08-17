@@ -12,7 +12,6 @@ interface TopVideosGridProps {
 }
 
 function TopVideoCard({ video, index }: { video: TopVideoItem; index: number }) {
-  const [imageLoaded, setImageLoaded] = React.useState(false);
   const href =
     video.mediaType === "image"
       ? `/view/${video.postId}`
@@ -25,25 +24,15 @@ function TopVideoCard({ video, index }: { video: TopVideoItem; index: number }) 
     >
       <div>
         {/* Thumbnail Container */}
-        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-zinc-900">
           {video.thumbnailUrl ? (
-            <>
-              <div
-                className={`absolute inset-0 z-0 bg-zinc-200/70 dark:bg-zinc-800/70 animate-pulse transition-opacity duration-500 ${
-                  imageLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
-                }`}
-              />
-              <NextImage
-                src={video.thumbnailUrl}
-                alt={video.postTitle}
-                fill
-                onLoad={() => setImageLoaded(true)}
-                sizes="(max-width: 640px) 50vw, 300px"
-                className={`object-cover transition-all duration-500 group-hover:scale-105 ${
-                  imageLoaded ? "opacity-100" : "opacity-0 scale-95"
-                }`}
-              />
-            </>
+            <NextImage
+              src={video.thumbnailUrl}
+              alt={video.postTitle}
+              fill
+              sizes="(max-width: 640px) 50vw, 300px"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-zinc-400">
               <Film className="h-6 w-6" />

@@ -15,34 +15,21 @@ export const MediaListItem = React.memo(function MediaListItem({ post, isAdmin, 
 
   const timeAgo = useMemo(() => getTimeAgo(post.createdAt), [post.createdAt]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
 
   const ItemContent = (
     <>
       {/* Thumbnail */}
-      <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900 sm:h-24 sm:w-36">
+      <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-lg bg-zinc-900 sm:h-24 sm:w-36">
         {post.thumbnailUrl ? (
-          <>
-            <div
-              className={clsx(
-                "absolute inset-0 z-0 bg-zinc-200/70 dark:bg-zinc-800/70 animate-pulse transition-opacity duration-500",
-                imageLoaded ? "opacity-0 pointer-events-none" : "opacity-100"
-              )}
-            />
-            <NextImage
-              src={post.thumbnailUrl}
-              alt={post.title}
-              fill
-              onLoad={() => setImageLoaded(true)}
-              className={clsx(
-                "object-cover transition-all duration-500 group-hover:scale-105",
-                imageLoaded ? "opacity-100" : "opacity-0 scale-95"
-              )}
-              sizes="(max-width: 640px) 144px, 112px"
-              loading="lazy"
-              decoding="async"
-            />
-          </>
+          <NextImage
+            src={post.thumbnailUrl}
+            alt={post.title}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 640px) 144px, 112px"
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <div className="flex h-full items-center justify-center">
             {post.mediaType === "video" ? (
