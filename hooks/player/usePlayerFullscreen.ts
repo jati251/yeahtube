@@ -14,8 +14,25 @@ export function usePlayerFullscreen(
 
   const [fullscreen, setFullscreen] = useState(false);
   const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerHeight > window.innerWidth;
+  });
 
   const isFullscreenActive = fullscreen || isMobileFullscreen;
+  const isRotatedLandscape = isFullscreenActive && isPortrait && isLandscape;
+
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
+  }, []);
 
   const lockLandscape = useCallback(async () => {
     try {
@@ -137,6 +154,7 @@ export function usePlayerFullscreen(
     fullscreen,
     isMobileFullscreen,
     isFullscreenActive,
+    isRotatedLandscape,
     toggleFullscreen,
   };
 }

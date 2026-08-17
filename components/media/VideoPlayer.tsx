@@ -76,7 +76,7 @@ export function VideoPlayer({
   const isLandscape = width && height ? width >= height : true;
 
   // Fullscreen hook
-  const { isFullscreenActive, toggleFullscreen } = usePlayerFullscreen(
+  const { isFullscreenActive, isRotatedLandscape, toggleFullscreen } = usePlayerFullscreen(
     containerRef,
     { isLandscape }
   );
@@ -142,9 +142,25 @@ export function VideoPlayer({
       ref={containerRef}
       className={`group relative bg-black select-none ${
         isFullscreenActive
-          ? "!fixed !inset-0 !z-[99999] !h-screen !h-[100dvh] !w-screen !w-[100dvw] !rounded-none !aspect-auto"
+          ? isRotatedLandscape
+            ? "!fixed !top-0 !left-0 !z-[99999] !rounded-none !aspect-auto"
+            : "!fixed !inset-0 !z-[99999] !h-screen !h-[100dvh] !w-screen !w-[100dvw] !rounded-none !aspect-auto"
           : "aspect-video rounded-xl"
       }`}
+      style={
+        isRotatedLandscape
+          ? {
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100dvh",
+              height: "100dvw",
+              transformOrigin: "0 0",
+              transform: "rotate(90deg) translateY(-100%)",
+              zIndex: 99999,
+            }
+          : undefined
+      }
       onPointerMove={(e) => {
         if (e.pointerType === "mouse") showControlsTemporarily();
       }}
