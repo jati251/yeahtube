@@ -46,7 +46,7 @@ export default function LoginPage() {
             <YeahTubeIcon size={44} />
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Yeah<span className="text-rose-600 dark:text-rose-500">Tube</span>
+            YeahTube
           </h1>
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
             Sign in to your account

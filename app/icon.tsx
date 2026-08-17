@@ -13,28 +13,38 @@ export default function Icon() {
     (
       <div
         style={{
-          fontSize: 24,
-          background: "linear-gradient(135deg, #38BDF8 0%, #2563EB 50%, #1D4ED8 100%)",
           width: "100%",
           height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          background: "#09090b",
           borderRadius: 8,
-          boxShadow: "0 2px 6px rgba(29, 78, 216, 0.4)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
         }}
       >
-        {/* Modern Play Polygon SVG */}
+        {/* Geometric Prism-Y SVG */}
         <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
+          width="22"
+          height="22"
+          viewBox="0 0 36 36"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
+          {/* Left Branch */}
           <path
-            d="M8 5.5L19 12L8 18.5V5.5Z"
-            fill="#FFFFFF"
+            d="M7 8.5L14.5 19V28H18V18L12.5 8.5H7Z"
+            fill="#2563EB"
+          />
+          {/* Right Ribbon */}
+          <path
+            d="M29 8.5L19.5 22.5L16.5 28.5H20.5L23.5 23L30 8.5H29Z"
+            fill="#38BDF8"
+          />
+          {/* Center Prism Facet */}
+          <path
+            d="M12.5 8.5L18 17L23.5 8.5H19.5L18 11L16.5 8.5H12.5Z"
+            fill="#60A5FA"
           />
         </svg>
       </div>
