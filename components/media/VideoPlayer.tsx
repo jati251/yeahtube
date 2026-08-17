@@ -73,8 +73,13 @@ export function VideoPlayer({
     videoRef,
   });
 
+  const isLandscape = width && height ? width >= height : true;
+
   // Fullscreen hook
-  const { isFullscreenActive, toggleFullscreen } = usePlayerFullscreen(containerRef);
+  const { isFullscreenActive, isRotatedLandscape, toggleFullscreen } = usePlayerFullscreen(
+    containerRef,
+    { isLandscape }
+  );
 
   // Scrub hook
   const { isDragging, isDraggingState, handleSeek, handleSeekStart } = usePlayerScrub({
@@ -137,7 +142,9 @@ export function VideoPlayer({
       ref={containerRef}
       className={`group relative bg-black select-none ${
         isFullscreenActive
-          ? "!fixed !inset-0 !z-[9999] !h-screen !h-[100dvh] !w-screen !rounded-none !aspect-auto"
+          ? isRotatedLandscape
+            ? "!fixed !top-0 !left-0 !w-[100dvh] !h-[100dvw] !max-w-none !max-h-none !origin-top-left !rotate-90 !translate-x-[100dvw] !z-[99999] !rounded-none !aspect-auto"
+            : "!fixed !inset-0 !z-[99999] !h-screen !h-[100dvh] !w-screen !w-[100dvw] !rounded-none !aspect-auto"
           : "aspect-video rounded-xl"
       }`}
       onPointerMove={(e) => {
