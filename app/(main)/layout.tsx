@@ -1,20 +1,10 @@
 import { getCurrentUser } from "@/lib/auth";
-import { getDb, schema } from "@/db";
+import { getAllCategories } from "@/lib/queries";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
 import dynamic from "next/dynamic";
 
 const GlobalPlayer = dynamic(() => import("@/components/media/GlobalPlayer").then(mod => mod.GlobalPlayer));
-
-async function getCategories() {
-  try {
-    const db = getDb();
-    return await db.select().from(schema.categories).orderBy(schema.categories.name);
-  } catch {
-    // Table may not exist yet (pre-seed DB). Gracefully degrade.
-    return [];
-  }
-}
 
 export default async function MainLayout({
   children,
@@ -23,7 +13,7 @@ export default async function MainLayout({
 }) {
   const [user, categories] = await Promise.all([
     getCurrentUser(),
-    getCategories(),
+    getAllCategories(),
   ]);
 
   return (

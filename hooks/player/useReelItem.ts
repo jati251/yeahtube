@@ -10,6 +10,7 @@ interface UseReelItemProps {
   onUserActivity: () => void;
   onPauseChange: (paused: boolean) => void;
   getObserver: () => IntersectionObserver;
+  onDoubleTap?: (x: number, y: number) => void;
 }
 
 export function useReelItem({
@@ -20,22 +21,21 @@ export function useReelItem({
   onUserActivity,
   onPauseChange,
   getObserver,
+  onDoubleTap,
 }: UseReelItemProps) {
-  const [prevActive, setPrevActive] = useState(isActive);
   const [userPaused, setUserPaused] = useState(false);
 
-  // Official React pattern for adjusting state when prop changes
-  if (prevActive !== isActive) {
-    setPrevActive(isActive);
-    if (isActive) {
-      setUserPaused(false);
-    }
-  }
-
   const isPaused = !isActive || userPaused;
-  const setIsPaused = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
-    setUserPaused(val);
-  }, []);
+  const setIsPaused = useCallback(
+    (val: boolean | ((prev: boolean) => boolean)) => {
+      setUserPaused((prev) => {
+        const next = typeof val === "function" ? val(prev) : val;
+        if (isActive) onPauseChange(next);
+        return next;
+      });
+    },
+    [isActive, onPauseChange],
+  );
 
   const [skipInfo, setSkipInfo] = useState<{ side: "left" | "right"; amount: number } | null>(null);
   const [isFastForwarding, setIsFastForwarding] = useState(false);
@@ -44,22 +44,15 @@ export function useReelItem({
   const isHoldingRef = useRef(false);
   const lastTapRef = useRef<{
     time: number;
-    side: "left" | "right" | null;
-    count: number;
+    x: number;
+    y: number;
     timeout: NodeJS.Timeout | null;
   }>({
     time: 0,
-    side: null,
-    count: 0,
+    x: 0,
+    y: 0,
     timeout: null,
   });
-
-  // Notify parent of pause state
-  useEffect(() => {
-    if (isActive) {
-      onPauseChange(isPaused);
-    }
-  }, [isActive, isPaused, onPauseChange]);
 
   // Bind element to active video intersection observer
   useEffect(() => {
@@ -184,7 +177,7 @@ export function useReelItem({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isActive, videoRef, setIsPaused]);
 
-  // ── Tap / Multi-tap video handler ─────────────────
+  // ── Tap / Double-tap Instagram Reels gesture handler ──
   const handleVideoClick = useCallback(
     (e: React.MouseEvent) => {
       if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("a")) {
@@ -197,49 +190,37 @@ export function useReelItem({
 
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      const side = x < rect.width / 2 ? "left" : "right";
+      const y = e.clientY - rect.top;
       const now = Date.now();
 
-      // Multi-tap detection (within 300ms)
-      if (now - lastTapRef.current.time < 300 && lastTapRef.current.side === side) {
-        if (lastTapRef.current.timeout) clearTimeout(lastTapRef.current.timeout);
-
-        lastTapRef.current.count += 1;
-        lastTapRef.current.time = now;
-
-        const skipSeconds = 10;
-        const totalAmount = lastTapRef.current.count * skipSeconds;
-        setSkipInfo({ side, amount: totalAmount });
-
-        if (videoRef.current) {
-          if (side === "left") {
-            videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - skipSeconds);
-          } else {
-            videoRef.current.currentTime = Math.min(
-              videoRef.current.duration || 0,
-              videoRef.current.currentTime + skipSeconds,
-            );
-          }
+      // Double-tap detection (within 280ms)
+      if (now - lastTapRef.current.time < 280) {
+        if (lastTapRef.current.timeout) {
+          clearTimeout(lastTapRef.current.timeout);
+          lastTapRef.current.timeout = null;
         }
-
-        lastTapRef.current.timeout = setTimeout(() => {
-          setSkipInfo(null);
-          lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
-        }, 700);
+        lastTapRef.current.time = 0;
+        onDoubleTap?.(x, y);
+        try {
+          navigator.vibrate?.([15, 50, 15]);
+        } catch {}
       } else {
-        // Single tap (start accumulator with count = 0)
+        // Single tap with 280ms debounce
         if (lastTapRef.current.timeout) clearTimeout(lastTapRef.current.timeout);
 
-        lastTapRef.current = { time: now, side, count: 0, timeout: null };
-
-        lastTapRef.current.timeout = setTimeout(() => {
-          onUserActivity();
-          setIsPaused((prev) => !prev);
-          lastTapRef.current = { time: 0, side: null, count: 0, timeout: null };
-        }, 300);
+        lastTapRef.current = {
+          time: now,
+          x,
+          y,
+          timeout: setTimeout(() => {
+            onUserActivity();
+            setIsPaused((prev) => !prev);
+            lastTapRef.current = { time: 0, x: 0, y: 0, timeout: null };
+          }, 280),
+        };
       }
     },
-    [videoRef, onUserActivity, setIsPaused],
+    [onUserActivity, setIsPaused, onDoubleTap],
   );
 
   return {

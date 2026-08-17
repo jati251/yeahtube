@@ -4,14 +4,11 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries/posts";
 import { ViewPageClient } from "./ViewPageClient";
+import { RouteIdPageProps } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: RouteIdPageProps): Promise<Metadata> {
   const { id } = await params;
   const user = await getCurrentUser();
   const detail = await getPostDetail(Number(id), user);
@@ -44,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ViewPage({ params }: PageProps) {
+export default async function ViewPage({ params }: RouteIdPageProps) {
   const { id } = await params;
   const user = await getCurrentUser();
   const detail = await getPostDetail(Number(id), user);

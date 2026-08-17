@@ -7,16 +7,12 @@ import {
   useCreatePlaylistMutation,
   useSaveToPlaylistMutation,
 } from "@/services/queries";
-
-interface SaveToPlaylistProps {
-  postId: number;
-  onClose: () => void;
-}
+import { SaveToPlaylistProps } from "@/types";
 
 export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
   const [creating, setCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const { data: playlistsData, isLoading: loading } = usePlaylistsQuery();
@@ -24,20 +20,6 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
 
   const createPlaylistMutation = useCreatePlaylistMutation();
   const saveToPlaylistMutation = useSaveToPlaylistMutation();
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPlaylistName.trim()) return;
-    createPlaylistMutation.mutate(
-      { name: newPlaylistName, isPublic },
-      {
-        onSuccess: () => {
-          setNewPlaylistName("");
-          setCreating(false);
-        },
-      },
-    );
-  };
 
   const handleSaveToPlaylist = (playlistId: number, playlistName: string) => {
     saveToPlaylistMutation.mutate(
@@ -49,6 +31,21 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
             setSuccessMessage(null);
             onClose();
           }, 1200);
+        },
+      },
+    );
+  };
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPlaylistName.trim()) return;
+    createPlaylistMutation.mutate(
+      { name: newPlaylistName, isPublic },
+      {
+        onSuccess: (resData) => {
+          handleSaveToPlaylist(resData.playlist.id, resData.playlist.name);
+          setNewPlaylistName("");
+          setCreating(false);
         },
       },
     );

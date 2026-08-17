@@ -158,3 +158,50 @@ export async function DELETE(
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const playlistId = parseInt(id, 10);
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await request.json();
+    const name = body.name !== undefined ? String(body.name).trim() : undefined;
+    const isPublic = body.isPublic !== undefined ? (body.isPublic ? 1 : 0) : undefined;
+
+    if (name !== undefined && !name) {
+      return NextResponse.json({ error: "Playlist name cannot be empty" }, { status: 400 });
+    }
+
+    const db = getDb();
+
+    // Verify ownership
+    const [playlist] = await db
+      .select()
+      .from(schema.playlists)
+      .where(eq(schema.playlists.id, playlistId));
+
+    if (!playlist || playlist.userId !== user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const updateData: { name?: string; isPublic?: number } = {};
+    if (name !== undefined) updateData.name = name;
+    if (isPublic !== undefined) updateData.isPublic = isPublic;
+
+    const [updated] = await db
+      .update(schema.playlists)
+      .set(updateData)
+      .where(eq(schema.playlists.id, playlistId))
+      .returning();
+
+    return NextResponse.json({ success: true, playlist: updated });
+  } catch (error) {
+    console.error("Playlist PATCH error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

@@ -11,7 +11,7 @@ import { enqueueTranscode } from "@/lib/transcode-queue";
 import { v4 as uuidv4 } from "uuid";
 import sharp from "sharp";
 import path from "path";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { invalidateFeedCache, invalidateTaxonomyCache } from "@/lib/cache";
 
 // ── Validation ─────────────────────────────────────────
@@ -69,34 +69,42 @@ async function generateImageThumbnail(
   };
 }
 
-// ── Tag processing helper ──────────────────────────────
+// ── Tag processing helper (Bulk Insert & Connect) ──────
 
 async function processTags(
   db: ReturnType<typeof getDb>,
   postId: number,
   tagNames: string[],
 ) {
-  for (const tagName of tagNames) {
-    const slug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    if (!slug) continue;
+  if (tagNames.length === 0) return;
 
-    const [existingTag] = await db
-      .select()
-      .from(schema.tags)
-      .where(eq(schema.tags.slug, slug));
+  const validTags = tagNames
+    .map((name) => {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      return { name: name.trim(), slug };
+    })
+    .filter((t) => Boolean(t.slug));
 
-    let tag;
-    if (existingTag) {
-      tag = existingTag;
-    } else {
-      const [newTag] = await db
-        .insert(schema.tags)
-        .values({ name: tagName.trim(), slug })
-        .returning();
-      tag = newTag;
-    }
+  if (validTags.length === 0) return;
 
-    await db.insert(schema.postTags).values({ postId, tagId: tag.id });
+  // 1. Bulk insert new tags (ignoring duplicates by slug)
+  await db
+    .insert(schema.tags)
+    .values(validTags)
+    .onConflictDoNothing({ target: schema.tags.slug });
+
+  // 2. Fetch tag IDs for all slugs
+  const allTags = await db
+    .select({ id: schema.tags.id })
+    .from(schema.tags)
+    .where(inArray(schema.tags.slug, validTags.map((t) => t.slug)));
+
+  if (allTags.length > 0) {
+    // 3. Bulk insert junction rows
+    await db
+      .insert(schema.postTags)
+      .values(allTags.map((t) => ({ postId, tagId: t.id })))
+      .onConflictDoNothing();
   }
 }
 

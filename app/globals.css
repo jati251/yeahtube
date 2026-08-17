@@ -111,4 +111,12 @@ p {
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

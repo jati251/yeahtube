@@ -6,31 +6,7 @@ import NextImage from "next/image";
 import { Film, Image as ImageIcon, Layers } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
-
-interface MediaListItemProps {
-  post: {
-    id: number;
-    title: string;
-    description: string | null;
-    createdAt: string;
-    tags: { id: number; name: string; slug: string }[];
-    mediaCount: number;
-    thumbnailUrl: string | null;
-    mediaType: "image" | "video" | "mixed";
-    duration?: number | null;
-    category?: string | null;
-    width?: number | null;
-    height?: number | null;
-    views?: number;
-  };
-  isAdmin?: boolean;
-  selectMode?: boolean;
-  selected?: boolean;
-  onToggleSelect?: (id: number) => void;
-  onDelete?: (id: number) => void;
-  onEdit?: (post: MediaListItemProps["post"]) => void;
-  deleting?: boolean;
-}
+import { MediaListItemProps } from "@/types";
 
 export const MediaListItem = React.memo(function MediaListItem({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, onEdit, deleting }: MediaListItemProps) {
   const quality = getQualityLabel(post.width, post.height);

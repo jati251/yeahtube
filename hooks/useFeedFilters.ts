@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { CUSTOM_EVENTS } from "@/lib/constants";
+import { useAppStore } from "@/stores/appStore";
 
 interface UseFeedFiltersProps {
   initialSort: string;
@@ -8,11 +8,13 @@ interface UseFeedFiltersProps {
 
 export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   const searchParams = useSearchParams();
+  const feedSearchQuery = useAppStore((s) => s.feedSearchQuery);
+  const setFeedSearchQuery = useAppStore((s) => s.setFeedSearchQuery);
+  const feedResetCount = useAppStore((s) => s.feedResetCount);
 
   // ---- Derive initial state from URL ----
   const initialMediaType = searchParams.get("type");
   const initialSelectedTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
-  const initialSearchQuery = searchParams.get("q") || "";
   const initialActiveSort = searchParams.get("sort") || initialSort;
   const initialCategory = searchParams.get("category");
   const initialYear = searchParams.get("year");
@@ -20,58 +22,70 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   // ---- Local filter state ----
   const [activeMediaType, setActiveMediaType] = useState<string | null>(initialMediaType);
   const [activeTags, setActiveTags] = useState<string[]>(initialSelectedTags);
-  const [activeSearchQuery, setActiveSearchQuery] = useState(initialSearchQuery);
   const [activeSort, setActiveSort] = useState(initialActiveSort);
   const [activeCategory, setActiveCategory] = useState<string | null>(initialCategory);
   const [activeYear, setActiveYear] = useState<string | null>(initialYear);
+
+  const activeSearchQuery = feedSearchQuery;
 
   const hasFilters = Boolean(
     activeMediaType || activeTags.length > 0 || activeSearchQuery || activeCategory || activeYear,
   );
 
-  const initialSortRef = useRef(initialSort);
-  useEffect(() => { initialSortRef.current = initialSort; }, [initialSort]);
-
-  // Handler for custom events and popstate
   const goToPageRef = useRef<(p: number) => void>(() => {});
 
+  // Sync state whenever URL search params change (e.g. from navigation links like /?type=playlist)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const urlType = searchParams.get("type");
+    const urlTags = searchParams.get("tags")?.split(",").filter(Boolean) || [];
+    const urlCategory = searchParams.get("category");
+    const urlYear = searchParams.get("year");
+    const urlSort = searchParams.get("sort") || initialSort;
+
+    setActiveMediaType(urlType);
+    setActiveTags(urlTags);
+    setActiveCategory(urlCategory);
+    setActiveYear(urlYear);
+    setActiveSort(urlSort);
+    if (goToPageRef.current) goToPageRef.current(1);
+  }, [searchParams, initialSort]);
+
+  // Handle browser back/forward history navigation
   useEffect(() => {
     const handlePopState = () => {
       const sp = new URLSearchParams(window.location.search);
       setActiveMediaType(sp.get("type"));
       setActiveTags(sp.get("tags")?.split(",").filter(Boolean) || []);
-      setActiveSearchQuery(sp.get("q") || "");
-      setActiveSort(sp.get("sort") || initialSortRef.current);
+      setFeedSearchQuery(sp.get("q") || "");
+      setActiveSort(sp.get("sort") || initialSort);
       setActiveCategory(sp.get("category"));
       setActiveYear(sp.get("year"));
       const p = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
       if (goToPageRef.current) goToPageRef.current(p);
     };
 
-    const handleSearch = (e: Event) => {
-      setActiveSearchQuery((e as CustomEvent<string>).detail);
-      if (goToPageRef.current) goToPageRef.current(1);
-    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [setFeedSearchQuery, initialSort]);
 
-    const handleReset = () => {
+  // React to Zustand store reset triggers (e.g. clicking Home in Header/Drawer)
+  const prevResetCountRef = useRef(feedResetCount);
+  useEffect(() => {
+    if (feedResetCount > prevResetCountRef.current) {
+      prevResetCountRef.current = feedResetCount;
       setActiveMediaType(null);
       setActiveTags([]);
-      setActiveSearchQuery("");
-      setActiveSort(initialSortRef.current);
+      setActiveSort(initialSort);
       setActiveCategory(null);
       setActiveYear(null);
       if (goToPageRef.current) goToPageRef.current(1);
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    window.addEventListener(CUSTOM_EVENTS.FEED_SEARCH, handleSearch);
-    window.addEventListener(CUSTOM_EVENTS.FEED_RESET, handleReset);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener(CUSTOM_EVENTS.FEED_SEARCH, handleSearch);
-      window.removeEventListener(CUSTOM_EVENTS.FEED_RESET, handleReset);
-    };
-  }, []);
+    }
+  }, [feedResetCount, initialSort]);
 
   const syncUrl = useCallback((currentPage: number) => {
     if (typeof window === "undefined") return;
@@ -101,7 +115,10 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     activeTags,
     setActiveTags,
     activeSearchQuery,
-    setActiveSearchQuery,
+    setActiveSearchQuery: (query: string) => {
+      setFeedSearchQuery(query);
+      if (goToPageRef.current) goToPageRef.current(1);
+    },
     activeSort,
     setActiveSort,
     activeCategory,
@@ -109,7 +126,20 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     activeYear,
     setActiveYear,
     hasFilters,
-    goToPageRef,
     syncUrl,
+    goToPageRef,
+    clearAll: () => {
+      setActiveMediaType(null);
+      setActiveTags([]);
+      setActiveSort(initialSort);
+      setActiveCategory(null);
+      setActiveYear(null);
+      setFeedSearchQuery("");
+    },
+    handleTagToggle: (slug: string) => {
+      setActiveTags((prev) =>
+        prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
+      );
+    },
   };
 }

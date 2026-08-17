@@ -1,8 +1,11 @@
+import { cache } from "react";
 import { getDb, schema } from "@/db";
 import { eq, desc, sql, ilike, inArray, and, SQL } from "drizzle-orm";
 import { formatPostItem } from "@/lib/posts";
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/lib/constants";
 import { getCache, setCache } from "@/lib/cache";
+import { getRecommendations } from "@/lib/recommendations";
+import { getPresignedUrl, getStreamUrl } from "@/lib/storage";
 
 /**
  * Builds filter conditions for both the main query and count query.
@@ -345,8 +348,6 @@ export async function getFeedPosts(searchParams: URLSearchParams) {
   return response;
 }
 
-import { cache } from "react";
-
 /**
  * Fetches full details for a post (media, tags, recommendations, edit permissions, presigned URLs).
  * Wrapped in React cache to deduplicate metadata + page execution within the same request lifecycle.
@@ -434,9 +435,6 @@ export const getPostDetail = cache(async function getPostDetail(
     .innerJoin(schema.tags, eq(schema.postTags.tagId, schema.tags.id))
     .where(eq(schema.postTags.postId, post.id));
 
-  const { getRecommendations } = await import("@/lib/recommendations");
-  const { getPresignedUrl, getStreamUrl } = await import("@/lib/storage");
-
   const tagIds = postTags.map((t) => t.id);
   const recommendations = await getRecommendations(post.id, post.categoryId, tagIds);
 
@@ -487,4 +485,57 @@ export const getPostDetail = cache(async function getPostDetail(
     ...payload,
     canEdit,
   };
+});
+
+export const getTrendingPosts = cache(async (limit = 20) => {
+  const db = getDb();
+
+  const trendingQuery = await db
+    .select({
+      postId: schema.likes.postId,
+      likeCount: sql<number>`count(${schema.likes.id})::int`,
+    })
+    .from(schema.likes)
+    .where(eq(schema.likes.isLike, 1))
+    .groupBy(schema.likes.postId)
+    .orderBy(desc(sql<number>`count(${schema.likes.id})::int`))
+    .limit(limit);
+
+  if (trendingQuery.length === 0) return [];
+
+  const postIds = trendingQuery.map((t) => t.postId);
+  const posts = await db
+    .select()
+    .from(schema.posts)
+    .where(inArray(schema.posts.id, postIds));
+
+  const allMedia = await db
+    .select()
+    .from(schema.media)
+    .where(inArray(schema.media.postId, postIds))
+    .orderBy(schema.media.orderIndex);
+
+  let categoryMap = new Map<number, string>();
+  try {
+    const allCats = await db.select().from(schema.categories);
+    categoryMap = new Map(allCats.map((c) => [c.id, c.name]));
+  } catch {}
+
+  const rawResults = await Promise.all(
+    trendingQuery.map(async (t) => {
+      const post = posts.find((p) => p.id === t.postId);
+      if (!post) return null;
+
+      const postMedia = allMedia.filter((m) => m.postId === post.id);
+      const categoryName = post.categoryId ? (categoryMap.get(post.categoryId) ?? null) : null;
+
+      const formatted = await formatPostItem(post, postMedia, [], categoryName);
+      return {
+        ...formatted,
+        likeCount: t.likeCount,
+      };
+    }),
+  );
+
+  return rawResults.filter((p): p is NonNullable<typeof p> => p !== null);
 });

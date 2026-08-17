@@ -3,13 +3,7 @@
 import React from "react";
 import { clsx } from "clsx";
 import { X } from "lucide-react";
-import { TagItem } from "@/types";
-
-interface TagCloudProps {
-  tags: TagItem[];
-  activeTag: string | null;
-  onTagSelect: (slug: string | null) => void;
-}
+import { TagCloudProps } from "@/types";
 
 export function TagCloud({ tags, activeTag, onTagSelect }: TagCloudProps) {
   if (tags.length === 0) return null;

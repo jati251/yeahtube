@@ -23,11 +23,10 @@ export function useLikeMutation(postId: number) {
     mutationFn: (action: "like" | "dislike" | "none") =>
       api.post<LikeData>(`/api/posts/${postId}/like`, { action }),
     onSuccess: (resData) => {
-      queryClient.setQueryData<LikeData>(["post-like", postId], (old) => ({
-        likes: resData.likes ?? (old?.likes || 0),
-        dislikes: resData.dislikes ?? (old?.dislikes || 0),
-        userAction: resData.userAction,
-      }));
+      queryClient.setQueryData<LikeData>(["post-like", postId], resData);
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["post-like", postId] });
     },
   });
 }

@@ -73,6 +73,14 @@ async function seed() {
       PRIMARY KEY (post_id, tag_id)
     );
 
+    CREATE TABLE IF NOT EXISTS playlist_likes (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      playlist_id INTEGER NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, playlist_id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
@@ -82,6 +90,7 @@ async function seed() {
     CREATE INDEX IF NOT EXISTS idx_tags_slug ON tags(slug);
     CREATE INDEX IF NOT EXISTS idx_post_tags_tag_id ON post_tags(tag_id);
     CREATE INDEX IF NOT EXISTS idx_post_tags_post_id ON post_tags(post_id);
+    CREATE INDEX IF NOT EXISTS idx_playlist_likes_playlist_id ON playlist_likes(playlist_id);
   `);
 
   const db = drizzle(pool, { schema });

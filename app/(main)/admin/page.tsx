@@ -1,9 +1,8 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getDb, schema } from "@/db";
 import { AdminClient } from "./AdminClient";
-import { getAdminStats } from "@/lib/queries/admin";
+import { getAdminStats, getAdminUsers, getAllCategories } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +12,11 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const db = getDb();
-  const users = await db.select().from(schema.users).orderBy(schema.users.username);
-  const categories = await db.select().from(schema.categories).orderBy(schema.categories.name);
-
-  const stats = await getAdminStats();
+  const [users, categories, stats] = await Promise.all([
+    getAdminUsers(),
+    getAllCategories(),
+    getAdminStats(),
+  ]);
 
   return (
     <AdminClient
@@ -30,7 +29,10 @@ export default async function AdminPage() {
         isAdmin: !!u.isAdmin,
         createdAt: u.createdAt.toISOString(),
       }))}
-      categories={categories.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() }))}
+      categories={categories.map((c) => ({
+        ...c,
+        createdAt: c.createdAt.toISOString(),
+      }))}
       stats={stats}
     />
   );

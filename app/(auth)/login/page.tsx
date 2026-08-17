@@ -5,23 +5,10 @@ import { useRouter } from "next/navigation";
 import { Film } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-
-const CSRF_COOKIE_NAME = "yeahtube_csrf";
-const CSRF_HEADER_NAME = "x-csrf-token";
-
-/**
- * Read a cookie value by name (client-side only).
- */
-function getCookie(name: string): string | undefined {
-  const match = document.cookie.match(
-    new RegExp(`(?:^|;\\s*)${name}=([^;]*)`),
-  );
-  return match ? decodeURIComponent(match[1]) : undefined;
-}
+import { useLoginMutation } from "@/services/queries";
 
 export default function LoginPage() {
   const router = useRouter();
-  // Read redirect from URL directly — avoids useSearchParams() Suspense issue
   const redirect =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("redirect") || "/"
@@ -32,35 +19,19 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const loginMutation = useLoginMutation();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      // Read CSRF token from cookie — set by proxy.ts on /login page load
-      const csrfToken = getCookie(CSRF_COOKIE_NAME);
-
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { [CSRF_HEADER_NAME]: csrfToken } : {}),
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Login failed");
-        return;
-      }
-
+      await loginMutation.mutateAsync({ username, password });
       router.push(redirect);
       router.refresh();
-    } catch {
-      setError("An unexpected error occurred");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

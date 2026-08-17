@@ -3,27 +3,9 @@
 import React, { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useCategoriesQuery, useUpdatePostMutation } from "@/services/queries";
+import { EditablePost, EditPostModalProps } from "@/types";
 
-export interface EditablePost {
-  id: number;
-  title: string;
-  description: string | null;
-  categoryId?: number | null;
-  category?: string | null;
-}
-
-export interface EditPostModalProps {
-  post: EditablePost | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess?: (updated: {
-    id: number;
-    title: string;
-    description: string | null;
-    category: string | null;
-    categoryId?: number | null;
-  }) => void;
-}
+export type { EditablePost, EditPostModalProps };
 
 export function EditPostModal({
   post,

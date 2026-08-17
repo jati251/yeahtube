@@ -5,31 +5,12 @@ import { persist } from "zustand/middleware";
 import { PostItem } from "@/types/post";
 
 // ── Global PiP (persistent Picture-in-Picture across routes) ──
-
 interface GlobalPiPState {
   isActive: boolean;
   videoUrl: string;
   poster?: string;
   currentTime: number;
   isPlaying: boolean;
-}
-
-interface AppState {
-  feedScrollY: number;
-  browseScrollY: number;
-  setFeedScrollY: (y: number) => void;
-  setBrowseScrollY: (y: number) => void;
-
-  // Cached feed state for seamless back-navigation
-  cachedFeedPage: number;
-  cachedFeedPosts: PostItem[];
-  cachedFeedTotal: number;
-  setCachedFeed: (page: number, posts: PostItem[], total: number) => void;
-
-  // Global PiP — persists across route changes via layout-level <GlobalPlayer>
-  globalPiP: GlobalPiPState;
-  activateGlobalPiP: (state: Omit<GlobalPiPState, "isActive">) => void;
-  deactivateGlobalPiP: () => void;
 }
 
 const defaultGlobalPiP: GlobalPiPState = {
@@ -39,19 +20,104 @@ const defaultGlobalPiP: GlobalPiPState = {
   isPlaying: false,
 };
 
+interface AppState {
+  // ── Scroll & Feed Cache ──────────────────────────────
+  feedScrollY: number;
+  browseScrollY: number;
+  setFeedScrollY: (y: number) => void;
+  setBrowseScrollY: (y: number) => void;
+
+  cachedFeedPage: number;
+  cachedFeedPosts: PostItem[];
+  cachedFeedTotal: number;
+  setCachedFeed: (page: number, posts: PostItem[], total: number) => void;
+
+  // ── Feed View & Filter Controls ──────────────────────
+  feedViewMode: "grid" | "list";
+  setFeedViewMode: (mode: "grid" | "list") => void;
+
+  feedSearchQuery: string;
+  setFeedSearchQuery: (q: string) => void;
+
+  feedResetCount: number;
+  triggerFeedReset: () => void;
+
+  postsRevision: number;
+  triggerPostsRefresh: () => void;
+
+  // ── Persistent Global Audio ──────────────────────────
+  globalVolume: number;
+  setGlobalVolume: (vol: number) => void;
+  globalMuted: boolean;
+  setGlobalMuted: (muted: boolean) => void;
+
+  // ── Global Modals & Hover Previews ──────────────────
+  activePreviewCardId: number | null;
+  setActivePreviewCardId: (id: number | null) => void;
+
+  isUploadModalOpen: boolean;
+  openUploadModal: () => void;
+  closeUploadModal: () => void;
+
+  // ── Global PiP ───────────────────────────────────────
+  globalPiP: GlobalPiPState;
+  activateGlobalPiP: (state: Omit<GlobalPiPState, "isActive">) => void;
+  deactivateGlobalPiP: () => void;
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
+      // Scroll positions
       feedScrollY: 0,
       browseScrollY: 0,
+      setFeedScrollY: (feedScrollY) => set({ feedScrollY }),
+      setBrowseScrollY: (browseScrollY) => set({ browseScrollY }),
+
+      // Feed Cache
       cachedFeedPage: 0,
       cachedFeedPosts: [],
       cachedFeedTotal: 0,
-
-      setFeedScrollY: (feedScrollY) => set({ feedScrollY }),
-      setBrowseScrollY: (browseScrollY) => set({ browseScrollY }),
       setCachedFeed: (cachedFeedPage, cachedFeedPosts, cachedFeedTotal) =>
         set({ cachedFeedPage, cachedFeedPosts, cachedFeedTotal }),
+
+      // Feed View Mode (persisted across visits)
+      feedViewMode: "grid",
+      setFeedViewMode: (feedViewMode) => set({ feedViewMode }),
+
+      // Reactive Feed Search & Filters (Replaces DOM CustomEvents)
+      feedSearchQuery: "",
+      setFeedSearchQuery: (feedSearchQuery) => set({ feedSearchQuery }),
+
+      feedResetCount: 0,
+      triggerFeedReset: () =>
+        set((state) => ({
+          feedResetCount: state.feedResetCount + 1,
+          feedSearchQuery: "",
+          cachedFeedPage: 1,
+        })),
+
+      postsRevision: 0,
+      triggerPostsRefresh: () =>
+        set((state) => ({
+          postsRevision: state.postsRevision + 1,
+          cachedFeedPage: 0,
+          cachedFeedPosts: [],
+        })),
+
+      // Global Audio Settings
+      globalVolume: 1,
+      setGlobalVolume: (globalVolume) => set({ globalVolume }),
+      globalMuted: false,
+      setGlobalMuted: (globalMuted) => set({ globalMuted }),
+
+      // Global Modals & Hover Previews
+      activePreviewCardId: null,
+      setActivePreviewCardId: (activePreviewCardId) => set({ activePreviewCardId }),
+
+      isUploadModalOpen: false,
+      openUploadModal: () => set({ isUploadModalOpen: true }),
+      closeUploadModal: () => set({ isUploadModalOpen: false }),
 
       // Global PiP
       globalPiP: { ...defaultGlobalPiP },
@@ -61,7 +127,7 @@ export const useAppStore = create<AppState>()(
         set({ globalPiP: { ...defaultGlobalPiP } }),
     }),
     {
-      name: "yeahtube-app",
+      name: "yeahtube-app-state",
       storage: {
         getItem: (name) => {
           if (typeof window === "undefined") return null;
@@ -79,12 +145,16 @@ export const useAppStore = create<AppState>()(
           }
         },
       },
-      // Don't persist global PiP across page sessions
-      partialize: (state: AppState) => {
-        const { globalPiP: _, ...rest } = state;
-        void _;
-        return rest;
-      },
+      // Keep feed view mode, volume, and cache across session
+      partialize: (state: AppState) => ({
+        feedViewMode: state.feedViewMode,
+        globalVolume: state.globalVolume,
+        feedScrollY: state.feedScrollY,
+        browseScrollY: state.browseScrollY,
+        cachedFeedPage: state.cachedFeedPage,
+        cachedFeedPosts: state.cachedFeedPosts,
+        cachedFeedTotal: state.cachedFeedTotal,
+      }),
     },
   ),
 );

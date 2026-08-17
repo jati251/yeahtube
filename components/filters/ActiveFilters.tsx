@@ -2,21 +2,7 @@
 
 import React from "react";
 import { X } from "lucide-react";
-
-interface ActiveFiltersProps {
-  mediaType: string | null;
-  selectedTags: string[];
-  searchQuery: string | null;
-  category: string | null;
-  year: string | null;
-  sort: string;
-  onRemoveMediaType: () => void;
-  onRemoveTag: (slug: string) => void;
-  onRemoveSearch: () => void;
-  onRemoveCategory: () => void;
-  onRemoveYear: () => void;
-  onClearAll: () => void;
-}
+import { ActiveFiltersProps } from "@/types";
 
 export function ActiveFilters({
   mediaType,
@@ -56,7 +42,7 @@ export function ActiveFilters({
 
       {mediaType && (
         <span className={badgeClass}>
-          {mediaType === "image" ? "Images" : "Videos"}
+          {mediaType === "image" ? "Images" : mediaType === "playlist" ? "Playlists" : "Videos"}
           <button onClick={onRemoveMediaType} className={closeBtnClass} aria-label="Remove media type filter">
             <X className="h-3.5 w-3.5" />
           </button>

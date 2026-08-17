@@ -6,12 +6,9 @@ import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Shield, ShieldOff, Check, X, UserPlus } from "lucide-react";
-import { UserItem } from "@/types/admin";
-
-interface UserManagerProps {
-  initialUsers: UserItem[];
-  currentUserId: number;
-}
+import { UserManagerProps } from "@/types";
+import { formatDate } from "@/utils";
+import { api } from "@/lib/api-client";
 
 export function UserManager({ initialUsers, currentUserId }: UserManagerProps) {
   const router = useRouter();
@@ -30,19 +27,7 @@ export function UserManager({ initialUsers, currentUserId }: UserManagerProps) {
   ) => {
     try {
       const newValue = !currentValue;
-      const csrfToken = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`)
-      )?.[1];
-      const res = await fetch(`/api/admin/users/${userId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-        body: JSON.stringify({ [field]: newValue }),
-      });
-
-      if (!res.ok) throw new Error("Failed to update");
+      await api.patch(`/api/admin/users/${userId}`, { [field]: newValue });
 
       setUserList((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, [field]: newValue } : u))
@@ -68,23 +53,12 @@ export function UserManager({ initialUsers, currentUserId }: UserManagerProps) {
     }
     setAdding(true);
     try {
-      const csrfToken = document.cookie.match(
-        new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`)
-      )?.[1];
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-        body: JSON.stringify({
-          username: newUsername.trim(),
-          password: newPassword.trim(),
-          isAdmin: newIsAdmin,
-        }),
+      const data = await api.post<{ user: typeof initialUsers[0] }>("/api/admin/users", {
+        username: newUsername.trim(),
+        password: newPassword.trim(),
+        isAdmin: newIsAdmin,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create user");
+
       addToast("success", `User "${newUsername.trim()}" created`);
       setUserList((prev) => [...prev, data.user]);
       setNewUsername("");
@@ -213,7 +187,7 @@ export function UserManager({ initialUsers, currentUserId }: UserManagerProps) {
                   </button>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-zinc-500 dark:text-zinc-400">
-                  {new Date(u.createdAt).toLocaleDateString()}
+                  {formatDate(u.createdAt)}
                 </td>
               </tr>
             ))}

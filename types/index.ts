@@ -6,3 +6,7 @@ export * from "./player";
 export * from "./playlist";
 export * from "./comment";
 export * from "./category";
+export * from "./upload";
+export * from "./media";
+export * from "./layout";
+export * from "./ui";

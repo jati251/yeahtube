@@ -3,23 +3,8 @@
 import React, { useEffect, useCallback, useRef } from "react";
 import { clsx } from "clsx";
 import { X } from "lucide-react";
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title?: string;
-  children: React.ReactNode;
-  size?: "sm" | "md" | "lg" | "xl" | "full";
-  isMinimized?: boolean;
-}
-
-const sizeStyles = {
-  sm: "max-w-sm",
-  md: "max-w-md",
-  lg: "max-w-lg",
-  xl: "max-w-xl",
-  full: "max-w-full mx-4",
-};
+import { ModalProps } from "@/types";
+import { MODAL_SIZE_STYLES } from "@/constants";
 
 export function Modal({
   isOpen,
@@ -70,7 +55,7 @@ export function Modal({
         className={clsx(
           "relative z-10 flex w-full flex-col",
           !isMinimized && "max-h-[90vh] rounded-xl bg-white shadow-xl dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/80",
-          !isMinimized && sizeStyles[size],
+          !isMinimized && MODAL_SIZE_STYLES[size],
           isMinimized && "pointer-events-auto"
         )}
         role="dialog"

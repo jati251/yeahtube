@@ -1,105 +1,59 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { Film, Image as ImageIcon, Clock } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
-
-interface MediaCardProps {
-  post: {
-    id: number;
-    title: string;
-    description: string | null;
-    createdAt: string;
-    tags: { id: number; name: string; slug: string }[];
-    mediaCount: number;
-    thumbnailUrl: string | null;
-    videoUrl?: string | null;
-    previewUrl?: string | null;
-    mediaType: "image" | "video" | "mixed";
-    duration?: number | null;
-    width?: number | null;
-    height?: number | null;
-    views?: number;
-  };
-  isAdmin?: boolean;
-  selectMode?: boolean;
-  selected?: boolean;
-  onToggleSelect?: (id: number) => void;
-  onDelete?: (id: number) => void;
-  onEdit?: (post: MediaCardProps["post"]) => void;
-  deleting?: boolean;
-}
+import { useAppStore } from "@/stores/appStore";
+import { MediaCardProps } from "@/types";
 
 export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, onEdit, deleting }: MediaCardProps) {
   const quality = getQualityLabel(post.width, post.height);
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
 
-  // useMemo instead of useEffect for derived state
   const timeAgo = useMemo(() => getTimeAgo(post.createdAt), [post.createdAt]);
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [previewTriggered, setPreviewTriggered] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // --- Stable refs for event handlers ---
-  const isPlayingRef = useRef(isPlaying);
-  const isDispatchingRef = useRef(false);
+  const activePreviewCardId = useAppStore((s) => s.activePreviewCardId);
+  const setActivePreviewCardId = useAppStore((s) => s.setActivePreviewCardId);
 
-  // Register "stop-all-previews" listener once, using stable refs
-  const handleStopAll = useCallback(() => {
-    if (isDispatchingRef.current) {
-      isDispatchingRef.current = false;
-      return;
-    }
-    if (isPlayingRef.current) {
-      isPlayingRef.current = false;
-      setIsPlaying(false);
-      setPreviewTriggered(false);
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.currentTime = 0;
-      }
-    }
-  }, []);
+  // Derived state: active card is the one playing globally
+  const isPlaying = activePreviewCardId === post.id;
 
-  useEffect(() => {
-    window.addEventListener("stop-all-previews", handleStopAll);
-    return () => window.removeEventListener("stop-all-previews", handleStopAll);
-  }, [handleStopAll]);
-
-  // Auto-stop mobile preview after 3 seconds (consolidated timer logic)
+  // Auto-stop mobile preview after 3 seconds
   const startPlaying = useCallback(() => {
-    isPlayingRef.current = true;
-    setIsPlaying(true);
-    // Dispatch event to stop other previews
-    isDispatchingRef.current = true;
-    window.dispatchEvent(new CustomEvent("stop-all-previews"));
+    setActivePreviewCardId(post.id);
+
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
 
     // Auto-stop after 3s on mobile
     if (window.matchMedia("(pointer: coarse)").matches) {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
       previewTimerRef.current = setTimeout(() => {
-        isPlayingRef.current = false;
-        setIsPlaying(false);
         setPreviewTriggered(false);
+        setActivePreviewCardId(null);
         if (videoRef.current) {
           videoRef.current.pause();
           videoRef.current.currentTime = 0;
         }
       }, 3000);
     }
-  }, []);
+  }, [post.id, setActivePreviewCardId]);
 
   const stopPlaying = useCallback(() => {
-    isPlayingRef.current = false;
-    setIsPlaying(false);
     setPreviewTriggered(false);
+    if (activePreviewCardId === post.id) {
+      setActivePreviewCardId(null);
+    }
     if (previewTimerRef.current) {
       clearTimeout(previewTimerRef.current);
       previewTimerRef.current = null;
@@ -108,43 +62,42 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
-  }, []);
+  }, [activePreviewCardId, post.id, setActivePreviewCardId]);
 
   const CardContent = (
     <>
       {/* Thumbnail */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100 dark:bg-zinc-900 rounded-t-2xl">
+      <div
+        className="relative aspect-[4/3] overflow-hidden bg-zinc-100 dark:bg-zinc-900 rounded-t-2xl"
+        onMouseEnter={() => {
+          if (post.previewUrl) startPlaying();
+        }}
+        onMouseLeave={() => {
+          if (post.previewUrl) stopPlaying();
+        }}
+        onTouchStart={(e) => {
+          if (post.previewUrl && !previewTriggered) {
+            e.stopPropagation();
+            startPlaying();
+            setPreviewTriggered(true);
+          }
+        }}
+        onTouchCancel={() => {
+          if (post.previewUrl) stopPlaying();
+        }}
+      >
         {post.previewUrl && (
           <video
             ref={videoRef}
             src={post.previewUrl}
             className={clsx(
-              "absolute inset-0 z-20 h-full w-full object-contain transition-opacity duration-500",
+              "pointer-events-none absolute inset-0 z-20 h-full w-full object-contain transition-opacity duration-500",
               isPlaying ? "opacity-100" : "opacity-0"
             )}
             muted
             loop
             playsInline
             preload="none"
-            onMouseEnter={(e) => {
-              startPlaying();
-              e.currentTarget.play().catch(() => {});
-            }}
-            onMouseLeave={() => {
-              stopPlaying();
-            }}
-            onTouchStart={(e) => {
-              if (!previewTriggered) {
-                e.preventDefault();
-                e.stopPropagation();
-                startPlaying();
-                setPreviewTriggered(true);
-                e.currentTarget.play().catch(() => {});
-              }
-            }}
-            onTouchCancel={() => {
-              stopPlaying();
-            }}
           />
         )}
         {post.thumbnailUrl ? (
@@ -180,7 +133,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
         )}
 
         {/* Badges */}
-        <div className="absolute bottom-2 left-2 z-10 flex gap-2">
+        <div className="pointer-events-none absolute bottom-2 left-2 z-30 flex gap-2">
           {quality && post.mediaType !== "image" ? (
             <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium text-white shadow-sm ${quality.color}`}>
               {quality.label}
@@ -209,8 +162,8 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
       </div>
 
       {/* Info */}
-      <div className="min-w-0 p-4">
-        <h3 className="line-clamp-2 text-sm sm:text-[1.05rem] font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug break-words" title={post.title}>
+      <div className="min-w-0 p-3 sm:p-4">
+        <h3 className="line-clamp-2 text-xs sm:text-[1.05rem] font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug break-words" title={post.title}>
           {post.title}
         </h3>
         {post.description && (

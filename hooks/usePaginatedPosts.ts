@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PostItem } from "@/types/post";
-import { DEFAULT_PAGE_SIZE, CUSTOM_EVENTS } from "@/lib/constants";
+import { useAppStore } from "@/stores/appStore";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { usePostsQuery, PostsQueryParams } from "@/services/queries";
 
 interface UsePaginatedPostsOptions {
@@ -23,6 +24,7 @@ export function usePaginatedPosts({
   autoFetch = true,
 }: UsePaginatedPostsOptions) {
   const queryClient = useQueryClient();
+  const { postsRevision } = useAppStore();
   const [page, setPage] = useState(initialPage);
   const [localPosts, setLocalPosts] = useState<PostItem[] | null>(null);
 
@@ -42,7 +44,7 @@ export function usePaginatedPosts({
   // If filters/sort have changed, we must NOT pass initialData or TanStack Query
   // will use the stale server data instead of fetching with the new params.
   const isInitialParams =
-    page === 1 &&
+    page === initialPage &&
     (!fetchParams.type) &&
     (!fetchParams.tags) &&
     (!fetchParams.q) &&
@@ -97,16 +99,16 @@ export function usePaginatedPosts({
     [queryClient, limitVal, fetchParams],
   );
 
-  // Post-created event: invalidate all post queries and refetch page 1
+  // React to Zustand store postsRevision (when a post is created, deleted, or edited)
+  const prevRevisionRef = useRef(postsRevision);
   useEffect(() => {
-    const handler = () => {
+    if (postsRevision > prevRevisionRef.current) {
+      prevRevisionRef.current = postsRevision;
       setLocalPosts(null);
       setPage(1);
       queryClient.invalidateQueries({ queryKey: ["posts"] });
-    };
-    window.addEventListener(CUSTOM_EVENTS.POST_CREATED, handler);
-    return () => window.removeEventListener(CUSTOM_EVENTS.POST_CREATED, handler);
-  }, [queryClient]);
+    }
+  }, [postsRevision, queryClient]);
 
   return {
     posts,

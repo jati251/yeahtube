@@ -2,33 +2,120 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and, or, inArray, isNotNull, asc } from "drizzle-orm";
+import { getPresignedUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const { searchParams } = new URL(request.url);
+    const isPublicQuery = searchParams.get("public") === "true";
+    const searchQuery = searchParams.get("q");
+    const sortBy = searchParams.get("sort") || "recent"; // "recent" | "popular"
+
     const db = getDb();
-    
-    // Get user playlists with video count
+
+    // Query playlists with videoCount, likesCount, and author username
+    const baseWhere = isPublicQuery
+      ? or(eq(schema.playlists.isPublic, 1), eq(schema.playlists.userId, user.id))
+      : eq(schema.playlists.userId, user.id);
+
+    const whereClause = searchQuery
+      ? and(baseWhere, sql`lower(${schema.playlists.name}) LIKE ${`%${searchQuery.toLowerCase()}%`}`)
+      : baseWhere;
+
     const playlistsData = await db
       .select({
         id: schema.playlists.id,
         name: schema.playlists.name,
         isPublic: schema.playlists.isPublic,
         createdAt: schema.playlists.createdAt,
-        videoCount: sql<number>`count(${schema.playlistItems.id})::int`,
+        userId: schema.playlists.userId,
+        username: schema.users.username,
+        videoCount: sql<number>`count(distinct ${schema.playlistItems.id})::int`,
+        likesCount: sql<number>`(select count(*)::int from playlist_likes where playlist_likes.playlist_id = "playlists"."id")`,
+        userLiked: sql<boolean>`exists(select 1 from playlist_likes where playlist_likes.playlist_id = "playlists"."id" and playlist_likes.user_id = ${user.id})`,
       })
       .from(schema.playlists)
+      .leftJoin(schema.users, eq(schema.playlists.userId, schema.users.id))
       .leftJoin(schema.playlistItems, eq(schema.playlists.id, schema.playlistItems.playlistId))
-      .where(eq(schema.playlists.userId, user.id))
-      .groupBy(schema.playlists.id)
-      .orderBy(desc(schema.playlists.createdAt));
+      .where(whereClause)
+      .groupBy(schema.playlists.id, schema.users.id)
+      .orderBy(
+        sortBy === "popular"
+          ? desc(sql`(select count(*)::int from playlist_likes where playlist_likes.playlist_id = "playlists"."id")`)
+          : desc(schema.playlists.createdAt),
+      );
 
-    return NextResponse.json({ playlists: playlistsData });
+    // Fetch sample thumbnail keys for these playlists
+    const playlistIds = playlistsData.map((p) => p.id);
+    const playlistThumbnailsMap: Record<number, { id: number; thumbnailUrl: string }[]> = {};
+
+    if (playlistIds.length > 0) {
+      const sampleMediaItems = await db
+        .select({
+          playlistId: schema.playlistItems.playlistId,
+          postId: schema.playlistItems.postId,
+          thumbnailKey: schema.media.thumbnailKey,
+        })
+        .from(schema.playlistItems)
+        .innerJoin(schema.media, eq(schema.playlistItems.postId, schema.media.postId))
+        .where(
+          and(
+            inArray(schema.playlistItems.playlistId, playlistIds),
+            isNotNull(schema.media.thumbnailKey),
+          ),
+        )
+        .orderBy(desc(schema.playlistItems.addedAt), asc(schema.media.orderIndex));
+
+      const seenPerPlaylist = new Map<number, Set<number>>();
+      const itemsToResolve: { playlistId: number; id: number; thumbnailKey: string }[] = [];
+
+      for (const item of sampleMediaItems) {
+        if (!item.thumbnailKey) continue;
+        if (!seenPerPlaylist.has(item.playlistId)) {
+          seenPerPlaylist.set(item.playlistId, new Set());
+        }
+        const seen = seenPerPlaylist.get(item.playlistId)!;
+        if (seen.size < 5 && !seen.has(item.postId)) {
+          seen.add(item.postId);
+          itemsToResolve.push({
+            playlistId: item.playlistId,
+            id: item.postId,
+            thumbnailKey: item.thumbnailKey,
+          });
+        }
+      }
+
+      const resolved = await Promise.all(
+        itemsToResolve.map(async (it) => ({
+          playlistId: it.playlistId,
+          id: it.id,
+          thumbnailUrl: await getPresignedUrl(it.thumbnailKey),
+        })),
+      );
+
+      for (const res of resolved) {
+        if (!playlistThumbnailsMap[res.playlistId]) {
+          playlistThumbnailsMap[res.playlistId] = [];
+        }
+        playlistThumbnailsMap[res.playlistId].push({
+          id: res.id,
+          thumbnailUrl: res.thumbnailUrl,
+        });
+      }
+    }
+
+    const playlistsWithThumbnails = playlistsData.map((p) => ({
+      ...p,
+      sampleThumbnails: playlistThumbnailsMap[p.id] || [],
+    }));
+
+    return NextResponse.json({ playlists: playlistsWithThumbnails });
   } catch (error) {
     console.error("Playlists GET error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

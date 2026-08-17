@@ -15,17 +15,38 @@ export async function GET(request: NextRequest) {
     }
 
     const db = getDb();
-    
-    // Quick search for titles
-    const results = await db
-      .select({
-        id: schema.posts.id,
-        title: schema.posts.title,
-      })
-      .from(schema.posts)
-      .where(like(schema.posts.title, `%${q}%`))
-      .orderBy(desc(schema.posts.createdAt))
-      .limit(5);
+    const { and, eq, sql } = await import("drizzle-orm");
+
+    // Quick search for titles and public playlists
+    const [postResults, playlistResults] = await Promise.all([
+      db
+        .select({
+          id: schema.posts.id,
+          title: schema.posts.title,
+          type: sql<string>`'post'`,
+        })
+        .from(schema.posts)
+        .where(like(schema.posts.title, `%${q}%`))
+        .orderBy(desc(schema.posts.createdAt))
+        .limit(5),
+      db
+        .select({
+          id: schema.playlists.id,
+          title: schema.playlists.name,
+          type: sql<string>`'playlist'`,
+        })
+        .from(schema.playlists)
+        .where(
+          and(
+            eq(schema.playlists.isPublic, 1),
+            like(schema.playlists.name, `%${q}%`),
+          ),
+        )
+        .orderBy(desc(schema.playlists.createdAt))
+        .limit(3),
+    ]);
+
+    const results = [...postResults, ...playlistResults];
 
     return NextResponse.json({ results });
   } catch (error) {

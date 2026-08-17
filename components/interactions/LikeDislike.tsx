@@ -3,11 +3,7 @@
 import React, { useState } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useLikeQuery, useLikeMutation, LikeData } from "@/services/queries";
-
-interface LikeDislikeProps {
-  postId: number;
-  variant?: "horizontal" | "vertical";
-}
+import { LikeDislikeProps } from "@/types";
 
 export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps) {
   const { data = { likes: 0, dislikes: 0, userAction: null }, isLoading: loading } = useLikeQuery(postId);

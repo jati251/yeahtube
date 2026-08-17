@@ -1,0 +1,114 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { Heart, Globe, Lock, ListVideo, User } from "lucide-react";
+import { PlaylistCoverCollage } from "./PlaylistCoverCollage";
+import { PlaylistCardProps, PlaylistLikeData } from "@/types";
+import { usePlaylistLikeQuery, usePlaylistLikeMutation } from "@/services/queries";
+import { clsx } from "clsx";
+
+export function PlaylistCard({ playlist }: PlaylistCardProps) {
+  const initialLikes = playlist.likesCount || 0;
+  const initialUserLiked = Boolean(playlist.userLiked);
+
+  const { data: likeData } = usePlaylistLikeQuery(playlist.id);
+  const likeMutation = usePlaylistLikeMutation(playlist.id);
+
+  const [optimisticLike, setOptimisticLike] = useState<PlaylistLikeData | null>(null);
+
+  const currentLikes = optimisticLike?.likes ?? likeData?.likes ?? initialLikes;
+  const isLiked = optimisticLike?.userLiked ?? likeData?.userLiked ?? initialUserLiked;
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const nextLiked = !isLiked;
+    const nextCount = nextLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+
+    setOptimisticLike({
+      likes: nextCount,
+      userLiked: nextLiked,
+    });
+
+    likeMutation.mutate(undefined, {
+      onSettled: () => setOptimisticLike(null),
+    });
+  };
+
+  const totalItems = playlist.videoCount ?? playlist.itemCount ?? 0;
+  const isPublic = Boolean(playlist.isPublic);
+
+  return (
+    <Link
+      href={`/playlists/${playlist.id}`}
+      className="group relative block overflow-hidden rounded-2xl glass-card premium-hover transition-all duration-300 select-none cursor-pointer"
+    >
+      {/* 5-Cover Dynamic Collage Card */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-900 rounded-t-2xl">
+        <PlaylistCoverCollage
+          thumbnails={playlist.sampleThumbnails || []}
+          totalCount={totalItems}
+          playlistName={playlist.name}
+        />
+
+        {/* Top Badges (Public / Private) */}
+        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[11px] font-medium text-white border border-white/10 shadow-sm">
+          {isPublic ? (
+            <>
+              <Globe className="h-3 w-3 text-blue-400" />
+              <span>Public</span>
+            </>
+          ) : (
+            <>
+              <Lock className="h-3 w-3 text-zinc-400" />
+              <span>Private</span>
+            </>
+          )}
+        </div>
+
+        {/* Favorite / Like Button */}
+        <button
+          onClick={handleLike}
+          disabled={likeMutation.isPending}
+          className={clsx(
+            "absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur-md border shadow-md transition-all active:scale-95 cursor-pointer",
+            isLiked
+              ? "bg-rose-600/90 text-white border-rose-400/80 shadow-rose-900/30"
+              : "bg-black/60 text-white hover:bg-black/80 border-white/10",
+          )}
+          title={isLiked ? "Unlike playlist" : "Favorite playlist"}
+        >
+          <Heart className={clsx("h-3.5 w-3.5", isLiked ? "fill-white text-white" : "text-white")} />
+          <span>{currentLikes}</span>
+        </button>
+
+        {/* Bottom Item Count Badge */}
+        <div className="absolute bottom-2.5 right-2.5 z-20 flex items-center gap-1 rounded-md bg-black/75 backdrop-blur-md px-2 py-0.5 text-[11px] font-medium text-white shadow-sm border border-white/10">
+          <ListVideo className="h-3.5 w-3.5 text-blue-400" />
+          <span>{totalItems} {totalItems === 1 ? "item" : "items"}</span>
+        </div>
+      </div>
+
+      {/* Info Section */}
+      <div className="p-3.5 sm:p-4">
+        <h3 className="line-clamp-2 text-sm sm:text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          {playlist.name}
+        </h3>
+
+        <div className="mt-2 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+          {playlist.username && (
+            <div className="flex items-center gap-1.5 truncate">
+              <User className="h-3.5 w-3.5 text-zinc-400" />
+              <span className="truncate">{playlist.username}</span>
+            </div>
+          )}
+          <span className="shrink-0 text-[11px] text-zinc-400">
+            {playlist.createdAt ? new Date(playlist.createdAt).toLocaleDateString() : ""}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}

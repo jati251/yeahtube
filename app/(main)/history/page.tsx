@@ -1,9 +1,7 @@
 import "server-only";
-import { getDb, schema } from "@/db";
-import { eq, desc, inArray } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/auth";
-import { formatPostItem } from "@/lib/posts";
 import { redirect } from "next/navigation";
+import { getUserWatchHistory } from "@/lib/queries";
 import { FeedClient } from "../FeedClient";
 
 export const dynamic = "force-dynamic";
@@ -14,19 +12,9 @@ export default async function HistoryPage() {
     redirect("/");
   }
 
-  const db = getDb();
+  const finalPosts = await getUserWatchHistory(user.id);
 
-  const historyEntries = await db
-    .select({
-      postId: schema.watchHistory.postId,
-      watchedAt: schema.watchHistory.watchedAt,
-    })
-    .from(schema.watchHistory)
-    .where(eq(schema.watchHistory.userId, user.id))
-    .orderBy(desc(schema.watchHistory.watchedAt))
-    .limit(50);
-
-  if (historyEntries.length === 0) {
+  if (finalPosts.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 text-center">
         <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-zinc-900 dark:text-zinc-50">Watch History</h1>
@@ -34,37 +22,6 @@ export default async function HistoryPage() {
       </div>
     );
   }
-
-  const postIds = historyEntries.map(e => e.postId);
-
-  const posts = await db
-    .select()
-    .from(schema.posts)
-    .where(inArray(schema.posts.id, postIds));
-
-  const allMedia = await db
-    .select()
-    .from(schema.media)
-    .where(inArray(schema.media.postId, postIds))
-    .orderBy(schema.media.orderIndex);
-
-  // Build result maintaining history order
-  const result = await Promise.all(
-    historyEntries.map(async (entry) => {
-      const post = posts.find(p => p.id === entry.postId);
-      if (!post) return null;
-
-      const postMedia = allMedia.filter((m) => m.postId === post.id);
-      const formatted = await formatPostItem(post, postMedia, [], null);
-
-      return {
-        ...formatted,
-        createdAt: entry.watchedAt instanceof Date ? entry.watchedAt.toISOString() : String(entry.watchedAt),
-      };
-    })
-  );
-
-  const finalPosts = result.filter((p): p is NonNullable<typeof p> => p !== null);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { PostItem } from "@/types/post";
+import { PostItem } from "@/types";
+import { api } from "@/lib/api-client";
 
 export interface ConfirmState {
   open: boolean;
@@ -22,12 +23,6 @@ export function usePostSelection(
   const [deleting, setDeleting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
-
-  const getCsrfToken = useCallback(() => {
-    return document.cookie.match(
-      new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`),
-    )?.[1];
-  }, []);
 
   const toggleSelectMode = useCallback(() => {
     setSelectMode((prev) => !prev);
@@ -57,14 +52,7 @@ export function usePostSelection(
     async (postId: number) => {
       setDeletingId(postId);
       try {
-        const csrfToken = getCsrfToken();
-        const res = await fetch(`/api/posts/${postId}`, {
-          method: "DELETE",
-          headers: {
-            ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-          },
-        });
-        if (!res.ok) throw new Error("Delete failed");
+        await api.delete(`/api/posts/${postId}`);
 
         setPosts((prev) => prev.filter((p) => p.id !== postId));
         setSelectedIds((prev) => {
@@ -80,7 +68,7 @@ export function usePostSelection(
         setDeletingId(null);
       }
     },
-    [getCsrfToken, setPosts, addToast, router],
+    [setPosts, addToast, router],
   );
 
   const handleDelete = useCallback(
@@ -104,18 +92,11 @@ export function usePostSelection(
     if (selectedIds.size === 0) return;
     setDeleting(true);
     try {
-      const csrfToken = getCsrfToken();
-      const res = await fetch("/api/posts/batch", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
+      const data = await api.delete<{ success: boolean; deletedCount: number }>("/api/posts/batch", {
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: Array.from(selectedIds) }),
       });
-      if (!res.ok) throw new Error("Bulk delete failed");
 
-      const data = await res.json();
       setPosts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
       setSelectedIds(new Set());
       setSelectMode(false);
@@ -125,11 +106,11 @@ export function usePostSelection(
       );
       router.refresh();
     } catch {
-      addToast?.("error", "Failed to delete posts");
+      addToast?.("error", "Failed to delete selected posts");
     } finally {
       setDeleting(false);
     }
-  }, [selectedIds, getCsrfToken, setPosts, addToast, router]);
+  }, [selectedIds, setPosts, addToast, router]);
 
   const handleBulkDelete = useCallback(() => {
     if (selectedIds.size === 0) return;

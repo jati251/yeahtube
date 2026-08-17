@@ -1,24 +1,14 @@
 import "server-only";
 import React from "react";
-import { getDb, schema } from "@/db";
+import { getAllCategories } from "@/lib/queries";
 import { UploadForm } from "@/components/upload/UploadForm";
 import { ArrowLeft, Upload } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-async function getCategories() {
-  try {
-    const db = getDb();
-    return await db.select().from(schema.categories).orderBy(schema.categories.name);
-  } catch {
-    // Table may not exist yet (pre-seed DB). Gracefully degrade.
-    return [];
-  }
-}
-
 export default async function UploadPage() {
-  const categories = await getCategories();
+  const categories = await getAllCategories();
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8">

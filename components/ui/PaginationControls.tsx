@@ -3,18 +3,7 @@
 import React from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { clsx } from "clsx";
-
-interface PaginationControlsProps {
-  page: number;
-  totalPages: number;
-  total: number;
-  loading?: boolean;
-  onNext: () => void;
-  onPrev: () => void;
-  onFirst: () => void;
-  onLast: () => void;
-  onPage?: (page: number) => void;
-}
+import { PaginationControlsProps } from "@/types";
 
 function buildPages(page: number, totalPages: number, maxVisible: number): (number | "ellipsis")[] {
   if (totalPages <= maxVisible) {

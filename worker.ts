@@ -10,7 +10,7 @@
 import "./db/env";
 import readline from "readline/promises";
 import { Worker, Job, Queue } from "bullmq";
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
@@ -374,6 +374,17 @@ async function main() {
       const newStorageKey = `uploads/videos/${folderPath}/${uniqueId}_av1.mp4`;
 
       try {
+        // Pre-check if source video exists in S3
+        try {
+          await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: storageKey }));
+        } catch (headErr: unknown) {
+          const err = headErr as { name?: string; $metadata?: { httpStatusCode?: number } };
+          if (err.name === "NotFound" || err.$metadata?.httpStatusCode === 404 || err.name === "NoSuchKey") {
+            logMessage(`⚠️ [Slot ${slotIdx + 1}] Media #${mediaId} ("${filename}") tidak ditemukan di S3 (${storageKey}). Skipped.`);
+            return;
+          }
+        }
+
         if (slots[slotIdx]) slots[slotIdx]!.step = "🔍 [1/5] Probing";
 
         const presignedUrl = await getSignedUrl(

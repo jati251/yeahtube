@@ -196,3 +196,8 @@ export async function getAdminStats(): Promise<AdminStats> {
     largestFiles,
   };
 }
+
+export async function getAdminUsers() {
+  const db = getDb();
+  return db.select().from(schema.users).orderBy(schema.users.username);
+}

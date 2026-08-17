@@ -1,38 +1,49 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ReelsFeed } from "@/components/media/ReelsFeed";
-import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
-import { PostItem } from "@/types/post";
+import { PostItem, ShortsClientProps } from "@/types";
+import { fetchRandomShorts } from "@/services/queries";
 import { useRouter } from "next/navigation";
 
-interface ShortsClientProps {
-  initialPosts: PostItem[];
-  initialTotal: number;
-}
-
-export function ShortsClient({ initialPosts, initialTotal }: ShortsClientProps) {
+export function ShortsClient({ initialPosts }: ShortsClientProps) {
   const router = useRouter();
-  
-  const { posts, loading, page, totalPages, goToPage } = usePaginatedPosts({
-    initialPosts,
-    initialTotal,
-    initialPage: 1,
-    fetchParams: {
-      limit: 15,
-      sort: "random",
-    },
-    autoFetch: false,
-    appendMode: true,
-  });
+  const [posts, setPosts] = useState<PostItem[]>(initialPosts);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const seenIdsRef = useRef<Set<number>>(new Set(initialPosts.map((p) => p.id)));
 
-  // Hide global scrollbar when mounted
+  // Hide global scrollbar on body when mounted
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "auto";
     };
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore) return;
+    setIsLoadingMore(true);
+
+    try {
+      // Fetch next batch of random video posts
+      const newPosts = await fetchRandomShorts(15);
+
+      if (newPosts.length > 0) {
+        setPosts((prev) => {
+          // Prefer posts not seen yet; if all seen, still append to maintain infinite loop
+          const unseen = newPosts.filter((p) => !seenIdsRef.current.has(p.id));
+          const toAdd = unseen.length > 0 ? unseen : newPosts;
+
+          toAdd.forEach((p) => seenIdsRef.current.add(p.id));
+          return [...prev, ...toAdd];
+        });
+      }
+    } catch (err) {
+      console.error("[Shorts] Load more error:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore]);
 
   return (
     <ReelsFeed 
@@ -44,13 +55,9 @@ export function ShortsClient({ initialPosts, initialTotal }: ShortsClientProps) 
           router.push("/");
         }
       }} 
-      onLoadMore={() => {
-        if (page < totalPages && !loading) {
-          goToPage(page + 1);
-        }
-      }}
-      hasMore={page < totalPages}
-      isLoadingMore={loading}
+      onLoadMore={loadMore}
+      hasMore={true}
+      isLoadingMore={isLoadingMore}
     />
   );
 }

@@ -112,7 +112,25 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ success: true });
+    // Get updated total likes and dislikes
+    const statsResult = await db
+      .select({
+        isLike: schema.likes.isLike,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.likes)
+      .where(eq(schema.likes.postId, postId))
+      .groupBy(schema.likes.isLike);
+
+    let likes = 0;
+    let dislikes = 0;
+    for (const stat of statsResult) {
+      if (stat.isLike === 1) likes = stat.count;
+      if (stat.isLike === 0) dislikes = stat.count;
+    }
+
+    const userAction: "like" | "dislike" | null = action === "none" ? null : action;
+    return NextResponse.json({ likes, dislikes, userAction });
   } catch (error) {
     console.error("Like POST error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

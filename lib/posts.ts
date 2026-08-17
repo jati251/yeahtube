@@ -64,18 +64,10 @@ export async function formatPostItem(
   }
 
   const videosOnly = sortedMedia.filter((m) => m.mediaType === "video");
-  let resolutionMedia = firstMedia;
-  if (videosOnly.length > 0) {
-    let maxVideo = videosOnly[0];
-    for (const v of videosOnly) {
-      const vRes = (v.height || 0) + (v.width || 0);
-      const maxRes = (maxVideo.height || 0) + (maxVideo.width || 0);
-      if (vRes > maxRes) {
-        maxVideo = v;
-      }
-    }
-    resolutionMedia = maxVideo;
-  }
+  const resolutionMedia = videosOnly.reduce(
+    (max, v) => ((v.height || 0) + (v.width || 0) > (max.height || 0) + (max.width || 0) ? v : max),
+    firstMedia
+  );
 
   const formattedCreatedAt = post.createdAt instanceof Date
     ? post.createdAt.toISOString()

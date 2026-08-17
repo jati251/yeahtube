@@ -3,14 +3,7 @@
 import React from "react";
 import { clsx } from "clsx";
 import { CheckCircle2, Loader2 } from "lucide-react";
-
-interface UploadProgressProps {
-  progress: number;
-  totalProgress?: number;
-  statusText?: string;
-  className?: string;
-  isBulk?: boolean;
-}
+import { UploadProgressProps } from "@/types";
 
 export function UploadProgress({
   progress,

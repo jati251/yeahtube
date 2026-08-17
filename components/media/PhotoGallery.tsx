@@ -3,20 +3,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import NextImage from "next/image";
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
-
-interface Photo {
-  id: number;
-  imageUrl: string;
-  filename: string;
-  mimeType: string;
-  width: number | null;
-  height: number | null;
-  thumbnailUrl: string | null;
-}
-
-interface PhotoGalleryProps {
-  photos: Photo[];
-}
+import { PhotoGalleryProps } from "@/types";
 
 export function PhotoGallery({ photos }: PhotoGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);

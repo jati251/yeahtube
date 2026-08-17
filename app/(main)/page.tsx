@@ -1,38 +1,10 @@
 import "server-only";
-import { getDb, schema } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
-import { getFeedPosts } from "@/lib/queries/posts";
+import { getFeedPosts, getAllTags, getAllCategories } from "@/lib/queries";
 import { SortValue } from "@/lib/constants";
 import { FeedClient } from "./FeedClient";
-import { getCache, setCache } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
-
-async function getTags() {
-  const cacheKey = "cache:tags:all";
-  const cached = await getCache<{ id: number; name: string; slug: string }[]>(cacheKey);
-  if (cached) return cached;
-
-  const db = getDb();
-  const tags = await db.select().from(schema.tags).orderBy(schema.tags.name);
-  await setCache(cacheKey, tags, 600);
-  return tags;
-}
-
-async function getCategories() {
-  const cacheKey = "cache:categories:all";
-  const cached = await getCache<{ id: number; name: string; slug: string }[]>(cacheKey);
-  if (cached) return cached;
-
-  try {
-    const db = getDb();
-    const cats = await db.select().from(schema.categories).orderBy(schema.categories.name);
-    await setCache(cacheKey, cats, 600);
-    return cats;
-  } catch {
-    return [];
-  }
-}
 
 export default async function HomePage({
   searchParams,
@@ -55,8 +27,8 @@ export default async function HomePage({
   const [user, feedData, tags, categories] = await Promise.all([
     getCurrentUser(),
     getFeedPosts(urlSearchParams),
-    getTags(),
-    getCategories(),
+    getAllTags(),
+    getAllCategories(),
   ]);
 
   return (

@@ -1,4 +1,4 @@
-import { CategoryItem } from "@/components/admin/CategoryManager";
+import { CategoryItem } from "./category";
 
 export interface UserItem {
   id: number;
@@ -58,4 +58,29 @@ export interface AdminClientProps {
   users: UserItem[];
   categories?: CategoryItem[];
   stats?: AdminStats;
+}
+
+export interface SystemMetricsProps {
+  initialStats?: AdminStats;
+  isActive?: boolean;
+}
+
+export interface InfrastructureGridProps {
+  stats: AdminStats;
+}
+
+export interface StorageBreakdownCardProps {
+  stats: AdminStats;
+}
+
+export interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  color: string;
+}
+
+export interface UserManagerProps {
+  initialUsers: UserItem[];
+  currentUserId: number;
 }

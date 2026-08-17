@@ -1,4 +1,4 @@
-import { pgTable, text, integer, real, primaryKey, serial, index, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, real, primaryKey, serial, index, uniqueIndex, timestamp } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // ── Media Type enum ────────────────────────────────────
@@ -225,3 +225,24 @@ export const playlistItems = pgTable("playlist_items", {
 
 export type PlaylistItem = typeof playlistItems.$inferSelect;
 export type NewPlaylistItem = typeof playlistItems.$inferInsert;
+
+// ── Playlist Likes / Favorites ─────────────────────────
+
+export const playlistLikes = pgTable("playlist_likes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  playlistId: integer("playlist_id")
+    .notNull()
+    .references(() => playlists.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now()`),
+}, (table) => ({
+  userPlaylistIdx: uniqueIndex("playlist_likes_user_playlist_idx").on(table.userId, table.playlistId),
+  playlistIdIndex: index("playlist_likes_playlist_id_idx").on(table.playlistId),
+}));
+
+export type PlaylistLike = typeof playlistLikes.$inferSelect;
+export type NewPlaylistLike = typeof playlistLikes.$inferInsert;

@@ -3,10 +3,8 @@
 import React, { useState } from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { useCommentsQuery, useAddCommentMutation } from "@/services/queries";
-
-interface CommentsProps {
-  postId: number;
-}
+import { CommentsProps } from "@/types";
+import { getTimeAgo } from "@/utils";
 
 export function Comments({ postId }: CommentsProps) {
   const [newComment, setNewComment] = useState("");
@@ -64,7 +62,7 @@ export function Comments({ postId }: CommentsProps) {
                   {comment.username}
                 </span>
                 <span className="text-xs text-zinc-500">
-                  {new Date(comment.createdAt).toLocaleDateString()}
+                  {getTimeAgo(comment.createdAt)}
                 </span>
               </div>
               <p className="mt-1 text-zinc-700 dark:text-zinc-300">

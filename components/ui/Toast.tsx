@@ -3,18 +3,7 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { clsx } from "clsx";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
-
-type ToastType = "success" | "error" | "info" | "warning";
-
-interface Toast {
-  id: string;
-  type: ToastType;
-  message: string;
-}
-
-interface ToastContextValue {
-  addToast: (type: ToastType, message: string) => void;
-}
+import { Toast, ToastContextValue, ToastType } from "@/types";
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
@@ -26,6 +15,8 @@ export function useToast() {
   return context;
 }
 
+import { TOAST_ICON_COLORS } from "@/constants";
+
 const iconMap = {
   success: CheckCircle,
   error: AlertCircle,
@@ -33,19 +24,8 @@ const iconMap = {
   warning: AlertTriangle,
 };
 
-const colorMap = {
-  success: "bg-white border-zinc-200 text-zinc-900 dark:bg-zinc-950 dark:border-zinc-800/80 dark:text-zinc-50",
-  error: "bg-white border-zinc-200 text-zinc-900 dark:bg-zinc-950 dark:border-zinc-800/80 dark:text-zinc-50",
-  info: "bg-white border-zinc-200 text-zinc-900 dark:bg-zinc-950 dark:border-zinc-800/80 dark:text-zinc-50",
-  warning: "bg-white border-zinc-200 text-zinc-900 dark:bg-zinc-950 dark:border-zinc-800/80 dark:text-zinc-50",
-};
-
-const iconColorMap = {
-  success: "text-emerald-500",
-  error: "text-red-500",
-  info: "text-zinc-900 dark:text-zinc-100",
-  warning: "text-amber-500",
-};
+const toastCardStyle =
+  "bg-white border-zinc-200 text-zinc-900 dark:bg-zinc-950 dark:border-zinc-800/80 dark:text-zinc-50";
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -76,11 +56,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               className={clsx(
                 "flex items-center gap-3 rounded-lg border px-4 py-3 shadow-lg",
                 "animate-in slide-in-from-right",
-                colorMap[toast.type],
+                toastCardStyle,
               )}
               role="alert"
             >
-              <Icon className={clsx("h-5 w-5 flex-shrink-0", iconColorMap[toast.type])} />
+              <Icon className={clsx("h-5 w-5 flex-shrink-0", TOAST_ICON_COLORS[toast.type])} />
               <p className="text-sm font-medium">{toast.message}</p>
               <button
                 onClick={() => removeToast(toast.id)}

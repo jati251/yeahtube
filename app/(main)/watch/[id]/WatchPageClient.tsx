@@ -7,70 +7,32 @@ import { ArrowLeft, Calendar, Pencil, BookmarkPlus } from "lucide-react";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaListItem } from "@/components/media/MediaListItem";
-import { RecommendedPost } from "@/lib/recommendations";
 import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
 import dynamic from "next/dynamic";
-import { getQualityLabel } from "@/lib/media-utils";
+import { getQualityLabel, formatDate } from "@/utils";
+import { WatchPageClientProps, VideoData, ImageData, PostData } from "@/types";
+import { trackWatchHistory, trackPostView } from "@/services/queries";
+
+export type { VideoData, ImageData, PostData };
 
 const EditPostModal = dynamic(
   () => import("@/components/media/EditPostModal").then((m) => m.EditPostModal),
   { ssr: false },
 );
 
-interface VideoData {
-  id: number;
-  streamUrl: string;
-  filename: string;
-  mimeType: string;
-  duration: number | null;
-  thumbnailUrl: string | null;
-  width: number | null;
-  height: number | null;
-  orderIndex?: number;
-}
-
-interface ImageData {
-  id: number;
-  imageUrl: string;
-  filename: string;
-  mimeType: string;
-  width: number | null;
-  height: number | null;
-  thumbnailUrl: string | null;
-}
-
-interface PostData {
-  id: number;
-  title: string;
-  description: string | null;
-  createdAt: string;
-  categoryId?: number | null;
-}
-
-interface WatchPageClientProps {
-  post: PostData;
-  canEdit?: boolean;
-  videos: VideoData[];
-  images: ImageData[];
-  tags: { id: number; name: string; slug: string }[];
-  recommendations: RecommendedPost[];
-}
-
 export function WatchPageClient({
   post,
   canEdit = false,
   videos,
-  images,
-  tags,
+  images = [],
+  tags = [],
   recommendations = [],
 }: WatchPageClientProps) {
   const router = useRouter();
   
-  // Default to the first transcoded video (orderIndex > 0) if it exists, for maximum compatibility (Safari/Apple/AV1 issues)
-  const initialIndex = videos.findIndex((v) => (v.orderIndex ?? 0) > 0);
-  const [currentVideoIndex, setCurrentVideoIndex] = React.useState(initialIndex >= 0 ? initialIndex : 0);
+  const [currentVideoIndex, setCurrentVideoIndex] = React.useState(0);
   const [showSaveModal, setShowSaveModal] = React.useState(false);
   const [showEditModal, setShowEditModal] = React.useState(false);
   const [postData, setPostData] = React.useState(post);
@@ -78,8 +40,8 @@ export function WatchPageClient({
 
   // Fire-and-forget tracking
   useEffect(() => {
-    fetch(`/api/posts/${post.id}/history`, { method: "POST" }).catch(() => {});
-    fetch(`/api/posts/${post.id}/view`, { method: "POST" }).catch(() => {});
+    trackWatchHistory(post.id);
+    trackPostView(post.id);
   }, [post.id]);
 
   const qualityOptions = videos.length > 1 ? videos.map((v, idx) => ({
@@ -96,14 +58,6 @@ export function WatchPageClient({
     if (idx >= 0) {
       setCurrentVideoIndex(idx);
     }
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
   };
 
   return (
@@ -150,17 +104,17 @@ export function WatchPageClient({
                 {canEdit && (
                   <button
                     onClick={() => setShowEditModal(true)}
-                    className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 cursor-pointer shadow-sm"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                     Edit
                   </button>
                 )}
                 <button
                   onClick={() => setShowSaveModal(true)}
-                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-350 dark:hover:bg-zinc-800"
+                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 cursor-pointer shadow-sm"
                 >
-                  <BookmarkPlus className="h-4 w-4" />
+                  <BookmarkPlus className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                   Save
                 </button>
                 <LikeDislike postId={post.id} />

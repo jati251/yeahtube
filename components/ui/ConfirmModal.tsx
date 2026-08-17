@@ -4,18 +4,7 @@ import React from "react";
 import { Modal } from "./Modal";
 import { AlertTriangle } from "lucide-react";
 import { clsx } from "clsx";
-
-interface ConfirmModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  title: string;
-  message: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  variant?: "danger" | "warning" | "info";
-  loading?: boolean;
-}
+import { ConfirmModalProps } from "@/types";
 
 export function ConfirmModal({
   isOpen,

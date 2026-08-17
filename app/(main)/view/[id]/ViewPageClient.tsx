@@ -8,7 +8,9 @@ import dynamic from "next/dynamic";
 import { ArrowLeft, Calendar, Pencil } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaCard } from "@/components/media/MediaCard";
-import { ViewPageClientProps } from "@/types/view";
+import { ViewPageClientProps } from "@/types";
+import { formatDate } from "@/utils";
+import { trackPostView } from "@/services/queries";
 
 const EditPostModal = dynamic(
   () => import("@/components/media/EditPostModal").then((m) => m.EditPostModal),
@@ -29,16 +31,8 @@ export function ViewPageClient({
 
   // Fire-and-forget tracking
   useEffect(() => {
-    fetch(`/api/posts/${post.id}/view`, { method: "POST" }).catch(() => {});
+    trackPostView(post.id);
   }, [post.id]);
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

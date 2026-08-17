@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { FolderPlus, Pencil, Trash2, X, Check } from "lucide-react";
 import { CategoryItem, CategoryManagerProps } from "@/types";
+import { useCreateCategoryMutation, useDeleteCategoryMutation } from "@/services/queries";
+import { api } from "@/lib/api-client";
 
 export type { CategoryItem, CategoryManagerProps };
 
@@ -14,6 +16,9 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
   const [categories, setCategories] = useState(initialCategories);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  const createMutation = useCreateCategoryMutation();
+  const deleteMutation = useDeleteCategoryMutation();
 
   // Form states
   const [newName, setNewName] = useState("");
@@ -27,19 +32,7 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
 
     setLoading(true);
     try {
-      const csrfToken = document.cookie.match(new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`))?.[1];
-      const res = await fetch("/api/categories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-        body: JSON.stringify({ name: newName, description: newDesc }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create category");
-
+      const data = await createMutation.mutateAsync({ name: newName, description: newDesc });
       setCategories((prev) => [...prev, data.category]);
       setNewName("");
       setNewDesc("");
@@ -56,18 +49,10 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
 
     setLoading(true);
     try {
-      const csrfToken = document.cookie.match(new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`))?.[1];
-      const res = await fetch(`/api/categories/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-        body: JSON.stringify({ name: editName, description: editDesc }),
+      const data = await api.patch<{ success: boolean; category: CategoryItem }>(`/api/categories/${id}`, {
+        name: editName,
+        description: editDesc,
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update category");
 
       setCategories((prev) => prev.map((c) => (c.id === id ? data.category : c)));
       setEditingId(null);
@@ -84,17 +69,7 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
 
     setLoading(true);
     try {
-      const csrfToken = document.cookie.match(new RegExp(`(?:^|;\\s*)yeahtube_csrf=([^;]*)`))?.[1];
-      const res = await fetch(`/api/categories/${id}`, {
-        method: "DELETE",
-        headers: {
-          ...(csrfToken ? { "x-csrf-token": decodeURIComponent(csrfToken) } : {}),
-        },
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete category");
-
+      await deleteMutation.mutateAsync(id);
       setCategories((prev) => prev.filter((c) => c.id !== id));
       addToast("success", "Category deleted");
     } catch (err) {
