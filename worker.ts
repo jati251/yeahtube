@@ -16,6 +16,8 @@ import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import os from "os";
 import fs from "fs/promises";
+import { createWriteStream } from "fs";
+import { pipeline } from "stream/promises";
 import { Pool } from "pg";
 import sharp from "sharp";
 import ffmpeg, { FfprobeData } from "fluent-ffmpeg";
@@ -374,6 +376,8 @@ async function main() {
       const thumbnailKey = `thumbnails/${folderPath}/${thumbnailFilename}`;
       const previewKey = `previews/${folderPath}/${uniqueId}_preview.mp4`;
 
+      const ext = path.extname(filename) || ".mp4";
+      const tmpInput = path.join(tmpDir, `yt-in-${uniqueId}${ext}`);
       const thumbBasename = `yt-thumb-${uniqueId}`;
       const tmpThumbPng = path.join(tmpDir, `${thumbBasename}.png`);
       const tmpPreview = path.join(tmpDir, `yt-preview-${uniqueId}.mp4`);
@@ -393,13 +397,16 @@ async function main() {
           }
         }
 
-        if (slots[slotIdx]) slots[slotIdx]!.step = "🔍 [1/5] Probing";
+        if (slots[slotIdx]) slots[slotIdx]!.step = "📥 [1/5] Downloading";
 
-        const presignedUrl = await getSignedUrl(
-          s3,
-          new GetObjectCommand({ Bucket: bucket, Key: storageKey }),
-          { expiresIn: 3600 }
-        );
+        const getRes = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: storageKey }));
+        if (!getRes.Body) {
+          throw new Error(`Failed to download object ${storageKey} from bucket ${bucket}`);
+        }
+        const fileStream = createWriteStream(tmpInput);
+        await pipeline(getRes.Body as NodeJS.ReadableStream, fileStream);
+
+        if (slots[slotIdx]) slots[slotIdx]!.step = "🔍 [2/5] Probing";
 
         let actualDuration = 0;
         let videoWidth: number | null = null;
@@ -407,7 +414,7 @@ async function main() {
         let hasAudio = false;
 
         const metadata: FfprobeData = await new Promise((resolve, reject) => {
-          ffmpeg.ffprobe(presignedUrl, (err, meta) => (err ? reject(err) : resolve(meta)));
+          ffmpeg.ffprobe(tmpInput, (err, meta) => (err ? reject(err) : resolve(meta)));
         });
 
         actualDuration = metadata.format.duration || 0;
@@ -420,14 +427,14 @@ async function main() {
         hasAudio = Boolean(audioStream);
 
         if (slots[slotIdx]) {
-          slots[slotIdx]!.step = `⚡ [2/5] ${ENCODER.toUpperCase()}`;
+          slots[slotIdx]!.step = `⚡ [3/5] ${ENCODER.toUpperCase()}`;
           slots[slotIdx]!.duration = actualDuration;
         }
 
         const startEncode = Date.now();
 
         await new Promise<void>((resolve, reject) => {
-          const cmd = ffmpeg(presignedUrl);
+          const cmd = ffmpeg(tmpInput);
 
           // Configure chosen encoder options
           if (ENCODER === "nvenc") {
@@ -636,7 +643,7 @@ async function main() {
         throw err;
       } finally {
         releaseSlot(slotIdx);
-        for (const f of [tmpOutput, tmpThumbPng, tmpPreview]) {
+        for (const f of [tmpInput, tmpOutput, tmpThumbPng, tmpPreview]) {
           try { await fs.unlink(f); } catch {}
         }
       }
