@@ -27,14 +27,19 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(initialCategory);
   const [activeYear, setActiveYear] = useState<string | null>(initialYear);
 
-  // Initialize store with URL query on mount if present
+  // Initialize store with URL query on mount ONLY (one-time sync).
+  // feedSearchQuery must NOT be in deps — otherwise this effect re-fires on
+  // every user-initiated search change and overwrites it back to the URL value.
   useEffect(() => {
-    if (initialUrlQ && initialUrlQ !== feedSearchQuery) {
+    if (initialUrlQ) {
       setFeedSearchQuery(initialUrlQ);
     }
-  }, [initialUrlQ, feedSearchQuery, setFeedSearchQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const activeSearchQuery = feedSearchQuery || initialUrlQ || "";
+  // Zustand is the single source of truth for search query.
+  // No fallback to initialUrlQ — that caused clear to silently revert.
+  const activeSearchQuery = feedSearchQuery;
 
   const hasFilters = Boolean(
     activeMediaType || activeTags.length > 0 || activeSearchQuery || activeCategory || activeYear,
@@ -57,8 +62,12 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     const urlQ = searchParams.get("q");
     const urlPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
+    // Sync search query from URL on genuine Next.js navigations.
+    // Also handle clearing: if URL no longer has ?q=, clear the store.
     if (urlQ !== null && urlQ !== feedSearchQuery) {
       setFeedSearchQuery(urlQ);
+    } else if (urlQ === null && feedSearchQuery) {
+      setFeedSearchQuery("");
     }
 
     // Check if filters actually changed (not just page)
