@@ -16,7 +16,8 @@
     "retranscode": "tsx scripts/retranscode-all.ts",
     "queue": "tsx scripts/queue-manage.ts",
     "clean:duplicates": "tsx db/clean-duplicates.ts",
-    "clean:orphans": "tsx db/clean-orphans.ts"
+    "clean:orphans": "tsx db/clean-orphans.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1111.0",
@@ -59,6 +60,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.1",
+    "husky": "^9.1.7",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
     "typescript": "^5.9.3"
