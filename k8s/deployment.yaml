@@ -28,7 +28,7 @@ spec:
         - name: WORKER_CONCURRENCY
           value: "1"
         - name: WORKER_ENCODER
-          value: "svtav1"
+          value: "x264"
         - name: DATABASE_URL
           valueFrom:
             secretKeyRef:

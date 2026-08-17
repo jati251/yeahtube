@@ -16,12 +16,13 @@ import {
   HeadObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import os from "os";
 import fs from "fs/promises";
-import { createWriteStream } from "fs";
+import { createReadStream, createWriteStream } from "fs";
 import { pipeline } from "stream/promises";
 import { Pool } from "pg";
 import sharp from "sharp";
@@ -548,7 +549,7 @@ async function main() {
             cmd
               .videoCodec("libx264")
               .outputOptions([
-                "-preset medium",
+                "-preset veryfast",
                 "-crf 23",
                 "-pix_fmt yuv420p",
                 "-movflags +faststart",
@@ -673,18 +674,19 @@ async function main() {
 
         if (slots[slotIdx]) slots[slotIdx]!.step = "☁️ [4/5] Upload S3";
         const outStat = await fs.stat(tmpOutput);
-        const outBuffer = await fs.readFile(tmpOutput);
         const newFileSize = outStat.size;
 
-        // Upload Video
-        await s3.send(
-          new PutObjectCommand({
+        // Upload Video via multipart streaming to prevent memory spikes
+        const videoUpload = new Upload({
+          client: s3,
+          params: {
             Bucket: bucket,
             Key: newStorageKey,
-            Body: outBuffer,
+            Body: createReadStream(tmpOutput),
             ContentType: "video/mp4",
-          }),
-        );
+          },
+        });
+        await videoUpload.done();
 
         // Upload Thumbnail
         await s3.send(
@@ -782,9 +784,9 @@ async function main() {
     {
       connection: getRedisConnection(),
       concurrency: CONCURRENCY,
-      lockDuration: 300000,
-      lockRenewTime: 30000,
-      stalledInterval: 120000,
+      lockDuration: 900000, // 15 menit (agar tidak false-positive stalled saat encode video)
+      lockRenewTime: 15000, // renew lock setiap 15 detik
+      stalledInterval: 60000,
       maxStalledCount: 3,
     },
   );
