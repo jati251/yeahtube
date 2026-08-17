@@ -300,21 +300,6 @@ export function FeedClient({
             />
           </div>
 
-          {/* Top Pagination */}
-          {!disableFiltersAndPagination && !isPlaylistMode && totalPages > 1 && (
-            <PaginationControls
-              page={page}
-              totalPages={totalPages}
-              total={total}
-              loading={loading}
-              onNext={handleNextPage}
-              onPrev={handlePrevPage}
-              onFirst={handleFirstPage}
-              onLast={handleLastPage}
-              onPage={navigateToPage}
-            />
-          )}
-
           <div className="mt-5">
             {isPlaylistMode ? (
               loadingPlaylists ? (
