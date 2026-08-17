@@ -18,8 +18,10 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
   onResumeFromPiP,
   onTogglePlay,
 }) => {
-  // Show center button when paused OR when controls are visible (and not buffering/waiting)
-  const isCenterControlVisible = (!playing || showControls) && !isPipActive && !waiting;
+  // Show spinner only when actively trying to play but waiting for buffer
+  const isBuffering = waiting && playing;
+  // Show center button when paused OR when controls are visible (and not actively buffering during playback)
+  const isCenterControlVisible = (!playing || showControls) && !isPipActive && !isBuffering;
 
   return (
     <>
@@ -101,7 +103,7 @@ export const PlayerOverlays: React.FC<PlayerOverlaysProps> = ({
       )}
 
       {/* Loading Spinner */}
-      {waiting && !isPipActive && (
+      {isBuffering && !isPipActive && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
           <div className="h-14 w-14 sm:h-16 sm:w-16 animate-spin rounded-full border-4 border-white/20 border-t-white drop-shadow-xl" />
         </div>

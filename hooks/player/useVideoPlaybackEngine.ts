@@ -232,7 +232,7 @@ export function useVideoPlaybackEngine({
     setCurrentTime(0);
     setDuration(0);
     setBuffered(0);
-    setWaiting(true);
+    setWaiting(false);
 
     const handle = attachHlsOrNative(video, src, {
       mimeType: type,
