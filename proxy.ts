@@ -94,6 +94,11 @@ export async function proxy(request: NextRequest) {
     request: { headers: requestHeaders },
   });
 
+  // Ensure HTML pages are never cached at CDN/Cloudflare edge with stale chunk hashes
+  if (!pathname.startsWith("/api/")) {
+    response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
+  }
+
   return ensureCsrfCookie(request, response);
 }
 
