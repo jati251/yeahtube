@@ -250,21 +250,8 @@ export function FeedClient({
         />
 
         <div className="w-full">
-          <FeedHeader
-            total={isPlaylistMode ? (loadingPlaylists ? 0 : publicPlaylists.length) : total}
-            title={isPlaylistMode ? "Playlists" : "Media Library"}
-            itemLabel={isPlaylistMode ? "playlist" : "item"}
-            viewMode={viewMode}
-            onToggleViewMode={setViewMode}
-            disableFiltersAndPagination={disableFiltersAndPagination}
-            isAdmin={isAdmin && !isPlaylistMode}
-            selectMode={selectMode}
-            onToggleSelectMode={isPlaylistMode ? undefined : toggleSelectMode}
-            onOpenMobileFilters={() => setMobileFiltersOpen(true)}
-          />
-
-          {!disableFiltersAndPagination && (
-            <div className="mt-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {!disableFiltersAndPagination && (
               <FeedFilterBar
                 mediaType={activeMediaType}
                 onMediaTypeChange={(type) => {
@@ -289,8 +276,16 @@ export function FeedClient({
                 onSortChange={(newSort) => setActiveSort(newSort)}
                 onClearAll={clearAll}
               />
-            </div>
-          )}
+            )}
+
+            <FeedHeader
+              viewMode={viewMode}
+              onToggleViewMode={setViewMode}
+              isAdmin={isAdmin && !isPlaylistMode}
+              selectMode={selectMode}
+              onToggleSelectMode={isPlaylistMode ? undefined : toggleSelectMode}
+            />
+          </div>
 
           {/* Top Pagination */}
           {!disableFiltersAndPagination && !isPlaylistMode && totalPages > 1 && (

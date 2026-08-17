@@ -15,7 +15,7 @@ export interface FeedClientProps {
 }
 
 export interface FeedHeaderProps {
-  total: number;
+  total?: number;
   viewMode: "grid" | "list";
   onToggleViewMode: (mode: "grid" | "list") => void;
   title?: string;
