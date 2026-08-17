@@ -127,7 +127,7 @@ export function getStorageUrl(key: string): string {
  * range requests, immutable caching, and avoids AWS SigV4 presigned URL
  * expiration/host mismatch issues when caching in Redis or proxying.
  */
-export async function getPresignedUrl(key: string, _expiresInSeconds: number = 3600): Promise<string> {
+export async function getPresignedUrl(key: string): Promise<string> {
   return getStreamUrl(key);
 }
 
