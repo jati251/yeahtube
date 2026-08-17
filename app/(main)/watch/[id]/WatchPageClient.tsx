@@ -195,7 +195,7 @@ export function WatchPageClient({
           <Comments postId={post.id} />
         </div>
 
-        <div className="space-y-4 lg:col-span-4">
+        <div className="space-y-4 lg:col-span-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-2">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
             Recommendations
           </h2>
