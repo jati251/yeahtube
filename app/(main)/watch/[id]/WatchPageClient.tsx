@@ -63,37 +63,23 @@ export function WatchPageClient({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <button
-        onClick={() => {
-          if (window.history.length > 1) {
-            router.back();
-          } else {
-            router.push("/");
-          }
-        }}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to feed
-      </button>
-
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-8">
-          <div className="sticky top-16 z-30 -mx-4 sm:mx-0 bg-black sm:bg-transparent lg:static lg:mx-0 lg:bg-transparent">
-            <VideoPlayer
-              key={post.id}
-              src={currentVideo.streamUrl}
-              title={postData.title}
-              poster={currentVideo.thumbnailUrl || undefined}
-              type={currentVideo.mimeType}
-              width={currentVideo.width}
-              height={currentVideo.height}
-              qualityOptions={qualityOptions}
-              onQualityChange={handleQualityChange}
-            />
-          </div>
+        <div className="sticky top-16 z-40 -mx-4 sm:mx-0 bg-black lg:static lg:bg-transparent lg:col-span-8 lg:col-start-1 lg:row-start-1">
+          <VideoPlayer
+            key={post.id}
+            src={currentVideo.streamUrl}
+            title={postData.title}
+            poster={currentVideo.thumbnailUrl || undefined}
+            type={currentVideo.mimeType}
+            width={currentVideo.width}
+            height={currentVideo.height}
+            qualityOptions={qualityOptions}
+            onQualityChange={handleQualityChange}
+          />
+        </div>
 
-          <div className="mt-4">
+        <div className="lg:col-span-8 lg:col-start-1 lg:row-start-2">
+          <div className="mt-4 lg:mt-0">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words !whitespace-normal leading-snug !line-clamp-none">
               {postData.title}
             </h1>
@@ -195,7 +181,7 @@ export function WatchPageClient({
           <Comments postId={post.id} />
         </div>
 
-        <div className="space-y-4 lg:col-span-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-2">
+        <div className="space-y-4 lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-2">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
             Recommendations
           </h2>
