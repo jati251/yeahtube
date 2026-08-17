@@ -104,18 +104,10 @@ export async function generateMetadata({ searchParams }: WatchQueryPageProps): P
         : undefined,
     },
     twitter: {
-      card: "player",
+      card: "summary_large_image",
       title: post.title,
       description,
       images: [absoluteThumb],
-      players: [
-        {
-          playerUrl: embedUrl,
-          streamUrl: absoluteVideoStreamUrl || "",
-          width: primaryVideo?.width || 1280,
-          height: primaryVideo?.height || 720,
-        },
-      ],
     },
   };
 }
