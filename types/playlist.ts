@@ -11,6 +11,7 @@ export interface Playlist {
   createdAt?: string | Date;
   updatedAt?: string | Date;
   sampleThumbnails?: PlaylistSampleThumbnail[];
+  containsPost?: boolean;
 }
 
 export interface PlaylistItem {

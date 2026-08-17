@@ -69,11 +69,22 @@ export function FeedClient({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
 
+  const [resolvedInitialPage] = useState(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const urlPage = parseInt(sp.get("page") || "", 10);
+      if (!isNaN(urlPage) && urlPage > 0) {
+        return urlPage;
+      }
+    }
+    return initialPage;
+  });
+
   const { posts, setPosts, loading, page, total, totalPages, goToPage, restoreFromCache } =
     usePaginatedPosts({
       initialPosts,
       initialTotal,
-      initialPage: initialPage,
+      initialPage: resolvedInitialPage,
       fetchParams: {
         type: activeMediaType,
         tags: activeTags.join(",") || null,

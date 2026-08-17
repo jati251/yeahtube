@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const isPublicQuery = searchParams.get("public") === "true";
     const searchQuery = searchParams.get("q");
     const sortBy = searchParams.get("sort") || "recent"; // "recent" | "popular"
+    const targetPostId = parseInt(searchParams.get("postId") || "", 10);
 
     const db = getDb();
 
@@ -39,6 +40,9 @@ export async function GET(request: NextRequest) {
         videoCount: sql<number>`count(distinct ${schema.playlistItems.id})::int`,
         likesCount: sql<number>`(select count(*)::int from playlist_likes where playlist_likes.playlist_id = "playlists"."id")`,
         userLiked: sql<boolean>`exists(select 1 from playlist_likes where playlist_likes.playlist_id = "playlists"."id" and playlist_likes.user_id = ${user.id})`,
+        containsPost: !isNaN(targetPostId)
+          ? sql<boolean>`exists(select 1 from playlist_items where playlist_items.playlist_id = "playlists"."id" and playlist_items.post_id = ${targetPostId})`
+          : sql<boolean>`false`,
       })
       .from(schema.playlists)
       .leftJoin(schema.users, eq(schema.playlists.userId, schema.users.id))

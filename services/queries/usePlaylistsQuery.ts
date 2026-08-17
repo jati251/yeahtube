@@ -4,10 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { Playlist, PlaylistLikeData } from "@/types";
 
-export function usePlaylistsQuery() {
+export function usePlaylistsQuery(postId?: number) {
   return useQuery<{ playlists: Playlist[] }>({
-    queryKey: ["playlists"],
-    queryFn: () => api.get<{ playlists: Playlist[] }>("/api/playlists"),
+    queryKey: ["playlists", postId],
+    queryFn: () => {
+      const url = postId ? `/api/playlists?postId=${postId}` : "/api/playlists";
+      return api.get<{ playlists: Playlist[] }>(url);
+    },
   });
 }
 
@@ -96,10 +99,15 @@ export function useDeletePlaylistMutation() {
 }
 
 export function useSaveToPlaylistMutation() {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async ({ playlistId, postId, playlistName }: { playlistId: number; postId: number; playlistName: string }) => {
       await api.post(`/api/playlists/${playlistId}`, { postId });
       return { playlistName };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
     },
   });
 }

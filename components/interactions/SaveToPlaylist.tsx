@@ -15,7 +15,7 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
   const [isPublic, setIsPublic] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const { data: playlistsData, isLoading: loading } = usePlaylistsQuery();
+  const { data: playlistsData, isLoading: loading } = usePlaylistsQuery(postId);
   const playlists = playlistsData?.playlists || [];
 
   const createPlaylistMutation = useCreatePlaylistMutation();
@@ -87,10 +87,18 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
               playlists.map((pl) => (
                 <button
                   key={pl.id}
+                  disabled={pl.containsPost}
                   onClick={() => handleSaveToPlaylist(pl.id, pl.name)}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors text-left cursor-pointer"
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors text-left ${
+                    pl.containsPost 
+                      ? "bg-zinc-800/50 text-emerald-400 cursor-not-allowed" 
+                      : "text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer"
+                  }`}
                 >
-                  <span className="font-medium truncate">{pl.name}</span>
+                  <span className="font-medium truncate flex items-center gap-2">
+                    {pl.name}
+                    {pl.containsPost && <span className="text-[10px] uppercase font-bold tracking-wider">Added</span>}
+                  </span>
                   <span className="text-[10px] text-zinc-500">{pl.isPublic ? "Public" : "Private"}</span>
                 </button>
               ))
