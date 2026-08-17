@@ -19,8 +19,7 @@
  *   └── processed/
  */
 
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { S3Client } from "@aws-sdk/client-s3";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -122,48 +121,19 @@ export function getStorageUrl(key: string): string {
 
 /**
  * Builds a pre-signed URL for an object in the bucket.
- * This URL allows direct download from MinIO without proxying through Next.js.
+/**
+ * Returns a media URL for an object via the /api/media/stream route.
  *
- * Use for images and thumbnails — they don't need HTTP Range request support.
- * For video streaming, use getStreamUrl() instead.
+ * Using /api/media/stream handles direct S3 fetching with proper MIME types,
+ * range requests, immutable caching, and avoids AWS SigV4 presigned URL
+ * expiration/host mismatch issues when caching in Redis or proxying.
  */
-export async function getPresignedUrl(key: string, expiresInSeconds: number = 3600): Promise<string> {
-  const s3 = getS3Client();
-  const { bucket } = getStorageConfig();
-  
-  const command = new GetObjectCommand({
-    Bucket: bucket,
-    Key: key,
-  });
-
-  const url = await getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
-
-  // Proxy through Next.js to avoid Local Network Access prompt on iOS/macOS and internal cluster DNS issues
-  const { endpoint } = getStorageConfig();
-  if (
-    endpoint.includes("192.168.") ||
-    endpoint.includes("10.") ||
-    endpoint.includes("172.") ||
-    endpoint.includes("dev-minio") ||
-    endpoint.includes("homelab.local") ||
-    endpoint.includes("localhost") ||
-    endpoint.includes("127.0.0.1") ||
-    endpoint.includes(".svc.cluster.local")
-  ) {
-    return url.replace(endpoint, "/storage");
-  }
-
-  return url;
+export async function getPresignedUrl(key: string, _expiresInSeconds: number = 3600): Promise<string> {
+  return getStreamUrl(key);
 }
 
 /**
- * Returns a streaming URL for a media object via the /api/media/stream route.
- *
- * This route handles HTTP Range requests (206 Partial Content), enabling video
- * seeking and scrubbing. Use this for video files instead of getPresignedUrl().
- *
- * Images and thumbnails should continue using getPresignedUrl() since they
- * don't need range request support.
+ * Returns a streaming/asset URL for a media object via the /api/media/stream route.
  */
 export function getStreamUrl(key: string): string {
   return `/api/media/stream?key=${encodeURIComponent(key)}`;
