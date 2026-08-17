@@ -103,6 +103,8 @@ export function ViewPageClient({
               </div>
 
               <div className="flex items-center gap-2">
+                <LikeDislike postId={post.id} />
+                <ShareButton title={postData.title} />
                 {canEdit && (
                   <motion.button
                     whileTap={{ scale: 0.94 }}
@@ -113,8 +115,6 @@ export function ViewPageClient({
                     Edit
                   </motion.button>
                 )}
-                <ShareButton title={postData.title} />
-                <LikeDislike postId={post.id} />
               </div>
             </div>
 

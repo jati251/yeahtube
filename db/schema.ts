@@ -151,6 +151,7 @@ export const likes = pgTable("likes", {
     .notNull()
     .default(sql`now()`),
 }, (table) => ({
+  userPostIdx: uniqueIndex("likes_user_post_idx").on(table.userId, table.postId),
   userIdIndex: index("likes_user_id_idx").on(table.userId),
   postIdIndex: index("likes_post_id_idx").on(table.postId),
 }));

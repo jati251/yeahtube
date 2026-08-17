@@ -5,6 +5,7 @@ import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useLikeQuery, useLikeMutation, LikeData } from "@/services/queries";
 import { LikeDislikeProps } from "@/types";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { formatCompactNumber } from "@/utils";
 
 import { motion } from "framer-motion";
 
@@ -59,7 +60,7 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
           >
             <ThumbsUp className={`h-6 w-6 ${current.userAction === "like" ? "fill-current" : ""}`} />
           </div>
-          <span className="text-xs text-white font-medium drop-shadow">{current.likes}</span>
+          <span className="text-xs text-white font-medium drop-shadow">{formatCompactNumber(current.likes)}</span>
         </motion.button>
 
         <motion.button
@@ -77,7 +78,7 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
           >
             <ThumbsDown className={`h-6 w-6 ${current.userAction === "dislike" ? "fill-current" : ""}`} />
           </div>
-          <span className="text-xs text-white font-medium drop-shadow">{current.dislikes}</span>
+          <span className="text-xs text-white font-medium drop-shadow">{formatCompactNumber(current.dislikes)}</span>
         </motion.button>
       </div>
     );
@@ -96,7 +97,7 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
         }`}
       >
         <ThumbsUp className={`h-4 w-4 ${current.userAction === "like" ? "fill-current text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-300"}`} />
-        <span>{current.likes}</span>
+        <span>{formatCompactNumber(current.likes)}</span>
       </motion.button>
 
       <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-700 shrink-0" />
@@ -112,7 +113,7 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
         }`}
       >
         <ThumbsDown className={`h-4 w-4 ${current.userAction === "dislike" ? "fill-current text-red-600 dark:text-red-400" : "text-zinc-600 dark:text-zinc-300"}`} />
-        <span>{current.dislikes}</span>
+        <span>{formatCompactNumber(current.dislikes)}</span>
       </motion.button>
     </div>
   );

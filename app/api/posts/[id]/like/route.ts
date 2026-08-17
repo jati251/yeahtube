@@ -114,11 +114,17 @@ export async function POST(
             .where(eq(schema.likes.id, existing.id));
         }
       } else {
-        await db.insert(schema.likes).values({
-          userId: user.id,
-          postId,
-          isLike: isLikeVal,
-        });
+        await db
+          .insert(schema.likes)
+          .values({
+            userId: user.id,
+            postId,
+            isLike: isLikeVal,
+          })
+          .onConflictDoUpdate({
+            target: [schema.likes.userId, schema.likes.postId],
+            set: { isLike: isLikeVal },
+          });
       }
     }
 

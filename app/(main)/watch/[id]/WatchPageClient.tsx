@@ -204,6 +204,16 @@ export function WatchPageClient({
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
+                <LikeDislike postId={post.id} />
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
+                  onClick={requireAuth(() => setShowSaveModal(true))}
+                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer shadow-sm"
+                >
+                  <BookmarkPlus className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
+                  Save
+                </motion.button>
+                <ShareButton title={postData.title} />
                 {canEdit && (
                   <motion.button
                     whileTap={{ scale: 0.94 }}
@@ -214,16 +224,6 @@ export function WatchPageClient({
                     Edit
                   </motion.button>
                 )}
-                <motion.button
-                  whileTap={{ scale: 0.94 }}
-                  onClick={requireAuth(() => setShowSaveModal(true))}
-                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer shadow-sm"
-                >
-                  <BookmarkPlus className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
-                  Save
-                </motion.button>
-                <ShareButton title={postData.title} />
-                <LikeDislike postId={post.id} />
               </div>
             </div>
 
