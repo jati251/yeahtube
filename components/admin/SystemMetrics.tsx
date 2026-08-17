@@ -17,6 +17,7 @@ import { SystemMetricsProps } from "@/types";
 import { StatCard } from "./StatCard";
 import { InfrastructureGrid } from "./InfrastructureGrid";
 import { StorageBreakdownCard } from "./StorageBreakdownCard";
+import { TopVideosGrid } from "./TopVideosGrid";
 import { useAdminStatsQuery } from "@/services/queries";
 
 export function SystemMetrics({ initialStats }: SystemMetricsProps) {
@@ -83,6 +84,9 @@ export function SystemMetrics({ initialStats }: SystemMetricsProps) {
 
       {/* Storage Breakdown & Progress */}
       <StorageBreakdownCard stats={stats} />
+
+      {/* Top 10 Largest Videos Grid */}
+      <TopVideosGrid videos={stats.largestFiles} />
 
       {/* Global Activity & Content Overview */}
       <div>

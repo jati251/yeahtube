@@ -23,6 +23,18 @@ export interface QueueHealth {
   failed: number;
 }
 
+export interface TopVideoItem {
+  id?: number;
+  postId: number;
+  filename: string;
+  fileSize: number;
+  postTitle: string;
+  views?: number;
+  duration?: number | null;
+  thumbnailUrl?: string | null;
+  mediaType?: "video" | "image";
+}
+
 export interface AdminStats {
   totalMediaSize: number;
   videoSize: number;
@@ -50,7 +62,7 @@ export interface AdminStats {
   totalPlaylists: number;
   recentUploads: number;
   mostActiveUser: { username: string; postCount: number } | null;
-  largestFiles: { filename: string; fileSize: number; postTitle: string }[];
+  largestFiles: TopVideoItem[];
 }
 
 export interface AdminClientProps {

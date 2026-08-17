@@ -145,19 +145,41 @@ export async function getAdminStats(): Promise<AdminStats> {
     }
   } catch { /* fallback */ }
 
-  let largestFiles: { filename: string; fileSize: number; postTitle: string }[] = [];
+  let largestFiles: import("@/types/admin").TopVideoItem[] = [];
   try {
     const lf = await db
       .select({
+        id: schema.media.id,
+        postId: schema.media.postId,
         filename: schema.media.filename,
         fileSize: schema.media.fileSize,
+        thumbnailKey: schema.media.thumbnailKey,
+        duration: schema.media.duration,
+        mediaType: schema.media.mediaType,
         postTitle: schema.posts.title,
+        views: schema.posts.views,
       })
       .from(schema.media)
       .innerJoin(schema.posts, sql`${schema.media.postId} = ${schema.posts.id}`)
+      .where(sql`${schema.media.mediaType} = 'video'`)
       .orderBy(desc(schema.media.fileSize))
-      .limit(5);
-    largestFiles = lf.map((f) => ({ filename: f.filename, fileSize: f.fileSize, postTitle: f.postTitle }));
+      .limit(10);
+
+    const { getPresignedUrl } = await import("@/lib/storage");
+
+    largestFiles = await Promise.all(
+      lf.map(async (f) => ({
+        id: f.id,
+        postId: f.postId,
+        filename: f.filename,
+        fileSize: f.fileSize,
+        postTitle: f.postTitle,
+        views: f.views ?? 0,
+        duration: f.duration,
+        thumbnailUrl: f.thumbnailKey ? await getPresignedUrl(f.thumbnailKey) : null,
+        mediaType: f.mediaType as "video" | "image",
+      }))
+    );
   } catch { /* fallback */ }
 
   const minioCapacityGb = parseFloat(process.env.STORAGE_CAPACITY_GB || "50.5");
