@@ -18,8 +18,8 @@ export interface FeedHeaderProps {
   total: number;
   viewMode: "grid" | "list";
   onToggleViewMode: (mode: "grid" | "list") => void;
-  activeSort: string;
-  onSortChange: (sort: string) => void;
+  activeSort?: string;
+  onSortChange?: (sort: string) => void;
   disableFiltersAndPagination?: boolean;
   isAdmin?: boolean;
   selectMode?: boolean;

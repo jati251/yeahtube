@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useFeedFilters } from "@/hooks/useFeedFilters";
-import { FilterSidebar } from "@/components/filters/FilterSidebar";
 import { MobileFilters } from "@/components/filters/MobileFilters";
 import { ActiveFilters } from "@/components/filters/ActiveFilters";
 import { TagCloud } from "@/components/filters/TagCloud";
@@ -14,6 +13,7 @@ import { usePaginatedPosts } from "@/hooks/usePaginatedPosts";
 import { usePostSelection } from "@/hooks/usePostSelection";
 import { useAppStore } from "@/stores/appStore";
 import { FeedHeader } from "@/components/feed/FeedHeader";
+import { FeedFilterBar } from "@/components/filters/FeedFilterBar";
 import { FeedPostsDisplay } from "@/components/feed/FeedPostsDisplay";
 import { BulkAdminBar } from "@/components/feed/BulkAdminBar";
 import { PlaylistCard } from "@/components/media/PlaylistCard";
@@ -254,33 +254,7 @@ export function FeedClient({
         />
       )}
 
-      <div className="mt-6 lg:grid lg:grid-cols-4 lg:gap-8">
-        {!disableFiltersAndPagination && (
-          <div className="hidden lg:block">
-            <FilterSidebar
-              mediaType={activeMediaType}
-              selectedTags={activeTags}
-              tags={tags}
-              category={activeCategory}
-              categories={categories}
-              year={activeYear}
-              onMediaTypeChange={(type) => {
-                setActiveMediaType(type);
-                goToPage(1);
-              }}
-              onTagToggle={handleTagToggle}
-              onCategoryChange={(slug) => {
-                setActiveCategory(slug);
-                goToPage(1);
-              }}
-              onYearChange={(yearVal) => {
-                setActiveYear(yearVal);
-                goToPage(1);
-              }}
-              onClearAll={clearAll}
-            />
-          </div>
-        )}
+      <div className="mt-6 space-y-4">
 
         <MobileFilters
           isOpen={mobileFiltersOpen}
@@ -307,13 +281,11 @@ export function FeedClient({
           onClearAll={clearAll}
         />
 
-        <div className={disableFiltersAndPagination ? "lg:col-span-4" : "lg:col-span-3"}>
+        <div className="w-full">
           <FeedHeader
             total={total}
             viewMode={viewMode}
             onToggleViewMode={setViewMode}
-            activeSort={activeSort}
-            onSortChange={(newSort) => setActiveSort(newSort)}
             disableFiltersAndPagination={disableFiltersAndPagination}
             isAdmin={isAdmin}
             selectMode={selectMode}
@@ -321,7 +293,36 @@ export function FeedClient({
             onOpenMobileFilters={() => setMobileFiltersOpen(true)}
           />
 
-          <div className="mt-6">
+          {!disableFiltersAndPagination && (
+            <div className="mt-3">
+              <FeedFilterBar
+                mediaType={activeMediaType}
+                onMediaTypeChange={(type) => {
+                  setActiveMediaType(type);
+                  goToPage(1);
+                }}
+                category={activeCategory}
+                categories={categories}
+                onCategoryChange={(slug) => {
+                  setActiveCategory(slug);
+                  goToPage(1);
+                }}
+                year={activeYear}
+                onYearChange={(yearVal) => {
+                  setActiveYear(yearVal);
+                  goToPage(1);
+                }}
+                selectedTags={activeTags}
+                tags={tags}
+                onTagToggle={handleTagToggle}
+                sort={activeSort}
+                onSortChange={(newSort) => setActiveSort(newSort)}
+                onClearAll={clearAll}
+              />
+            </div>
+          )}
+
+          <div className="mt-5">
             {isPlaylistMode ? (
               loadingPlaylists ? (
                 <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 animate-pulse">
