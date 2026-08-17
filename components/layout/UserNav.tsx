@@ -16,7 +16,8 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
 
   const handleLogout = async () => {
     await logoutMutation.mutateAsync();
-    router.push("/login");
+    router.push("/");
+    router.refresh();
   };
 
   if (!username) {
