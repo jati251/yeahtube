@@ -19,6 +19,11 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
   const triggerPostsRefresh = useAppStore((s) => s.triggerPostsRefresh);
 
   const handleLogout = async () => {
+    // Reset feed preference to public on logout
+    setShowPublicPosts(true);
+    document.cookie = `show-public-posts=true; path=/; max-age=31536000; SameSite=Lax`;
+    triggerPostsRefresh();
+
     await logoutMutation.mutateAsync();
     router.push("/");
     router.refresh();
