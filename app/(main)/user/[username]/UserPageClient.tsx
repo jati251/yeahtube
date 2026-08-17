@@ -152,20 +152,20 @@ export function UserPageClient({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="mt-8 flex gap-2 border-b border-transparent">
+          <div className="mt-6 sm:mt-8 flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
             <button
               onClick={() => setActiveTab("uploads")}
               className={clsx(
-                "flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                "flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "uploads"
                   ? "bg-zinc-900 text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900"
                   : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-850"
               )}
             >
-              <Film className="h-4 w-4" />
+              <Film className="h-4 w-4 shrink-0" />
               <span>Videos</span>
               <span className={clsx(
-                "ml-1 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                "ml-0.5 sm:ml-1 rounded-full px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold shrink-0",
                 activeTab === "uploads"
                   ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
                   : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
@@ -177,16 +177,16 @@ export function UserPageClient({
             <button
               onClick={() => setActiveTab("playlists")}
               className={clsx(
-                "flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                "flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "playlists"
                   ? "bg-zinc-900 text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900"
                   : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-850"
               )}
             >
-              <ListVideo className="h-4 w-4" />
+              <ListVideo className="h-4 w-4 shrink-0" />
               <span>Playlists</span>
               <span className={clsx(
-                "ml-1 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                "ml-0.5 sm:ml-1 rounded-full px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold shrink-0",
                 activeTab === "playlists"
                   ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
                   : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
@@ -198,16 +198,16 @@ export function UserPageClient({
             <button
               onClick={() => setActiveTab("liked")}
               className={clsx(
-                "flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer",
+                "flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "liked"
                   ? "bg-zinc-900 text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900"
                   : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-850"
               )}
             >
-              <Heart className="h-4 w-4" />
-              <span>Liked Videos</span>
+              <Heart className="h-4 w-4 shrink-0" />
+              <span>Liked<span className="hidden sm:inline"> Videos</span></span>
               <span className={clsx(
-                "ml-1 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                "ml-0.5 sm:ml-1 rounded-full px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold shrink-0",
                 activeTab === "liked"
                   ? "bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900"
                   : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
