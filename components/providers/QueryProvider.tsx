@@ -2,8 +2,11 @@
 
 import React, { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useChunkErrorRecovery } from "@/hooks/useChunkErrorRecovery";
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
+  useChunkErrorRecovery();
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -17,27 +20,6 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         },
       }),
   );
-
-  React.useEffect(() => {
-    const handleChunkError = (event: ErrorEvent) => {
-      const msg = event.message || "";
-      if (
-        msg.includes("Loading chunk") ||
-        msg.includes("Failed to fetch dynamically imported module") ||
-        msg.includes("MIME type")
-      ) {
-        const lastReload = sessionStorage.getItem("chunk_reload_ts");
-        const now = Date.now();
-        if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
-          sessionStorage.setItem("chunk_reload_ts", String(now));
-          window.location.reload();
-        }
-      }
-    };
-
-    window.addEventListener("error", handleChunkError);
-    return () => window.removeEventListener("error", handleChunkError);
-  }, []);
 
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

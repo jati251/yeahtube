@@ -10,11 +10,10 @@ export const config = {
 };
 
 /**
- * Ensure the CSRF token cookie is present on every response.
- * Double-submit cookie CSRF pattern:
- * the client reads the cookie and sends it as the x-csrf-token header.
+ * Finalizes the response by ensuring the double-submit CSRF cookie is present
+ * and applying strict anti-caching headers for HTML pages (preventing CDN stale chunk errors).
  */
-function ensureCsrfCookie(
+function finalizeResponse(
   request: NextRequest,
   response: NextResponse,
 ): NextResponse {
@@ -27,6 +26,13 @@ function ensureCsrfCookie(
       maxAge: 7 * 24 * 60 * 60, // 7 days
     });
   }
+
+  // Prevent CDNs/Cloudflare from caching HTML pages with outdated JS bundle hashes
+  const { pathname } = request.nextUrl;
+  if (!pathname.startsWith("/api/")) {
+    response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
+  }
+
   return response;
 }
 
@@ -57,13 +63,13 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/", request.url));
     }
     const response = NextResponse.next();
-    return ensureCsrfCookie(request, response);
+    return finalizeResponse(request, response);
   }
 
   // 3. Allow other public paths
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     const response = NextResponse.next();
-    return ensureCsrfCookie(request, response);
+    return finalizeResponse(request, response);
   }
 
   // 4. Protect private routes: require session
@@ -94,12 +100,7 @@ export async function proxy(request: NextRequest) {
     request: { headers: requestHeaders },
   });
 
-  // Ensure HTML pages are never cached at CDN/Cloudflare edge with stale chunk hashes
-  if (!pathname.startsWith("/api/")) {
-    response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
-  }
-
-  return ensureCsrfCookie(request, response);
+  return finalizeResponse(request, response);
 }
 
 function redirectToLogin(request: NextRequest) {
