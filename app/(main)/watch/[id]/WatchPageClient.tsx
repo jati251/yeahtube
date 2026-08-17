@@ -16,6 +16,8 @@ import { trackWatchHistory, trackPostView } from "@/services/queries";
 import { clsx } from "clsx";
 import { useInView } from "react-intersection-observer";
 
+import { useRecommendationsQuery } from "@/services/queries";
+
 export type { VideoData, ImageData, PostData };
 
 const EditPostModal = dynamic(
@@ -37,61 +39,42 @@ export function WatchPageClient({
   const [postData, setPostData] = React.useState(post);
   const currentVideo = videos[currentVideoIndex];
 
-  const [recs, setRecs] = React.useState(recommendations);
-  const [loadingMore, setLoadingMore] = React.useState(false);
-  const hasMoreRef = React.useRef(true);
-  const loadingRef = React.useRef(false);
-  const fetchCountRef = React.useRef(0);
-
   const { ref: loadMoreRef, inView } = useInView({
     rootMargin: "200px",
   });
 
-  const loadMoreRecs = React.useCallback(async () => {
-    if (loadingRef.current || !hasMoreRef.current) return;
-    
-    if (fetchCountRef.current >= 3) {
-      hasMoreRef.current = false;
-      return;
-    }
-    
-    loadingRef.current = true;
-    setLoadingMore(true);
-    fetchCountRef.current += 1;
-    
-    try {
-      const res = await fetch("/api/posts?sort=random&limit=10");
-      if (res.ok) {
-        const data = await res.json();
-        setRecs((prev) => {
-          const existingIds = new Set(prev.map((p) => p.id));
-          existingIds.add(post.id); // Exclude current post
-          const newRecs = data.posts.filter((p: { id: number }) => !existingIds.has(p.id));
-          
-          if (newRecs.length === 0) {
-            hasMoreRef.current = false;
-          }
-          
-          return [...prev, ...newRecs];
-        });
-      } else {
-        hasMoreRef.current = false;
-      }
-    } catch (error) {
-      console.error("Failed to load more recommendations:", error);
-      hasMoreRef.current = false;
-    } finally {
-      loadingRef.current = false;
-      setLoadingMore(false);
-    }
-  }, [post.id]);
+  const {
+    data: recsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useRecommendationsQuery(post.id, recommendations, 3);
 
   useEffect(() => {
-    if (inView && hasMoreRef.current && !loadingRef.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadMoreRecs();
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [inView, loadMoreRecs]);
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Flatten and filter duplicates
+  const recs = React.useMemo(() => {
+    if (!recsData) return [];
+    
+    const uniquePosts = new Map();
+    uniquePosts.set(post.id, true); // Exclude current post
+    
+    const result = [];
+    for (const page of recsData.pages) {
+      if (!page?.posts) continue;
+      for (const p of page.posts) {
+        if (!uniquePosts.has(p.id)) {
+          uniquePosts.set(p.id, true);
+          result.push(p);
+        }
+      }
+    }
+    return result;
+  }, [recsData, post.id]);
 
   // Fire-and-forget tracking
   useEffect(() => {
@@ -250,9 +233,9 @@ export function WatchPageClient({
               </p>
             )}
 
-            {recs.length > 0 && (
+            {hasNextPage && (
               <div ref={loadMoreRef} className="py-4 flex justify-center">
-                {loadingMore ? (
+                {isFetchingNextPage ? (
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
                 ) : null}
               </div>

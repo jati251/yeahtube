@@ -9,3 +9,4 @@ export * from "./useSearchQuery";
 export * from "./useAuthMutation";
 export * from "./usePostInteractions";
 export * from "./useShortsQuery";
+export * from "./useRecommendationsQuery";
