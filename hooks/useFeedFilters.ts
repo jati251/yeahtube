@@ -18,6 +18,7 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   const initialActiveSort = searchParams.get("sort") || initialSort;
   const initialCategory = searchParams.get("category");
   const initialYear = searchParams.get("year");
+  const initialUrlQ = searchParams.get("q");
 
   // ---- Local filter state ----
   const [activeMediaType, setActiveMediaType] = useState<string | null>(initialMediaType);
@@ -26,7 +27,14 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(initialCategory);
   const [activeYear, setActiveYear] = useState<string | null>(initialYear);
 
-  const activeSearchQuery = feedSearchQuery;
+  // Initialize store with URL query on mount if present
+  useEffect(() => {
+    if (initialUrlQ && initialUrlQ !== feedSearchQuery) {
+      setFeedSearchQuery(initialUrlQ);
+    }
+  }, [initialUrlQ, feedSearchQuery, setFeedSearchQuery]);
+
+  const activeSearchQuery = feedSearchQuery || initialUrlQ || "";
 
   const hasFilters = Boolean(
     activeMediaType || activeTags.length > 0 || activeSearchQuery || activeCategory || activeYear,
@@ -34,7 +42,7 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
 
   const goToPageRef = useRef<(p: number) => void>(() => {});
 
-  // Sync state whenever URL search params change (e.g. from navigation links like /?type=playlist)
+  // Sync state whenever URL search params change (e.g. from navigation links like /?type=playlist or back button)
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -46,7 +54,12 @@ export function useFeedFilters({ initialSort }: UseFeedFiltersProps) {
     const urlCategory = searchParams.get("category");
     const urlYear = searchParams.get("year");
     const urlSort = searchParams.get("sort") || initialSort;
+    const urlQ = searchParams.get("q");
     const urlPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+
+    if (urlQ !== null && urlQ !== feedSearchQuery) {
+      setFeedSearchQuery(urlQ);
+    }
 
     // Check if filters actually changed (not just page)
     const filtersChanged =

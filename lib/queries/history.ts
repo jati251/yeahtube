@@ -7,7 +7,7 @@ import { formatPostItem } from "@/lib/posts";
 export const getUserWatchHistory = cache(async (userId: number) => {
   const db = getDb();
 
-  const historyEntries = await db
+  const rawHistoryEntries = await db
     .select({
       historyId: schema.watchHistory.id,
       watchedAt: schema.watchHistory.watchedAt,
@@ -21,6 +21,14 @@ export const getUserWatchHistory = cache(async (userId: number) => {
     .innerJoin(schema.posts, eq(schema.watchHistory.postId, schema.posts.id))
     .where(eq(schema.watchHistory.userId, userId))
     .orderBy(desc(schema.watchHistory.watchedAt));
+
+  // Deduplicate by postId to keep only the most recent watch event per post
+  const seenPostIds = new Set<number>();
+  const historyEntries = rawHistoryEntries.filter((entry) => {
+    if (seenPostIds.has(entry.id)) return false;
+    seenPostIds.add(entry.id);
+    return true;
+  });
 
   const postIds = historyEntries.map((h) => h.id);
   const mediaRecords = postIds.length > 0

@@ -5,6 +5,7 @@ import { Share2, Check, Copy, Code, MessageCircle, Send } from "lucide-react";
 import { clsx } from "clsx";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { motion } from "framer-motion";
 
 function XIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -135,21 +136,23 @@ export function ShareButton({
   return (
     <>
       {variant === "pill" && (
-        <button
+        <motion.button
+          whileTap={{ scale: 0.94 }}
           onClick={handleShareClick}
           className={clsx(
-            "flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 cursor-pointer shadow-sm",
+            "flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer shadow-sm",
             className
           )}
           title="Share"
         >
           <Share2 className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
           <span>Share</span>
-        </button>
+        </motion.button>
       )}
 
       {variant === "icon" && (
-        <button
+        <motion.button
+          whileTap={{ scale: 0.9 }}
           onClick={handleShareClick}
           className={clsx(
             "rounded-full p-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 transition-colors cursor-pointer",
@@ -159,7 +162,7 @@ export function ShareButton({
           title="Share"
         >
           <Share2 className="h-4 w-4" />
-        </button>
+        </motion.button>
       )}
 
       {/* Desktop Share Modal */}

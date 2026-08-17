@@ -66,13 +66,21 @@ export function usePaginatedPosts({
     autoFetch,
   );
 
-  const posts = localPosts ?? data?.posts ?? initialPosts;
-  const total = data?.total ?? initialTotal;
+  const isClientSidePagination = !autoFetch;
+  const rawList = localPosts ?? initialPosts;
+
+  const posts = isClientSidePagination
+    ? rawList.slice((page - 1) * limitVal, page * limitVal)
+    : (localPosts ?? data?.posts ?? initialPosts);
+
+  const total = isClientSidePagination
+    ? rawList.length
+    : (data?.total ?? initialTotal);
+
   const totalPages = Math.max(1, Math.ceil(total / limitVal));
 
   const goToPage = useCallback((pageNum: number) => {
     const safe = Math.max(1, pageNum);
-    setLocalPosts(null);
     setPage(safe);
   }, []);
 

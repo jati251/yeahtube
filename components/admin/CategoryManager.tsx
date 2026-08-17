@@ -8,6 +8,7 @@ import { FolderPlus, Pencil, Trash2, X, Check } from "lucide-react";
 import { CategoryItem, CategoryManagerProps } from "@/types";
 import { useCreateCategoryMutation, useDeleteCategoryMutation } from "@/services/queries";
 import { api } from "@/lib/api-client";
+import { motion, AnimatePresence } from "framer-motion";
 
 export type { CategoryItem, CategoryManagerProps };
 
@@ -87,7 +88,12 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
 
   return (
     <div className="space-y-8">
-      <form onSubmit={handleAddCategory} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50">
+      <motion.form
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        onSubmit={handleAddCategory}
+        className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50"
+      >
         <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           Add New Category
         </h2>
@@ -116,9 +122,9 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
             Add
           </Button>
         </div>
-      </form>
+      </motion.form>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
             <tr>
@@ -128,65 +134,76 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {categories.map((cat) => (
-              <tr key={cat.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                {editingId === cat.id ? (
-                  <>
-                    <td className="px-4 py-3 align-top">
-                      <Input
-                        name="edit-name"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="mb-1"
-                      />
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <Input
-                        name="edit-desc"
-                        value={editDesc}
-                        onChange={(e) => setEditDesc(e.target.value)}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right align-top">
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => setEditingId(null)} disabled={loading}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" onClick={() => handleUpdateCategory(cat.id)} loading={loading}>
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-zinc-900 dark:text-zinc-50">{cat.name}</div>
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">/{cat.slug}</div>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">
-                      {cat.description || <span className="text-zinc-400 italic">No description</span>}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => startEdit(cat)}
-                          className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(cat.id)}
-                          className="rounded p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-zinc-800 dark:hover:text-red-400"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
+            <AnimatePresence initial={false}>
+              {categories.map((cat, idx) => (
+                <motion.tr
+                  key={cat.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: idx < 10 ? idx * 0.02 : 0 }}
+                  className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
+                >
+                  {editingId === cat.id ? (
+                    <>
+                      <td className="px-4 py-3 align-top">
+                        <Input
+                          name="edit-name"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="mb-1"
+                        />
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <Input
+                          name="edit-desc"
+                          value={editDesc}
+                          onChange={(e) => setEditDesc(e.target.value)}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right align-top">
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => setEditingId(null)} disabled={loading}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" onClick={() => handleUpdateCategory(cat.id)} loading={loading}>
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-zinc-900 dark:text-zinc-50">{cat.name}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">/{cat.slug}</div>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">
+                        {cat.description || <span className="text-zinc-400 italic">No description</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <motion.button
+                            whileTap={{ scale: 0.88 }}
+                            onClick={() => startEdit(cat)}
+                            className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 cursor-pointer transition-colors"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </motion.button>
+                          <motion.button
+                            whileTap={{ scale: 0.88 }}
+                            onClick={() => handleDeleteCategory(cat.id)}
+                            className="rounded p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-zinc-800 dark:hover:text-red-400 cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </motion.button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </motion.tr>
+              ))}
+            </AnimatePresence>
             {categories.length === 0 && (
               <tr>
                 <td colSpan={3} className="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">

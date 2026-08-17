@@ -4,6 +4,7 @@ import React from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { clsx } from "clsx";
 import { PaginationControlsProps } from "@/types";
+import { motion } from "framer-motion";
 
 function buildPages(page: number, totalPages: number, maxVisible: number): (number | "ellipsis")[] {
   if (totalPages <= maxVisible) {
@@ -32,22 +33,49 @@ function buildPages(page: number, totalPages: number, maxVisible: number): (numb
   return pages;
 }
 
-function renderPages(pgs: (number | "ellipsis")[], page: number, loading: boolean | undefined, onPage: ((p: number) => void) | undefined, baseClass: string, activeClass: string, inactiveClass: string) {
+function renderPages(
+  pgs: (number | "ellipsis")[],
+  page: number,
+  loading: boolean | undefined,
+  onPage: ((p: number) => void) | undefined,
+  baseClass: string,
+  activeClass: string,
+  inactiveClass: string,
+) {
   return pgs.map((p, i) =>
     p === "ellipsis" ? (
-      <span key={`e-${i}`} className="w-6 sm:w-9 text-center text-xs sm:text-sm text-zinc-400 dark:text-zinc-500">…</span>
+      <span key={`e-${i}`} className="w-6 sm:w-9 text-center text-xs sm:text-sm text-zinc-400 dark:text-zinc-500 select-none">
+        …
+      </span>
     ) : (
-      <button key={`p-${p}`} onClick={() => onPage?.(p)} disabled={loading}
-        className={clsx(baseClass, p === page ? activeClass : inactiveClass, loading && "cursor-not-allowed opacity-50")}>
+      <motion.button
+        key={`p-${p}`}
+        onClick={() => onPage?.(p)}
+        disabled={loading}
+        whileTap={!loading ? { scale: 0.9 } : undefined}
+        whileHover={!loading && p !== page ? { scale: 1.08 } : undefined}
+        className={clsx(
+          baseClass,
+          p === page ? activeClass : inactiveClass,
+          loading && "cursor-not-allowed opacity-50",
+        )}
+      >
         {p}
-      </button>
-    )
+      </motion.button>
+    ),
   );
 }
 
 export const PaginationControls = React.memo(function PaginationControls({
-  page, totalPages, total, loading,
-  onNext, onPrev, onFirst, onLast, onPage,
+  page,
+  totalPages,
+  total,
+  loading,
+  onNext,
+  onPrev,
+  onFirst,
+  onLast,
+  onPage,
   className = "",
   compact = false,
 }: PaginationControlsProps) {
@@ -59,18 +87,23 @@ export const PaginationControls = React.memo(function PaginationControls({
   const mobilePages = buildPages(page, totalPages, compact ? 5 : 9);
   const desktopPages = buildPages(page, totalPages, compact ? 11 : 25);
 
-  const btn = "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed";
-  const inact = "border-zinc-200/80 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900";
-  const dis = "cursor-not-allowed border-zinc-100 bg-zinc-50/50 text-zinc-300 dark:border-zinc-800/50 dark:bg-zinc-950/20 dark:text-zinc-600";
+  const btn =
+    "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed cursor-pointer";
+  const inact =
+    "border-zinc-200/80 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 shadow-sm";
+  const dis =
+    "cursor-not-allowed border-zinc-100 bg-zinc-50/50 text-zinc-300 dark:border-zinc-800/50 dark:bg-zinc-950/20 dark:text-zinc-600";
 
-  const pgBase = "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors";
-  const pgAct = "border border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 font-semibold shadow-sm";
+  const pgBase = "inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors cursor-pointer";
+  const pgAct = "border border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 font-bold shadow-sm";
   const pgInact = "border border-transparent text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900";
 
   if (compact) {
     return (
       <div className={clsx("flex items-center gap-1 sm:gap-1.5", className)}>
-        <button
+        <motion.button
+          whileTap={!isFirst && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isFirst && !loading ? { scale: 1.08 } : undefined}
           onClick={onFirst}
           disabled={isFirst || loading}
           className={clsx(btn, "h-8 w-8 text-xs", isFirst || loading ? dis : inact)}
@@ -78,8 +111,10 @@ export const PaginationControls = React.memo(function PaginationControls({
           title="First page"
         >
           <ChevronsLeft className="h-3.5 w-3.5" />
-        </button>
-        <button
+        </motion.button>
+        <motion.button
+          whileTap={!isFirst && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isFirst && !loading ? { scale: 1.08 } : undefined}
           onClick={onPrev}
           disabled={isFirst || loading}
           className={clsx(btn, "h-8 w-8 text-xs", isFirst || loading ? dis : inact)}
@@ -87,7 +122,7 @@ export const PaginationControls = React.memo(function PaginationControls({
           title="Previous page"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
-        </button>
+        </motion.button>
 
         {/* Mobile Numbers */}
         <div className="flex items-center gap-1 sm:hidden">
@@ -99,7 +134,9 @@ export const PaginationControls = React.memo(function PaginationControls({
           {renderPages(desktopPages, page, loading, onPage, clsx(pgBase, "h-8 w-8 text-xs"), pgAct, pgInact)}
         </div>
 
-        <button
+        <motion.button
+          whileTap={!isLast && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isLast && !loading ? { scale: 1.08 } : undefined}
           onClick={onNext}
           disabled={isLast || loading}
           className={clsx(btn, "h-8 w-8 text-xs", isLast || loading ? dis : inact)}
@@ -107,8 +144,10 @@ export const PaginationControls = React.memo(function PaginationControls({
           title="Next page"
         >
           <ChevronRight className="h-3.5 w-3.5" />
-        </button>
-        <button
+        </motion.button>
+        <motion.button
+          whileTap={!isLast && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isLast && !loading ? { scale: 1.08 } : undefined}
           onClick={onLast}
           disabled={isLast || loading}
           className={clsx(btn, "h-8 w-8 text-xs", isLast || loading ? dis : inact)}
@@ -116,31 +155,107 @@ export const PaginationControls = React.memo(function PaginationControls({
           title="Last page"
         >
           <ChevronsRight className="h-3.5 w-3.5" />
-        </button>
+        </motion.button>
       </div>
     );
   }
 
   return (
     <div className={clsx("my-6 flex flex-col items-center gap-2", className)}>
-      <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium">Page {page} of {totalPages}</p>
+      <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+        Page {page} of {totalPages}
+      </p>
 
       {/* Mobile */}
       <div className="flex flex-wrap justify-center items-center gap-1 sm:hidden">
-        <button onClick={onFirst} disabled={isFirst || loading} className={clsx(btn, "h-8 w-8", isFirst || loading ? dis : inact)} aria-label="First page"><ChevronsLeft className="h-4 w-4" /></button>
-        <button onClick={onPrev} disabled={isFirst || loading} className={clsx(btn, "h-8 w-8", isFirst || loading ? dis : inact)} aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
+        <motion.button
+          whileTap={!isFirst && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isFirst && !loading ? { scale: 1.08 } : undefined}
+          onClick={onFirst}
+          disabled={isFirst || loading}
+          className={clsx(btn, "h-8 w-8", isFirst || loading ? dis : inact)}
+          aria-label="First page"
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </motion.button>
+        <motion.button
+          whileTap={!isFirst && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isFirst && !loading ? { scale: 1.08 } : undefined}
+          onClick={onPrev}
+          disabled={isFirst || loading}
+          className={clsx(btn, "h-8 w-8", isFirst || loading ? dis : inact)}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </motion.button>
         {renderPages(mobilePages, page, loading, onPage, clsx(pgBase, "h-8 w-8 text-xs"), pgAct, pgInact)}
-        <button onClick={onNext} disabled={isLast || loading} className={clsx(btn, "h-8 w-8", isLast || loading ? dis : inact)} aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
-        <button onClick={onLast} disabled={isLast || loading} className={clsx(btn, "h-8 w-8", isLast || loading ? dis : inact)} aria-label="Last page"><ChevronsRight className="h-4 w-4" /></button>
+        <motion.button
+          whileTap={!isLast && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isLast && !loading ? { scale: 1.08 } : undefined}
+          onClick={onNext}
+          disabled={isLast || loading}
+          className={clsx(btn, "h-8 w-8", isLast || loading ? dis : inact)}
+          aria-label="Next page"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </motion.button>
+        <motion.button
+          whileTap={!isLast && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isLast && !loading ? { scale: 1.08 } : undefined}
+          onClick={onLast}
+          disabled={isLast || loading}
+          className={clsx(btn, "h-8 w-8", isLast || loading ? dis : inact)}
+          aria-label="Last page"
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </motion.button>
       </div>
 
       {/* Desktop */}
       <div className="hidden sm:flex flex-wrap justify-center items-center gap-1.5">
-        <button onClick={onFirst} disabled={isFirst || loading} className={clsx(btn, "h-9 w-9", isFirst || loading ? dis : inact)} aria-label="First page"><ChevronsLeft className="h-4 w-4" /></button>
-        <button onClick={onPrev} disabled={isFirst || loading} className={clsx(btn, "h-9 w-auto px-3 gap-1", isFirst || loading ? dis : inact)} aria-label="Previous page"><ChevronLeft className="h-4 w-4" /><span>Prev</span></button>
+        <motion.button
+          whileTap={!isFirst && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isFirst && !loading ? { scale: 1.08 } : undefined}
+          onClick={onFirst}
+          disabled={isFirst || loading}
+          className={clsx(btn, "h-9 w-9", isFirst || loading ? dis : inact)}
+          aria-label="First page"
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </motion.button>
+        <motion.button
+          whileTap={!isFirst && !loading ? { scale: 0.92 } : undefined}
+          whileHover={!isFirst && !loading ? { scale: 1.05 } : undefined}
+          onClick={onPrev}
+          disabled={isFirst || loading}
+          className={clsx(btn, "h-9 w-auto px-3 gap-1", isFirst || loading ? dis : inact)}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span>Prev</span>
+        </motion.button>
         {renderPages(desktopPages, page, loading, onPage, clsx(pgBase, "h-9 w-9 text-sm"), pgAct, pgInact)}
-        <button onClick={onNext} disabled={isLast || loading} className={clsx(btn, "h-9 w-auto px-3 gap-1", isLast || loading ? dis : inact)} aria-label="Next page"><span>Next</span><ChevronRight className="h-4 w-4" /></button>
-        <button onClick={onLast} disabled={isLast || loading} className={clsx(btn, "h-9 w-9", isLast || loading ? dis : inact)} aria-label="Last page"><ChevronsRight className="h-4 w-4" /></button>
+        <motion.button
+          whileTap={!isLast && !loading ? { scale: 0.92 } : undefined}
+          whileHover={!isLast && !loading ? { scale: 1.05 } : undefined}
+          onClick={onNext}
+          disabled={isLast || loading}
+          className={clsx(btn, "h-9 w-auto px-3 gap-1", isLast || loading ? dis : inact)}
+          aria-label="Next page"
+        >
+          <span>Next</span>
+          <ChevronRight className="h-4 w-4" />
+        </motion.button>
+        <motion.button
+          whileTap={!isLast && !loading ? { scale: 0.9 } : undefined}
+          whileHover={!isLast && !loading ? { scale: 1.08 } : undefined}
+          onClick={onLast}
+          disabled={isLast || loading}
+          className={clsx(btn, "h-9 w-9", isLast || loading ? dis : inact)}
+          aria-label="Last page"
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </motion.button>
       </div>
     </div>
   );

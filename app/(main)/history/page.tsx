@@ -34,7 +34,7 @@ export default async function HistoryPage() {
         initialSort="newest"
         tags={[]}
         categories={[]}
-        disableFiltersAndPagination={true}
+        disableFilters={true}
       />
     </div>
   );

@@ -11,6 +11,8 @@ export interface FeedClientProps {
   initialSort: SortValue;
   tags: TagItem[];
   categories: CategoryItem[];
+  disableFilters?: boolean;
+  disablePagination?: boolean;
   disableFiltersAndPagination?: boolean;
 }
 

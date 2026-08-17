@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { useAppStore } from "@/stores/appStore";
 import { SearchBarProps } from "@/types";
@@ -11,7 +11,20 @@ import { motion, AnimatePresence } from "framer-motion";
 export function SearchBar({ isMobile = false }: SearchBarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const feedSearchQuery = useAppStore((s) => s.feedSearchQuery);
+
+  const urlQ = searchParams.get("q");
+  const targetQuery = urlQ !== null ? urlQ : pathname === "/" ? feedSearchQuery : "";
+
+  const [prevTargetQuery, setPrevTargetQuery] = useState(targetQuery);
+  const [searchQuery, setSearchQuery] = useState(targetQuery);
+
+  if (prevTargetQuery !== targetQuery) {
+    setPrevTargetQuery(targetQuery);
+    setSearchQuery(targetQuery);
+  }
+
   const [showDropdown, setShowDropdown] = useState(false);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -35,12 +48,8 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
     setShowDropdown(false);
     if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
 
-    if (pathname === "/") {
-      useAppStore.getState().setFeedSearchQuery(searchQuery.trim());
-      useAppStore.getState().triggerPostsRefresh();
-    } else {
-      router.push(`/?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
+    useAppStore.getState().setFeedSearchQuery(searchQuery.trim());
+    router.push(`/?q=${encodeURIComponent(searchQuery.trim())}`);
   };
 
   return (
@@ -97,7 +106,6 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
                     onClick={() => {
                       router.push(resultHref);
                       setShowDropdown(false);
-                      setSearchQuery("");
                     }}
                     className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer transition-colors"
                   >

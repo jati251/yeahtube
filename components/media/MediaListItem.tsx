@@ -7,6 +7,7 @@ import { Film, Image as ImageIcon, Clock } from "lucide-react";
 import { clsx } from "clsx";
 import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
 import { MediaListItemProps } from "@/types";
+import { motion } from "framer-motion";
 
 export const MediaListItem = React.memo(function MediaListItem({
   post,
@@ -73,9 +74,9 @@ export const MediaListItem = React.memo(function MediaListItem({
         ) : null}
       </div>
 
-      {/* Duration badge */}
-      {post.duration && (
-        <div className="absolute bottom-1.5 right-1.5 z-20 flex items-center gap-1 rounded bg-black/75 backdrop-blur-md px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+      {/* Video duration badge */}
+      {post.mediaType === "video" && post.duration && (
+        <div className="absolute bottom-1.5 right-1.5 z-20 flex items-center gap-1 rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm shadow">
           <Clock className="h-2.5 w-2.5" />
           {formatDuration(post.duration)}
         </div>
@@ -84,7 +85,10 @@ export const MediaListItem = React.memo(function MediaListItem({
   );
 
   return (
-    <div
+    <motion.div
+      whileTap={{ scale: 0.98 }}
+      whileHover={{ x: 2 }}
+      transition={{ duration: 0.15 }}
       onClick={() => {
         if (selectMode) {
           onToggleSelect?.(post.id);
@@ -249,6 +253,6 @@ export const MediaListItem = React.memo(function MediaListItem({
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 });

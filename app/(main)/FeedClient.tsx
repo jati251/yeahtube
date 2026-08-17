@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useTransition } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useFeedFilters } from "@/hooks/useFeedFilters";
 import { MobileFilters } from "@/components/filters/MobileFilters";
@@ -38,8 +38,12 @@ export function FeedClient({
   initialSort,
   tags,
   categories,
+  disableFilters = false,
+  disablePagination = false,
   disableFiltersAndPagination = false,
 }: FeedClientProps) {
+  const isFiltersDisabled = Boolean(disableFilters || disableFiltersAndPagination);
+  const isPaginationDisabled = Boolean(disablePagination || disableFiltersAndPagination);
   const { addToast } = useToast();
 
   const feedScrollY = useAppStore((s) => s.feedScrollY);
@@ -95,7 +99,7 @@ export function FeedClient({
         year: activeYear,
         channel: showPublicPosts ? null : "private",
       },
-      autoFetch: !disableFiltersAndPagination && activeMediaType !== "playlist",
+      autoFetch: !isFiltersDisabled && activeMediaType !== "playlist",
     });
 
   const isPlaylistMode = activeMediaType === "playlist";
@@ -139,43 +143,63 @@ export function FeedClient({
 
   // Sync URL when dependencies change
   useEffect(() => {
-    if (disableFiltersAndPagination) return;
+    if (isFiltersDisabled && isPaginationDisabled) return;
     syncUrl(page);
-  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, syncUrl, disableFiltersAndPagination]);
+  }, [activeMediaType, activeTags, activeSearchQuery, activeSort, activeCategory, activeYear, page, syncUrl, isFiltersDisabled, isPaginationDisabled]);
 
   // ---- Handlers ----
   const handleTagToggle = (slug: string) => {
     setActiveTags((prev) => {
-      const next = new Set(prev);
-      if (next.has(slug)) next.delete(slug);
-      else next.add(slug);
-      return Array.from(next);
+      const next = prev.includes(slug)
+        ? prev.filter((t) => t !== slug)
+        : [...prev, slug];
+      goToPage(1);
+      return next;
     });
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      goToPage(page + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      goToPage(page - 1);
+    }
+  };
+
+  const handleFirstPage = () => {
+    if (page > 1) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      goToPage(1);
+    }
+  };
+
+  const handleLastPage = () => {
+    if (page < totalPages) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      goToPage(totalPages);
+    }
+  };
+
+  const navigateToPage = (targetPage: number) => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    goToPage(targetPage);
   };
 
   const clearAll = () => {
     setActiveMediaType(null);
     setActiveTags([]);
     setActiveSearchQuery("");
-    setActiveSort(initialSort);
+    setActiveSort("newest");
     setActiveCategory(null);
     setActiveYear(null);
+    goToPage(1);
   };
-
-  const [, startTransition] = useTransition();
-
-  const navigateToPage = useCallback((newPage: number) => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-    setFeedScrollY(0);
-    startTransition(() => {
-      goToPage(newPage);
-    });
-  }, [goToPage, setFeedScrollY, startTransition]);
-
-  const handleNextPage = useCallback(() => navigateToPage(page + 1), [navigateToPage, page]);
-  const handlePrevPage = useCallback(() => navigateToPage(page - 1), [navigateToPage, page]);
-  const handleFirstPage = useCallback(() => navigateToPage(1), [navigateToPage]);
-  const handleLastPage = useCallback(() => navigateToPage(totalPages), [navigateToPage, totalPages]);
 
   // ---- Admin post selection ----
   const {
@@ -194,7 +218,7 @@ export function FeedClient({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      {!disableFiltersAndPagination && (
+      {!isFiltersDisabled && (
         <ActiveFilters
           mediaType={activeMediaType}
           selectedTags={activeTags}
@@ -223,7 +247,7 @@ export function FeedClient({
         />
       )}
 
-      {!disableFiltersAndPagination && tags.length > 0 && !hasFilters && (
+      {!isFiltersDisabled && tags.length > 0 && !hasFilters && (
         <TagCloud
           tags={tags}
           activeTag={activeTags[0] || null}
@@ -236,35 +260,36 @@ export function FeedClient({
       )}
 
       <div className="mt-6 space-y-4">
-
-        <MobileFilters
-          isOpen={mobileFiltersOpen}
-          onClose={() => setMobileFiltersOpen(false)}
-          mediaType={activeMediaType}
-          selectedTags={activeTags}
-          tags={tags}
-          category={activeCategory}
-          categories={categories}
-          year={activeYear}
-          onMediaTypeChange={(type) => {
-            setActiveMediaType(type);
-            goToPage(1);
-          }}
-          onTagToggle={handleTagToggle}
-          onCategoryChange={(slug) => {
-            setActiveCategory(slug);
-            goToPage(1);
-          }}
-          onYearChange={(yearVal) => {
-            setActiveYear(yearVal);
-            goToPage(1);
-          }}
-          onClearAll={clearAll}
-        />
+        {!isFiltersDisabled && (
+          <MobileFilters
+            isOpen={mobileFiltersOpen}
+            onClose={() => setMobileFiltersOpen(false)}
+            mediaType={activeMediaType}
+            selectedTags={activeTags}
+            tags={tags}
+            category={activeCategory}
+            categories={categories}
+            year={activeYear}
+            onMediaTypeChange={(type) => {
+              setActiveMediaType(type);
+              goToPage(1);
+            }}
+            onTagToggle={handleTagToggle}
+            onCategoryChange={(slug) => {
+              setActiveCategory(slug);
+              goToPage(1);
+            }}
+            onYearChange={(yearVal) => {
+              setActiveYear(yearVal);
+              goToPage(1);
+            }}
+            onClearAll={clearAll}
+          />
+        )}
 
         <div className="w-full">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            {!disableFiltersAndPagination && (
+            {!isFiltersDisabled && (
               <FeedFilterBar
                 mediaType={activeMediaType}
                 onMediaTypeChange={(type) => {
@@ -300,7 +325,7 @@ export function FeedClient({
                 onToggleSelectMode={isPlaylistMode ? undefined : toggleSelectMode}
               />
 
-              {!disableFiltersAndPagination && !isPlaylistMode && totalPages > 1 && (
+              {!isPaginationDisabled && !isPlaylistMode && totalPages > 1 && (
                 <PaginationControls
                   page={page}
                   totalPages={totalPages}
@@ -365,7 +390,7 @@ export function FeedClient({
           </div>
 
           {/* Bottom Pagination */}
-          {!disableFiltersAndPagination && !isPlaylistMode && (
+          {!isPaginationDisabled && !isPlaylistMode && totalPages > 1 && (
             <PaginationControls
               page={page}
               totalPages={totalPages}

@@ -6,6 +6,7 @@ import NextImage from "next/image";
 import { Film, Eye, HardDrive } from "lucide-react";
 import { formatBytes, formatDuration } from "@/lib/media-utils";
 import { TopVideoItem } from "@/types";
+import { motion } from "framer-motion";
 
 interface TopVideosGridProps {
   videos: TopVideoItem[];
@@ -18,10 +19,15 @@ function TopVideoRow({ video, index }: { video: TopVideoItem; index: number }) {
       : `/watch?v=${video.slug || video.postId}`;
 
   return (
-    <Link
-      href={href}
-      className="group flex items-center gap-2 rounded-xl border border-zinc-200/80 bg-white p-1.5 sm:p-2 shadow-sm transition-all hover:border-blue-500/40 hover:bg-zinc-50/60 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-500/40 dark:hover:bg-zinc-800/60"
+    <motion.div
+      whileHover={{ x: 2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.15 }}
     >
+      <Link
+        href={href}
+        className="group flex items-center gap-2 rounded-xl border border-zinc-200/80 bg-white p-1.5 sm:p-2 shadow-sm transition-all hover:border-blue-500/40 hover:bg-zinc-50/60 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-500/40 dark:hover:bg-zinc-800/60"
+      >
       {/* Rank */}
       <span className="w-4 text-center text-[11px] font-bold text-zinc-400 group-hover:text-blue-500 dark:text-zinc-500 shrink-0">
         #{index + 1}
@@ -72,7 +78,8 @@ function TopVideoRow({ video, index }: { video: TopVideoItem; index: number }) {
           )}
         </div>
       </div>
-    </Link>
+      </Link>
+    </motion.div>
   );
 }
 

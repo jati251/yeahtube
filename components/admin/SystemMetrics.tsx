@@ -19,6 +19,7 @@ import { InfrastructureGrid } from "./InfrastructureGrid";
 import { StorageBreakdownCard } from "./StorageBreakdownCard";
 import { TopVideosGrid } from "./TopVideosGrid";
 import { useAdminStatsQuery } from "@/services/queries";
+import { motion } from "framer-motion";
 
 export function SystemMetrics({ initialStats }: SystemMetricsProps) {
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -45,9 +46,13 @@ export function SystemMetrics({ initialStats }: SystemMetricsProps) {
   return (
     <div className="space-y-6">
       {/* Header Controls: Live status & Refresh button */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+      >
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 shadow-sm">
             <Server className="h-5 w-5" />
           </div>
           <div>
@@ -56,16 +61,17 @@ export function SystemMetrics({ initialStats }: SystemMetricsProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.92 }}
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
               autoRefresh
                 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
                 : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
             }`}
           >
             {autoRefresh ? "Live Auto-Refresh (4s)" : "Paused"}
-          </button>
+          </motion.button>
           <Button
             variant="secondary"
             size="sm"
@@ -77,7 +83,7 @@ export function SystemMetrics({ initialStats }: SystemMetricsProps) {
             Refresh
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Infrastructure & Storage 2-Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
@@ -102,14 +108,20 @@ export function SystemMetrics({ initialStats }: SystemMetricsProps) {
             { icon: <MessageCircle className="h-5 w-5" />, label: "Total Comments", value: stats.totalComments.toLocaleString(), color: "amber" },
             { icon: <Tag className="h-5 w-5" />, label: "Active Tags", value: stats.totalTags.toLocaleString(), color: "teal" },
             { icon: <ListVideo className="h-5 w-5" />, label: "Playlists", value: stats.totalPlaylists.toLocaleString(), color: "orange" },
-          ].map((item) => (
-            <StatCard
+          ].map((item, idx) => (
+            <motion.div
               key={item.label}
-              icon={item.icon}
-              label={item.label}
-              value={item.value}
-              color={item.color}
-            />
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.03 }}
+            >
+              <StatCard
+                icon={item.icon}
+                label={item.label}
+                value={item.value}
+                color={item.color}
+              />
+            </motion.div>
           ))}
         </div>
       </div>
