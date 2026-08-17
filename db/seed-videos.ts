@@ -13,6 +13,7 @@ import { eq, asc } from "drizzle-orm";
 import { getDb, schema } from "./index";
 import { getS3Client, getStorageConfig } from "../lib/storage";
 import { enqueueTranscode } from "../lib/transcode-queue";
+import { generateYouTubeId } from "../lib/slug";
 
 // Helper to check video mime/type
 const ALLOWED_VIDEO_TYPES = [
@@ -380,10 +381,12 @@ async function main() {
       }
 
       console.log(`  - Inserting database records...`);
+      const slug = generateYouTubeId(11);
       const [newPost] = await db
         .insert(schema.posts)
         .values({
           userId: firstUser.id,
+          slug,
           title,
           categoryId,
           channel,
