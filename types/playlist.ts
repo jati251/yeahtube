@@ -1,6 +1,7 @@
 export interface Playlist {
   id: number;
   name: string;
+  channel?: "public" | "private";
   isPublic: boolean | number;
   videoCount?: number;
   itemCount?: number;

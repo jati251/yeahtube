@@ -1,6 +1,6 @@
 import "server-only";
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries/posts";
 import { ViewPageClient } from "./ViewPageClient";
@@ -53,7 +53,11 @@ export default async function ViewPage({ params }: RouteIdPageProps) {
   const user = await getCurrentUser();
   const detail = await getPostDetail(Number(id), user);
 
-  if (!detail || detail.images.length === 0) {
+  if (detail?.isPrivate && !user) {
+    redirect(`/login?redirect=/view/${id}`);
+  }
+
+  if (!detail || !detail.post || detail.images.length === 0) {
     notFound();
   }
 

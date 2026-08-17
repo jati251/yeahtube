@@ -2,12 +2,15 @@
 
 import React from "react";
 import { Input } from "@/components/ui/Input";
-import { X, Zap } from "lucide-react";
+import { X, Zap, Lock, Globe } from "lucide-react";
 import { UploadMetadataFieldsProps } from "@/types";
+import { clsx } from "clsx";
 
 export function UploadMetadataFields({
   title,
   onTitleChange,
+  channel = "private",
+  onChannelChange,
   category,
   onCategoryChange,
   categories,
@@ -44,6 +47,54 @@ export function UploadMetadataFields({
           }
           disabled={uploading}
         />
+      </div>
+
+      {/* Channel Visibility Option */}
+      <div>
+        <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1.5">
+          Channel Media Option
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => onChannelChange("private")}
+            disabled={uploading}
+            className={clsx(
+              "flex flex-col items-start rounded-2xl border p-3.5 text-left transition-all cursor-pointer",
+              channel === "private"
+                ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-500 ring-2 ring-blue-500/20"
+                : "border-zinc-200/80 bg-white/80 dark:border-zinc-800 dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+            )}
+          >
+            <span className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              <Lock className="h-4 w-4 text-amber-500" />
+              Private Channel
+            </span>
+            <span className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              Visible to logged-in users only
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onChannelChange("public")}
+            disabled={uploading}
+            className={clsx(
+              "flex flex-col items-start rounded-2xl border p-3.5 text-left transition-all cursor-pointer",
+              channel === "public"
+                ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-500 ring-2 ring-emerald-500/20"
+                : "border-zinc-200/80 bg-white/80 dark:border-zinc-800 dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+            )}
+          >
+            <span className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              <Globe className="h-4 w-4 text-emerald-500" />
+              Public Channel
+            </span>
+            <span className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+              Visible to all (including visitors)
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Album Mode toggle for multiple files */}

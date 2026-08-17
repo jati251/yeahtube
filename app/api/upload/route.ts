@@ -136,6 +136,8 @@ export async function POST(request: NextRequest) {
     ) {
       mimeType = "video/mp2t";
     }
+    const channelHeader = request.headers.get("x-post-channel");
+    const channel = channelHeader === "public" ? "public" : "private";
     const title = decodeURIComponent(request.headers.get("x-post-title") || "");
     const categorySlug = request.headers.get("x-post-category") || null;
     const tagsRaw = decodeURIComponent(request.headers.get("x-post-tags") || "[]");
@@ -220,6 +222,7 @@ export async function POST(request: NextRequest) {
         .values({
           userId: user.id,
           title: postTitle,
+          channel,
           ...(categoryId !== null ? { categoryId } : {}),
         } as const)
         .returning();

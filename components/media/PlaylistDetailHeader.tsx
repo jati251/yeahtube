@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Playlist } from "@/types";
 import { PlaylistLikeButton } from "@/components/interactions/PlaylistLikeButton";
 import { EditPlaylistModal } from "./EditPlaylistModal";
-import { Globe, Lock, Pencil } from "lucide-react";
+import { Users, Lock, Globe, Pencil } from "lucide-react";
 
 interface PlaylistDetailHeaderProps {
   playlist: Playlist;
@@ -55,15 +55,29 @@ export function PlaylistDetailHeader({
             <span>{totalPosts} {totalPosts === 1 ? "item" : "items"}</span>
             <span>•</span>
             <span className="inline-flex items-center gap-1">
+              {playlist.channel === "public" ? (
+                <>
+                  <Globe className="h-3 w-3 text-emerald-500" />
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">Public Channel</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="h-3 w-3 text-amber-500" />
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">Private Channel</span>
+                </>
+              )}
+            </span>
+            <span>•</span>
+            <span className="inline-flex items-center gap-1">
               {isPublic ? (
                 <>
-                  <Globe className="h-3 w-3 text-blue-400" />
-                  Public
+                  <Users className="h-3 w-3 text-blue-500" />
+                  <span>Shared</span>
                 </>
               ) : (
                 <>
                   <Lock className="h-3 w-3 text-zinc-400" />
-                  Private
+                  <span>Personal</span>
                 </>
               )}
             </span>

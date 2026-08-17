@@ -15,6 +15,7 @@ export const getUserPlaylistsWithThumbnails = cache(async (userId: number) => {
     .select({
       id: schema.playlists.id,
       name: schema.playlists.name,
+      channel: schema.playlists.channel,
       isPublic: schema.playlists.isPublic,
       createdAt: schema.playlists.createdAt,
       videoCount: sql<number>`count(distinct ${schema.playlistItems.id})::int`,
@@ -116,22 +117,35 @@ export const getPlaylistDetails = cache(async (playlistId: number, currentUserId
     return { notFound: true as const, playlist: null, posts: [], author: null, likes: 0, userLiked: false };
   }
 
-  if (!playlist.isPublic && (!currentUserId || currentUserId !== playlist.userId)) {
+  // Visibility guard
+  if (!currentUserId) {
+    // Non-logged in visitor can only view public channel & shared playlists
+    if (playlist.channel !== "public" || !playlist.isPublic) {
+      return { isPrivate: true as const, playlist, posts: [], author: null, likes: 0, userLiked: false };
+    }
+  } else if (!playlist.isPublic && currentUserId !== playlist.userId) {
+    // Logged in non-owner can only view shared playlists
     return { isPrivate: true as const, playlist, posts: [], author: null, likes: 0, userLiked: false };
   }
 
   // Fetch playlist items
+  const itemConditions = [eq(schema.playlistItems.playlistId, playlistId)];
+  if (!currentUserId) {
+    itemConditions.push(eq(schema.posts.channel, "public"));
+  }
+
   const items = await db
     .select({
       id: schema.posts.id,
       title: schema.posts.title,
       description: schema.posts.description,
+      channel: schema.posts.channel,
       createdAt: schema.posts.createdAt,
       views: schema.posts.views,
     })
     .from(schema.playlistItems)
     .innerJoin(schema.posts, eq(schema.playlistItems.postId, schema.posts.id))
-    .where(eq(schema.playlistItems.playlistId, playlistId))
+    .where(and(...itemConditions))
     .orderBy(desc(schema.playlistItems.addedAt));
 
   const postIds = items.map((i) => i.id);

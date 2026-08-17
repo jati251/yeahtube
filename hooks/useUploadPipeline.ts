@@ -20,6 +20,7 @@ export function useUploadPipeline({
 
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [title, setTitle] = useState("");
+  const [channel, setChannel] = useState<"public" | "private">("private");
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -36,19 +37,12 @@ export function useUploadPipeline({
   const [albumMode, setAlbumMode] = useState(false);
   const [windowDragOver, setWindowDragOver] = useState(false);
   const dragCounter = useRef(0);
-  const [isMinimized, _setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [statusText, setStatusText] = useState("");
 
-  const setIsMinimized = useCallback(
-    (val: boolean | ((prev: boolean) => boolean)) => {
-      _setIsMinimized((prev) => {
-        const next = typeof val === "function" ? val(prev) : val;
-        onMinimizedChange?.(next);
-        return next;
-      });
-    },
-    [onMinimizedChange],
-  );
+  useEffect(() => {
+    onMinimizedChange?.(isMinimized);
+  }, [isMinimized, onMinimizedChange]);
 
   const isVideoFile = useCallback((file: File) => {
     if (file.type && file.type.startsWith("video/")) return true;
@@ -84,7 +78,6 @@ export function useUploadPipeline({
   const doUpload = async (filesToUpload: SelectedFile[], quick: boolean) => {
     if (filesToUpload.length === 0) return;
     setUploading(true);
-    setIsMinimized(true);
     setUploadProgress(0);
     setTotalProgress(undefined);
     setIsBulk(filesToUpload.length > 1 && !albumMode);
@@ -153,6 +146,7 @@ export function useUploadPipeline({
           xhr.setRequestHeader("x-post-id", postIdToAppend);
         } else {
           xhr.setRequestHeader("x-post-title", encodeURIComponent(postTitle));
+          xhr.setRequestHeader("x-post-channel", channel);
           if (!quick && idx === 0) {
             if (category) xhr.setRequestHeader("x-post-category", category);
             xhr.setRequestHeader("x-post-tags", encodeURIComponent(JSON.stringify(tags)));
@@ -329,15 +323,14 @@ export function useUploadPipeline({
       if (newFiles.length > 0) {
         setSelectedFiles((prev) => [...prev, ...newFiles]);
 
-        const isInstant = localStorage.getItem("yeahtube_instant_upload") === "true";
-        if (isInstant) {
+        if (instantUpload) {
           setTimeout(() => {
-            doUploadRef.current(newFiles, true);
+            doUploadRef.current(newFiles, false);
           }, 100);
         }
       }
     },
-    [isVideoFile, addToast]
+    [isVideoFile, addToast, instantUpload]
   );
 
   const removeFile = useCallback((id: string) => {
@@ -426,6 +419,8 @@ export function useUploadPipeline({
     setSelectedFiles,
     title,
     setTitle,
+    channel,
+    setChannel,
     category,
     setCategory,
     tags,

@@ -9,10 +9,18 @@ export interface SearchResult {
   mediaType?: string | null;
 }
 
-export async function searchSuggestions(q: string): Promise<SearchResult[]> {
+export async function searchSuggestions(
+  q: string,
+  user?: { id: number; isAdmin: boolean } | null,
+): Promise<SearchResult[]> {
   if (!q || q.length < 2) return [];
 
   const db = getDb();
+
+  const postConditions = [like(schema.posts.title, `%${q}%`)];
+  if (!user) {
+    postConditions.push(eq(schema.posts.channel, "public"));
+  }
 
   const [postResults, playlistResults] = await Promise.all([
     db
@@ -24,7 +32,7 @@ export async function searchSuggestions(q: string): Promise<SearchResult[]> {
       })
       .from(schema.posts)
       .leftJoin(schema.media, eq(schema.posts.id, schema.media.postId))
-      .where(like(schema.posts.title, `%${q}%`))
+      .where(and(...postConditions))
       .groupBy(schema.posts.id, schema.media.mediaType)
       .orderBy(desc(schema.posts.createdAt))
       .limit(5),

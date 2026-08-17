@@ -8,6 +8,7 @@ interface UpdatePostPayload {
   title?: string;
   description?: string;
   categoryId?: number | null;
+  channel?: "public" | "private";
 }
 
 export function useUpdatePostMutation(postId: number) {

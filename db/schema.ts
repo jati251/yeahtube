@@ -33,6 +33,10 @@ export const categories = pgTable("categories", {
     .default(sql`now()`),
 });
 
+// ── Channel Enum ──────────────────────────────────────
+
+export const channelEnum = ["public", "private"] as const;
+
 // ── Posts ──────────────────────────────────────────────
 
 export const posts = pgTable("posts", {
@@ -44,6 +48,7 @@ export const posts = pgTable("posts", {
     .references(() => categories.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   description: text("description").default(""),
+  channel: text("channel", { enum: channelEnum }).notNull().default("private"),
   views: integer("views").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -55,6 +60,7 @@ export const posts = pgTable("posts", {
   createdAtIndex: index("posts_created_at_idx").on(table.createdAt),
   categoryIndex: index("posts_category_id_idx").on(table.categoryId),
   userIdIndex: index("posts_user_id_idx").on(table.userId),
+  channelIndex: index("posts_channel_idx").on(table.channel),
   updatedAtIndex: index("posts_updated_at_idx").on(table.updatedAt),
   viewsIndex: index("posts_views_idx").on(table.views),
 }));
@@ -199,11 +205,15 @@ export const playlists = pgTable("playlists", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  channel: text("channel", { enum: channelEnum }).notNull().default("private"),
   isPublic: integer("is_public").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-});
+}, (table) => ({
+  userIdIndex: index("playlists_user_id_idx").on(table.userId),
+  channelIndex: index("playlists_channel_idx").on(table.channel),
+}));
 
 export type Playlist = typeof playlists.$inferSelect;
 export type NewPlaylist = typeof playlists.$inferInsert;

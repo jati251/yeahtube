@@ -294,6 +294,19 @@ export const ReelItem = React.memo(function ReelItem({
           effectiveShowControls ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
+        {post.author && (
+          <Link
+            href={`/user/${post.author.username}`}
+            className="flex items-center gap-2 group/author w-fit"
+          >
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[11px] font-bold text-white shadow-sm">
+              {post.author.username.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-white font-semibold text-xs drop-shadow group-hover/author:underline">
+              @{post.author.username}
+            </span>
+          </Link>
+        )}
         <Link href={`/watch/${post.id}`} className="hover:underline">
           <h2 className="text-white font-bold text-base md:text-lg line-clamp-2 drop-shadow-md">
             {post.title}

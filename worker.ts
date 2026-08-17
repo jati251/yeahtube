@@ -350,11 +350,19 @@ async function main() {
       cachedRemainingCount = await getRemainingCount();
       logMessage(`🎬 [Slot ${slotIdx + 1} | Job #${job.id}] Mulai proses Media #${mediaId}: "${filename}"`);
 
+      const effectiveEndpoint = process.env.S3_ENDPOINT || endpoint;
+      const effectiveRegion = process.env.S3_REGION || region;
+      const effectiveAccessKey = process.env.S3_ACCESS_KEY || accessKey;
+      const effectiveSecretKey = process.env.S3_SECRET_KEY || secretKey;
+      const effectiveForcePathStyle = process.env.S3_FORCE_PATH_STYLE !== undefined
+        ? process.env.S3_FORCE_PATH_STYLE === "true"
+        : forcePathStyle;
+
       const s3 = new S3Client({
-        endpoint,
-        region,
-        credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
-        forcePathStyle,
+        endpoint: effectiveEndpoint,
+        region: effectiveRegion,
+        credentials: { accessKeyId: effectiveAccessKey, secretAccessKey: effectiveSecretKey },
+        forcePathStyle: effectiveForcePathStyle,
       });
 
       const tmpDir = os.tmpdir();

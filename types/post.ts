@@ -5,6 +5,11 @@ export interface TagItem {
   postCount?: number;
 }
 
+export interface PostAuthor {
+  id: number;
+  username: string;
+}
+
 export interface PostItem {
   id: number;
   title: string;
@@ -22,4 +27,6 @@ export interface PostItem {
   width?: number | null;
   height?: number | null;
   views?: number;
+  author?: PostAuthor | null;
+  channel?: "public" | "private";
 }

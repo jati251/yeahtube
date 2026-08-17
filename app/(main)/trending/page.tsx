@@ -1,6 +1,7 @@
-import { Metadata } from "next";
-import { MediaCard } from "@/components/media/MediaCard";
+import type { Metadata } from "next";
+import { getCurrentUser } from "@/lib/auth";
 import { getTrendingPosts } from "@/lib/queries";
+import { MediaCard } from "@/components/media/MediaCard";
 import { TrendingUp } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function TrendingPage() {
-  const trendingPosts = await getTrendingPosts(20);
+  const user = await getCurrentUser();
+  const trendingPosts = await getTrendingPosts(20, user);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

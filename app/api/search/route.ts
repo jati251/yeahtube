@@ -1,11 +1,13 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { searchSuggestions } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q");
 
@@ -13,7 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] });
     }
 
-    const results = await searchSuggestions(q);
+    const results = await searchSuggestions(q, user);
 
     return NextResponse.json({ results });
   } catch (error) {

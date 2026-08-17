@@ -257,6 +257,12 @@ async function main() {
   const s3 = getS3Client();
   const storageConfig = getStorageConfig();
 
+  // Parse channel from CLI args (e.g. --channel=public or --channel=private, default: private)
+  const channelArg = process.argv.find((arg) => arg.startsWith("--channel="))?.split("=")[1]?.toLowerCase()
+    || (process.argv.includes("--public") ? "public" : "private");
+  const channel: "public" | "private" = channelArg === "public" ? "public" : "private";
+  console.log(`📺 Seeding to channel: [${channel.toUpperCase()}]`);
+
   // Find admin or first user in the system
   const [adminUser] = await db
     .select()
@@ -380,6 +386,7 @@ async function main() {
           userId: firstUser.id,
           title,
           categoryId,
+          channel,
         })
         .returning();
 

@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
       .select({
         id: schema.playlists.id,
         name: schema.playlists.name,
+        channel: schema.playlists.channel,
         isPublic: schema.playlists.isPublic,
         createdAt: schema.playlists.createdAt,
         userId: schema.playlists.userId,
@@ -144,6 +145,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const name = body.name?.trim();
+    const channel = body.channel === "public" ? "public" : "private";
     const isPublic = body.isPublic ? 1 : 0;
 
     if (!name) {
@@ -157,6 +159,7 @@ export async function POST(request: NextRequest) {
       .values({
         userId: user.id,
         name,
+        channel,
         isPublic,
       })
       .returning();

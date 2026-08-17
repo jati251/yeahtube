@@ -3,11 +3,59 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { generateCsrfToken, CSRF_COOKIE_NAME } from "@/lib/csrf";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/session"];
-
 export const config = {
   matcher: ["/((?!api/upload|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };
+
+/**
+ * Checks if a pathname is publicly accessible without authentication.
+ */
+function isPublicRoute(pathname: string, method: string): boolean {
+  // Authentication routes
+  if (pathname === "/login" || pathname === "/api/auth/login" || pathname === "/api/auth/session") {
+    return true;
+  }
+
+  // Media streaming API route (Range requests for video seeking/playing)
+  if (pathname.startsWith("/api/media/stream")) {
+    return true;
+  }
+
+  // Public browse pages
+  if (
+    pathname === "/" ||
+    pathname === "/trending" ||
+    pathname === "/shorts" ||
+    pathname.startsWith("/watch/") ||
+    pathname.startsWith("/view/") ||
+    pathname.startsWith("/user/") ||
+    pathname.startsWith("/playlists/")
+  ) {
+    return true;
+  }
+
+  // Public GET API routes
+  if (method === "GET") {
+    if (
+      pathname === "/api/posts" ||
+      pathname.startsWith("/api/posts/") ||
+      pathname.startsWith("/api/playlists/") ||
+      pathname.startsWith("/api/search") ||
+      pathname.startsWith("/api/categories") ||
+      pathname.startsWith("/api/tags") ||
+      pathname.startsWith("/api/user/")
+    ) {
+      return true;
+    }
+  }
+
+  // View count increment is allowed for public
+  if (method === "POST" && pathname.match(/^\/api\/posts\/\d+\/view$/)) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * Finalizes the response by ensuring the double-submit CSRF cookie is present
@@ -38,6 +86,7 @@ function finalizeResponse(
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const method = request.method;
 
   // 1. Check if user is logged in
   const sessionCookie = request.cookies.get("yeahtube_session");
@@ -66,9 +115,17 @@ export async function proxy(request: NextRequest) {
     return finalizeResponse(request, response);
   }
 
-  // 3. Allow other public paths
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    const response = NextResponse.next();
+  // 3. Allow public routes
+  if (isPublicRoute(pathname, method)) {
+    const requestHeaders = new Headers(request.headers);
+    if (sessionPayload) {
+      requestHeaders.set("x-user-id", sessionPayload.sub);
+      requestHeaders.set("x-user-name", sessionPayload.username);
+      requestHeaders.set("x-user-admin", String(sessionPayload.isAdmin));
+    }
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
     return finalizeResponse(request, response);
   }
 

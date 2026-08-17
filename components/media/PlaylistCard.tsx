@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Heart, Globe, Lock, ListVideo, User } from "lucide-react";
+import { Heart, Users, Lock, Globe, ListVideo, User } from "lucide-react";
 import { PlaylistCoverCollage } from "./PlaylistCoverCollage";
 import { PlaylistCardProps, PlaylistLikeData } from "@/types";
 import { usePlaylistLikeQuery, usePlaylistLikeMutation } from "@/services/queries";
@@ -53,19 +53,35 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
           playlistName={playlist.name}
         />
 
-        {/* Top Badges (Public / Private) */}
-        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[11px] font-medium text-white border border-white/10 shadow-sm">
-          {isPublic ? (
-            <>
-              <Globe className="h-3 w-3 text-blue-400" />
-              <span>Public</span>
-            </>
-          ) : (
-            <>
-              <Lock className="h-3 w-3 text-zinc-400" />
-              <span>Private</span>
-            </>
-          )}
+        {/* Top Badges (Channel + Sharing) */}
+        <div className="absolute top-2.5 left-2.5 z-20 flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[11px] font-medium text-white border border-white/10 shadow-sm">
+            {playlist.channel === "public" ? (
+              <>
+                <Globe className="h-3 w-3 text-emerald-400" />
+                <span>Public Channel</span>
+              </>
+            ) : (
+              <>
+                <Lock className="h-3 w-3 text-amber-400" />
+                <span>Private Channel</span>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[11px] font-medium text-white border border-white/10 shadow-sm">
+            {isPublic ? (
+              <>
+                <Users className="h-3 w-3 text-blue-400" />
+                <span>Shared</span>
+              </>
+            ) : (
+              <>
+                <Lock className="h-3 w-3 text-zinc-400" />
+                <span>Personal</span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Favorite / Like Button */}

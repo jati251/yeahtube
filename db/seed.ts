@@ -40,6 +40,7 @@ async function seed() {
       category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
       title TEXT NOT NULL,
       description TEXT DEFAULT '',
+      channel TEXT NOT NULL DEFAULT 'private',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -85,6 +86,7 @@ async function seed() {
     CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
     CREATE INDEX IF NOT EXISTS idx_posts_category_id ON posts(category_id);
+    CREATE INDEX IF NOT EXISTS idx_posts_channel ON posts(channel);
     CREATE INDEX IF NOT EXISTS idx_media_post_id ON media(post_id);
     CREATE INDEX IF NOT EXISTS idx_media_type ON media(media_type);
     CREATE INDEX IF NOT EXISTS idx_tags_slug ON tags(slug);

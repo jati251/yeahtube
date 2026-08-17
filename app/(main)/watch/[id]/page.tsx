@@ -1,6 +1,6 @@
 import "server-only";
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries/posts";
 import { formatDurationISO } from "@/utils";
@@ -65,7 +65,11 @@ export default async function WatchPage({ params }: RouteIdPageProps) {
   const user = await getCurrentUser();
   const detail = await getPostDetail(Number(id), user);
 
-  if (!detail || detail.videos.length === 0) {
+  if (detail?.isPrivate && !user) {
+    redirect(`/login?redirect=/watch/${id}`);
+  }
+
+  if (!detail || !detail.post || detail.videos.length === 0) {
     notFound();
   }
 

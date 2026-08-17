@@ -22,6 +22,8 @@ export interface VideoData {
   orderIndex?: number;
 }
 
+import type { PostAuthor } from "./post";
+
 export interface PostData {
   id: number;
   title: string;
@@ -30,6 +32,8 @@ export interface PostData {
   categoryId?: number | null;
   userId?: number;
   views?: number;
+  author?: PostAuthor | null;
+  channel?: "public" | "private";
 }
 
 export interface ViewPageClientProps {

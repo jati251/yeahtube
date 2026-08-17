@@ -7,6 +7,7 @@ export interface EditablePost {
   tags?: TagItem[];
   categoryId?: number | null;
   category?: string | null;
+  channel?: "public" | "private";
 }
 
 export interface EditPostModalProps {
@@ -19,6 +20,7 @@ export interface EditPostModalProps {
     description: string | null;
     category: string | null;
     categoryId?: number | null;
+    channel?: "public" | "private";
   }) => void;
 }
 

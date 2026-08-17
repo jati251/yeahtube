@@ -6,8 +6,11 @@ export interface PostDbItem {
   description: string | null;
   createdAt: string | Date;
   categoryId?: number | null;
+  userId?: number;
   views?: number | null;
   mediaCount?: number | null;
+  channel?: "public" | "private" | string | null;
+  author?: { id: number; username: string } | null;
 }
 
 export interface MediaDbItem {
@@ -37,7 +40,8 @@ export async function formatPostItem(
   post: PostDbItem,
   postMedia: MediaDbItem[],
   postTags: TagDbItem[],
-  categoryName: string | null = null
+  categoryName: string | null = null,
+  authorInfo: { id: number; username: string } | null = null
 ) {
   // Sort media by orderIndex ascending so that original media (lowest index) comes first.
   // This ensures that we don't accidentally pick up a transcoded version (orderIndex > 0)
@@ -73,6 +77,9 @@ export async function formatPostItem(
     ? post.createdAt.toISOString()
     : String(post.createdAt);
 
+  const author = authorInfo || post.author || null;
+  const channel = (post.channel as "public" | "private") || "private";
+
   return {
     id: post.id,
     title: post.title,
@@ -89,5 +96,7 @@ export async function formatPostItem(
     width: resolutionMedia?.width || null,
     height: resolutionMedia?.height || null,
     views: (post.views !== null && post.views !== undefined) ? post.views : undefined,
+    author,
+    channel,
   };
 }

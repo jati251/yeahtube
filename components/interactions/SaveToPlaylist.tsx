@@ -1,17 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, X, ListVideo } from "lucide-react";
+import { Plus, X, ListVideo, Globe, Lock, Users } from "lucide-react";
 import {
   usePlaylistsQuery,
   useCreatePlaylistMutation,
   useSaveToPlaylistMutation,
 } from "@/services/queries";
 import { SaveToPlaylistProps } from "@/types";
+import { clsx } from "clsx";
 
 export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
   const [creating, setCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [channel, setChannel] = useState<"public" | "private">("private");
   const [isPublic, setIsPublic] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -40,7 +42,7 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
     e.preventDefault();
     if (!newPlaylistName.trim()) return;
     createPlaylistMutation.mutate(
-      { name: newPlaylistName, isPublic },
+      { name: newPlaylistName, channel, isPublic },
       {
         onSuccess: (resData) => {
           handleSaveToPlaylist(resData.playlist.id, resData.playlist.name);
@@ -99,7 +101,13 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
                     {pl.name}
                     {pl.containsPost && <span className="text-[10px] uppercase font-bold tracking-wider">Added</span>}
                   </span>
-                  <span className="text-[10px] text-zinc-500">{pl.isPublic ? "Public" : "Private"}</span>
+                  <div className="flex items-center gap-1.5 text-[10px] text-zinc-500">
+                    <span className={pl.channel === "public" ? "text-emerald-400" : "text-amber-400"}>
+                      {pl.channel === "public" ? "Public" : "Private"}
+                    </span>
+                    <span>•</span>
+                    <span>{pl.isPublic ? "Shared" : "Personal"}</span>
+                  </div>
                 </button>
               ))
             )}
@@ -124,15 +132,51 @@ export function SaveToPlaylist({ postId, onClose }: SaveToPlaylistProps) {
               className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
               autoFocus
             />
-            <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
+
+            {/* Channel options */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setChannel("private")}
+                className={clsx(
+                  "flex items-center justify-center gap-1 rounded-lg border p-2 text-[11px] font-semibold transition-all cursor-pointer",
+                  channel === "private"
+                    ? "border-blue-500 bg-blue-950/40 text-blue-400"
+                    : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-900"
+                )}
+              >
+                <Lock className="h-3 w-3 text-amber-500" />
+                Private Channel
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannel("public")}
+                className={clsx(
+                  "flex items-center justify-center gap-1 rounded-lg border p-2 text-[11px] font-semibold transition-all cursor-pointer",
+                  channel === "public"
+                    ? "border-emerald-500 bg-emerald-950/40 text-emerald-400"
+                    : "border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-900"
+                )}
+              >
+                <Globe className="h-3 w-3 text-emerald-500" />
+                Public Channel
+              </button>
+            </div>
+
+            {/* Shared vs Personal */}
+            <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer pt-1">
               <input
                 type="checkbox"
                 checked={isPublic}
                 onChange={(e) => setIsPublic(e.target.checked)}
                 className="rounded border-zinc-700 bg-zinc-900 text-blue-600 focus:ring-0"
               />
-              Make playlist public
+              <span className="flex items-center gap-1">
+                <Users className="h-3 w-3 text-blue-400" />
+                Share on profile (Shared playlist)
+              </span>
             </label>
+
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
