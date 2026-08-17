@@ -108,6 +108,8 @@ export function VideoPlayer({
     skipForward,
     setShowControls,
     showControlsTemporarily,
+    isFullscreenActive,
+    toggleFullscreen,
   });
 
   // Universal Shortcuts hook

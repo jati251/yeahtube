@@ -11,6 +11,8 @@ interface UsePlayerGesturesProps {
   skipForward: (seconds?: number) => void;
   setShowControls: React.Dispatch<React.SetStateAction<boolean>>;
   showControlsTemporarily: () => void;
+  isFullscreenActive?: boolean;
+  toggleFullscreen?: () => void;
 }
 
 export function usePlayerGestures({
@@ -22,6 +24,8 @@ export function usePlayerGestures({
   skipForward,
   setShowControls,
   showControlsTemporarily,
+  isFullscreenActive = false,
+  toggleFullscreen,
 }: UsePlayerGesturesProps) {
   // ── Hold-for-2X Fast Forward ──────────────────────
   const [isFastForwarding, setIsFastForwarding] = useState(false);
@@ -58,10 +62,16 @@ export function usePlayerGestures({
       const currentSide = widthRatio < 0.3 ? "left" : widthRatio > 0.7 ? "right" : null;
 
       // Check for consecutive multi-taps within 350ms on the side zones
-      if (currentSide && currentSide === tapAccumulatorRef.current.side && now - tapAccumulatorRef.current.time < 350) {
+      if (
+        currentSide &&
+        tapAccumulatorRef.current.side === currentSide &&
+        now - tapAccumulatorRef.current.time < 350
+      ) {
         tapAccumulatorRef.current.count += 1;
         tapAccumulatorRef.current.time = now;
-        const totalSkip = tapAccumulatorRef.current.count * 10; // 1st multi-tap (double tap) = 10s, 3rd tap = 20s, 4th tap = 30s
+
+        const totalSkip = (tapAccumulatorRef.current.count - 1) * 10;
+        setSkipInfo({ side: currentSide, amount: totalSkip });
 
         if (currentSide === "left") {
           skipBackward(10);
@@ -69,23 +79,29 @@ export function usePlayerGestures({
           skipForward(10);
         }
 
-        setSkipInfo({ side: currentSide, amount: totalSkip });
         if (skipTimeoutRef.current) clearTimeout(skipTimeoutRef.current);
         skipTimeoutRef.current = setTimeout(() => {
           setSkipInfo(null);
           tapAccumulatorRef.current = { time: 0, side: null, count: 0 };
-        }, 650);
-      } else {
-        // Single tap: start accumulator with count = 0 (so next consecutive tap becomes count = 1 -> 10s)
-        tapAccumulatorRef.current = { time: now, side: currentSide, count: 0 };
-        setShowControls((prev) => {
-          const next = !prev;
-          if (next) {
-            showControlsTemporarily();
-          }
-          return next;
-        });
+        }, 800);
+
+        showControlsTemporarily();
+        return;
       }
+
+      // First tap in a potential double-tap sequence
+      if (currentSide) {
+        tapAccumulatorRef.current = { time: now, side: currentSide, count: 1 };
+      } else {
+        tapAccumulatorRef.current = { time: 0, side: null, count: 0 };
+      }
+
+      // Single Tap: Toggle Controls Visibility immediately
+      setShowControls((prev) => {
+        const next = !prev;
+        if (next) showControlsTemporarily();
+        return next;
+      });
     },
     [containerRef, videoRef, skipBackward, skipForward, setShowControls, showControlsTemporarily],
   );
@@ -140,20 +156,43 @@ export function usePlayerGestures({
         return;
       }
 
-      // Check if this was a clean tap (< 250ms duration and < 15px movement)
+      // Handle Taps and Swipe Gestures
       const touchDuration = Date.now() - touchStartPosRef.current.time;
-      if (e.changedTouches.length === 1 && touchDuration < 250) {
+      if (e.changedTouches.length === 1 && touchDuration < 450) {
         const touch = e.changedTouches[0];
-        const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
-        const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
+        const rawDx = touch.clientX - touchStartPosRef.current.x;
+        const rawDy = touch.clientY - touchStartPosRef.current.y;
+        const absDx = Math.abs(rawDx);
+        const absDy = Math.abs(rawDy);
 
-        if (dx < 15 && dy < 15) {
+        // 1. Clean Tap Detection (< 250ms duration and < 15px movement)
+        if (absDx < 15 && absDy < 15 && touchDuration < 250) {
           lastTouchTapRef.current = Date.now();
           processTapCoordinates(touch.clientX, touch.clientY);
+          return;
+        }
+
+        // 2. Vertical Swipe Gesture Detection (Swipe Up = Fullscreen, Swipe Down = Exit)
+        if (absDy > 40 && absDy > absDx * 1.2) {
+          if (rawDy < -40 && !isFullscreenActive) {
+            // Swipe Up on player -> Enter Fullscreen
+            toggleFullscreen?.();
+            try {
+              navigator.vibrate?.(10);
+            } catch {}
+            return;
+          } else if (rawDy > 40 && isFullscreenActive) {
+            // Swipe Down on player -> Exit Fullscreen
+            toggleFullscreen?.();
+            try {
+              navigator.vibrate?.(10);
+            } catch {}
+            return;
+          }
         }
       }
     },
-    [videoRef, playbackSpeed, processTapCoordinates],
+    [videoRef, playbackSpeed, processTapCoordinates, isFullscreenActive, toggleFullscreen],
   );
 
   // Mouse Hold (Desktop)
