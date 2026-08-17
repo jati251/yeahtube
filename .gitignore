@@ -43,6 +43,8 @@ yarn-error.log*
 
 # database & local storage
 /data/
+db/clean-duplicates.ts
+db/clean-orphans.ts
 
 # typescript
 *.tsbuildinfo
