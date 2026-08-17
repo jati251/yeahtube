@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Heart, Users, Lock, Globe, ListVideo, User } from "lucide-react";
+import { Heart, Users, Lock, Globe, User } from "lucide-react";
 import { PlaylistCoverCollage } from "./PlaylistCoverCollage";
 import { PlaylistCardProps, PlaylistLikeData } from "@/types";
 import { usePlaylistLikeQuery, usePlaylistLikeMutation } from "@/services/queries";
@@ -94,11 +94,6 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
           <span>{currentLikes}</span>
         </button>
 
-        {/* Bottom Item Count Badge */}
-        <div className="absolute bottom-2.5 right-2.5 z-20 flex items-center gap-1 rounded-md bg-black/75 backdrop-blur-md px-2 py-0.5 text-[11px] font-medium text-white shadow-sm border border-white/10">
-          <ListVideo className="h-3.5 w-3.5 text-blue-400" />
-          <span>{totalItems} {totalItems === 1 ? "item" : "items"}</span>
-        </div>
       </div>
 
       {/* Info Section */}
