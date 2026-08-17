@@ -39,12 +39,17 @@ export function WatchPageClient({
 
   const [recs, setRecs] = React.useState(recommendations);
   const [loadingMore, setLoadingMore] = React.useState(false);
+  const hasMoreRef = React.useRef(true);
+  const loadingRef = React.useRef(false);
+
   const { ref: loadMoreRef, inView } = useInView({
     rootMargin: "200px",
   });
 
   const loadMoreRecs = React.useCallback(async () => {
-    if (loadingMore) return;
+    if (loadingRef.current || !hasMoreRef.current) return;
+    
+    loadingRef.current = true;
     setLoadingMore(true);
     try {
       const res = await fetch("/api/posts?sort=random&limit=10");
@@ -54,18 +59,27 @@ export function WatchPageClient({
           const existingIds = new Set(prev.map((p) => p.id));
           existingIds.add(post.id); // Exclude current post
           const newRecs = data.posts.filter((p: { id: number }) => !existingIds.has(p.id));
+          
+          if (newRecs.length === 0) {
+            hasMoreRef.current = false;
+          }
+          
           return [...prev, ...newRecs];
         });
+      } else {
+        hasMoreRef.current = false;
       }
     } catch (error) {
       console.error("Failed to load more recommendations:", error);
+      hasMoreRef.current = false;
     } finally {
+      loadingRef.current = false;
       setLoadingMore(false);
     }
-  }, [loadingMore, post.id]);
+  }, [post.id]);
 
   useEffect(() => {
-    if (inView) {
+    if (inView && hasMoreRef.current && !loadingRef.current) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadMoreRecs();
     }
