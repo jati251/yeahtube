@@ -218,13 +218,13 @@ export const MediaCard = React.memo(function MediaCard({
           {selectMode ? (
             <div>
               <h3
-                className="line-clamp-2 text-xs sm:text-[1.05rem] font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug break-words"
+                className="line-clamp-2 text-xs sm:text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug break-words"
                 title={post.title}
               >
                 {post.title}
               </h3>
               {post.description && (
-                <p className="mt-1 line-clamp-2 break-words text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                <p className="mt-1 line-clamp-2 break-words text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                   {post.description}
                 </p>
               )}
@@ -232,13 +232,13 @@ export const MediaCard = React.memo(function MediaCard({
           ) : (
             <Link href={href} prefetch={true} className="block group/title">
               <h3
-                className="line-clamp-2 text-xs sm:text-[1.05rem] font-bold tracking-tight text-zinc-900 group-hover/title:text-blue-600 dark:text-zinc-50 dark:group-hover/title:text-blue-400 leading-snug break-words transition-colors"
+                className="line-clamp-2 text-xs sm:text-sm font-semibold tracking-tight text-zinc-900 group-hover/title:text-blue-600 dark:text-zinc-50 dark:group-hover/title:text-blue-400 leading-snug break-words transition-colors"
                 title={post.title}
               >
                 {post.title}
               </h3>
               {post.description && (
-                <p className="mt-1 line-clamp-2 break-words text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                <p className="mt-1 line-clamp-2 break-words text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                   {post.description}
                 </p>
               )}

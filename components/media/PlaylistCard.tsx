@@ -98,7 +98,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
 
       {/* Info Section */}
       <div className="p-3.5 sm:p-4">
-        <h3 className="line-clamp-2 text-sm sm:text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        <h3 className="line-clamp-2 text-xs sm:text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
           {playlist.name}
         </h3>
 
