@@ -48,14 +48,16 @@ function renderPages(pgs: (number | "ellipsis")[], page: number, loading: boolea
 export const PaginationControls = React.memo(function PaginationControls({
   page, totalPages, total, loading,
   onNext, onPrev, onFirst, onLast, onPage,
+  className = "",
+  compact = false,
 }: PaginationControlsProps) {
   if (totalPages <= 1 && total <= 0) return null;
 
   const isFirst = page <= 1;
   const isLast = page >= totalPages;
 
-  const mobilePages = buildPages(page, totalPages, 9);
-  const desktopPages = buildPages(page, totalPages, 25);
+  const mobilePages = buildPages(page, totalPages, compact ? 5 : 9);
+  const desktopPages = buildPages(page, totalPages, compact ? 11 : 25);
 
   const btn = "inline-flex items-center justify-center rounded-lg border text-sm font-medium transition-colors disabled:cursor-not-allowed";
   const inact = "border-zinc-200/80 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900";
@@ -65,8 +67,62 @@ export const PaginationControls = React.memo(function PaginationControls({
   const pgAct = "border border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 font-semibold shadow-sm";
   const pgInact = "border border-transparent text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900";
 
+  if (compact) {
+    return (
+      <div className={clsx("flex items-center gap-1 sm:gap-1.5", className)}>
+        <button
+          onClick={onFirst}
+          disabled={isFirst || loading}
+          className={clsx(btn, "h-8 w-8 text-xs", isFirst || loading ? dis : inact)}
+          aria-label="First page"
+          title="First page"
+        >
+          <ChevronsLeft className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={onPrev}
+          disabled={isFirst || loading}
+          className={clsx(btn, "h-8 w-8 text-xs", isFirst || loading ? dis : inact)}
+          aria-label="Previous page"
+          title="Previous page"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+
+        {/* Mobile Numbers */}
+        <div className="flex items-center gap-1 sm:hidden">
+          {renderPages(mobilePages, page, loading, onPage, clsx(pgBase, "h-8 w-8 text-xs"), pgAct, pgInact)}
+        </div>
+
+        {/* Desktop Numbers */}
+        <div className="hidden sm:flex items-center gap-1">
+          {renderPages(desktopPages, page, loading, onPage, clsx(pgBase, "h-8 w-8 text-xs"), pgAct, pgInact)}
+        </div>
+
+        <button
+          onClick={onNext}
+          disabled={isLast || loading}
+          className={clsx(btn, "h-8 w-8 text-xs", isLast || loading ? dis : inact)}
+          aria-label="Next page"
+          title="Next page"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={onLast}
+          disabled={isLast || loading}
+          className={clsx(btn, "h-8 w-8 text-xs", isLast || loading ? dis : inact)}
+          aria-label="Last page"
+          title="Last page"
+        >
+          <ChevronsRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="my-6 flex flex-col items-center gap-2">
+    <div className={clsx("my-6 flex flex-col items-center gap-2", className)}>
       <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium">Page {page} of {totalPages}</p>
 
       {/* Mobile */}

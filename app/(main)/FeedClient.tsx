@@ -291,13 +291,30 @@ export function FeedClient({
               />
             )}
 
-            <FeedHeader
-              viewMode={viewMode}
-              onToggleViewMode={setViewMode}
-              isAdmin={isAdmin && !isPlaylistMode}
-              selectMode={selectMode}
-              onToggleSelectMode={isPlaylistMode ? undefined : toggleSelectMode}
-            />
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <FeedHeader
+                viewMode={viewMode}
+                onToggleViewMode={setViewMode}
+                isAdmin={isAdmin && !isPlaylistMode}
+                selectMode={selectMode}
+                onToggleSelectMode={isPlaylistMode ? undefined : toggleSelectMode}
+              />
+
+              {!disableFiltersAndPagination && !isPlaylistMode && totalPages > 1 && (
+                <PaginationControls
+                  page={page}
+                  totalPages={totalPages}
+                  total={total}
+                  loading={loading}
+                  onNext={handleNextPage}
+                  onPrev={handlePrevPage}
+                  onFirst={handleFirstPage}
+                  onLast={handleLastPage}
+                  onPage={navigateToPage}
+                  compact={true}
+                />
+              )}
+            </div>
           </div>
 
           <div className="mt-5">

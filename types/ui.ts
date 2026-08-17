@@ -31,6 +31,8 @@ export interface PaginationControlsProps {
   onFirst: () => void;
   onLast: () => void;
   onPage?: (page: number) => void;
+  className?: string;
+  compact?: boolean;
 }
 
 export type ToastType = "success" | "error" | "info" | "warning";
