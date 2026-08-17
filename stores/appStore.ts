@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { PostItem } from "@/types/post";
 
 // ── Global PiP (persistent Picture-in-Picture across routes) ──
 interface GlobalPiPState {
@@ -21,16 +20,11 @@ const defaultGlobalPiP: GlobalPiPState = {
 };
 
 interface AppState {
-  // ── Scroll & Feed Cache ──────────────────────────────
+  // ── Scroll ──────────────────────────────────────────
   feedScrollY: number;
   browseScrollY: number;
   setFeedScrollY: (y: number) => void;
   setBrowseScrollY: (y: number) => void;
-
-  cachedFeedPage: number;
-  cachedFeedPosts: PostItem[];
-  cachedFeedTotal: number;
-  setCachedFeed: (page: number, posts: PostItem[], total: number) => void;
 
   // ── Feed View & Filter Controls ──────────────────────
   feedViewMode: "grid" | "list";
@@ -78,13 +72,6 @@ export const useAppStore = create<AppState>()(
       setFeedScrollY: (feedScrollY) => set({ feedScrollY }),
       setBrowseScrollY: (browseScrollY) => set({ browseScrollY }),
 
-      // Feed Cache
-      cachedFeedPage: 0,
-      cachedFeedPosts: [],
-      cachedFeedTotal: 0,
-      setCachedFeed: (cachedFeedPage, cachedFeedPosts, cachedFeedTotal) =>
-        set({ cachedFeedPage, cachedFeedPosts, cachedFeedTotal }),
-
       // Feed View Mode (persisted across visits)
       feedViewMode: "grid",
       setFeedViewMode: (feedViewMode) => set({ feedViewMode }),
@@ -98,15 +85,12 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           feedResetCount: state.feedResetCount + 1,
           feedSearchQuery: "",
-          cachedFeedPage: 1,
         })),
 
       postsRevision: 0,
       triggerPostsRefresh: () =>
         set((state) => ({
           postsRevision: state.postsRevision + 1,
-          cachedFeedPage: 0,
-          cachedFeedPosts: [],
         })),
 
       // Global Audio Settings
@@ -153,16 +137,13 @@ export const useAppStore = create<AppState>()(
           }
         },
       },
-      // Keep feed view mode, volume, admin tab, and cache across session
+      // Keep feed view mode, volume, admin tab, and scroll positions across session
       partialize: (state: AppState) => ({
         feedViewMode: state.feedViewMode,
         globalVolume: state.globalVolume,
         adminActiveTab: state.adminActiveTab,
         feedScrollY: state.feedScrollY,
         browseScrollY: state.browseScrollY,
-        cachedFeedPage: state.cachedFeedPage,
-        cachedFeedPosts: state.cachedFeedPosts,
-        cachedFeedTotal: state.cachedFeedTotal,
       }),
     },
   ),

@@ -44,7 +44,6 @@ export function FeedClient({
 
   const feedScrollY = useAppStore((s) => s.feedScrollY);
   const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
-  const setCachedFeed = useAppStore((s) => s.setCachedFeed);
   const viewMode = useAppStore((s) => s.feedViewMode);
   const setViewMode = useAppStore((s) => s.setFeedViewMode);
 
@@ -80,7 +79,7 @@ export function FeedClient({
     return initialPage;
   });
 
-  const { posts, setPosts, loading, page, total, totalPages, goToPage, restoreFromCache } =
+  const { posts, setPosts, loading, page, total, totalPages, goToPage } =
     usePaginatedPosts({
       initialPosts,
       initialTotal,
@@ -102,48 +101,6 @@ export function FeedClient({
     sort: activeSort === "views" ? "popular" : "recent",
   });
   const publicPlaylists = publicPlaylistsData?.playlists || [];
-
-  // ---- Restore from Zustand cache on mount (prevents flash of page 1) ----
-  const cacheRestoredRef = useRef(false);
-  React.useLayoutEffect(() => {
-    if (cacheRestoredRef.current) return;
-    cacheRestoredRef.current = true;
-
-    if (disableFiltersAndPagination) return;
-
-    const isReload =
-      typeof window !== "undefined" &&
-      window.performance &&
-      window.performance.getEntriesByType("navigation").length > 0 &&
-      (window.performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming).type === "reload";
-
-    const store = useAppStore.getState();
-    if (isReload) {
-      store.setCachedFeed(0, [], 0);
-      return;
-    }
-
-    const sp = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-    const urlPage = sp ? Math.max(1, parseInt(sp.get("page") || "0", 10) || 0) : 0;
-    const hasFilterParams = Boolean(
-      sp && (sp.get("type") || sp.get("tags") || sp.get("q") || sp.get("category") || sp.get("year"))
-    );
-
-    if (!hasFilterParams && store.cachedFeedPage > 0 && store.cachedFeedPosts.length > 0) {
-      if (!urlPage || urlPage === store.cachedFeedPage) {
-        restoreFromCache(store.cachedFeedPosts, store.cachedFeedPage, store.cachedFeedTotal);
-      }
-    } else if (urlPage > 1 && urlPage !== page) {
-      goToPage(urlPage);
-    }
-  }, [restoreFromCache, goToPage, page, disableFiltersAndPagination]);
-
-  // ---- Save to Zustand cache whenever feed data changes ----
-  useEffect(() => {
-    if (!disableFiltersAndPagination && posts.length > 0 && page > 0) {
-      setCachedFeed(page, posts, total);
-    }
-  }, [posts, page, total, setCachedFeed, disableFiltersAndPagination]);
 
   // ---- Scroll: restore position on back-navigation ----
   const scrollRestoredRef = useRef(false);

@@ -75,30 +75,6 @@ export function usePaginatedPosts({
     setPage(safe);
   }, []);
 
-  const restoreFromCache = useCallback(
-    (cachedPosts: PostItem[], cachedPage: number, cachedTotal: number) => {
-      setLocalPosts(cachedPosts);
-      setPage(cachedPage);
-      queryClient.setQueryData(
-        [
-          "posts",
-          {
-            page: cachedPage,
-            limit: limitVal,
-            sort: fetchParams.sort || "newest",
-            type: fetchParams.type || null,
-            tags: fetchParams.tags || null,
-            q: fetchParams.q || null,
-            category: fetchParams.category || null,
-            year: fetchParams.year || null,
-          },
-        ],
-        { posts: cachedPosts, total: cachedTotal, page: cachedPage, limit: limitVal },
-      );
-    },
-    [queryClient, limitVal, fetchParams],
-  );
-
   // React to Zustand store postsRevision (when a post is created, deleted, or edited)
   const prevRevisionRef = useRef(postsRevision);
   useEffect(() => {
@@ -124,7 +100,6 @@ export function usePaginatedPosts({
     totalPages,
     goToPage,
     setPage,
-    restoreFromCache,
     refetch,
   };
 }

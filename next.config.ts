@@ -6,10 +6,6 @@ const nextConfig: NextConfig = {
   // Standalone output for Docker deployment (see Dockerfile)
   output: "standalone",
 
-  generateBuildId: async () => {
-    return `build-${Date.now()}`;
-  },
-
   compress: true,
 
   // Allow uploads up to 500MB — matches MAX_VIDEO_SIZE in upload route
