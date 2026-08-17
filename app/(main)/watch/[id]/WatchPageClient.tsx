@@ -79,17 +79,19 @@ export function WatchPageClient({
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <VideoPlayer
-            key={post.id}
-            src={currentVideo.streamUrl}
-            title={postData.title}
-            poster={currentVideo.thumbnailUrl || undefined}
-            type={currentVideo.mimeType}
-            width={currentVideo.width}
-            height={currentVideo.height}
-            qualityOptions={qualityOptions}
-            onQualityChange={handleQualityChange}
-          />
+          <div className="sticky top-16 z-30 -mx-4 sm:mx-0 bg-black sm:bg-transparent lg:static lg:mx-0 lg:bg-transparent">
+            <VideoPlayer
+              key={post.id}
+              src={currentVideo.streamUrl}
+              title={postData.title}
+              poster={currentVideo.thumbnailUrl || undefined}
+              type={currentVideo.mimeType}
+              width={currentVideo.width}
+              height={currentVideo.height}
+              qualityOptions={qualityOptions}
+              onQualityChange={handleQualityChange}
+            />
+          </div>
 
           <div className="mt-4">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words !whitespace-normal leading-snug !line-clamp-none">
