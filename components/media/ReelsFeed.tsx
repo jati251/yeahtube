@@ -17,7 +17,7 @@ export function ReelsFeed({
   isLoadingMore,
 }: ReelsFeedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeVideoId, setActiveVideoId] = useState<number | null>(posts[0]?.id || null);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const isMuted = useAppStore((s) => s.globalMuted);
   const setGlobalMuted = useAppStore((s) => s.setGlobalMuted);
   const [soundFeedback, setSoundFeedback] = useState<string | null>(null);
@@ -52,23 +52,18 @@ export function ReelsFeed({
     return () => {
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     };
-  }, [activeVideoId]);
+  }, [activeIndex]);
 
   const handlePauseChange = useCallback(
-    (id: number, paused: boolean) => {
-      if (activeVideoId === id) {
+    (index: number, paused: boolean) => {
+      if (activeIndex === index) {
         queueMicrotask(() => {
           setIsCurrentPaused(paused);
         });
       }
     },
-    [activeVideoId],
+    [activeIndex],
   );
-
-  const activeIndex = React.useMemo(() => {
-    const idx = posts.findIndex((p) => p.id === activeVideoId);
-    return idx === -1 ? 0 : idx;
-  }, [posts, activeVideoId]);
 
   // 1. Singleton observer for active video detection
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -78,8 +73,11 @@ export function ReelsFeed({
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              const id = Number(entry.target.getAttribute("data-post-id"));
-              if (id) setActiveVideoId(id);
+              const idxAttr = entry.target.getAttribute("data-index");
+              if (idxAttr !== null) {
+                const idx = Number(idxAttr);
+                if (!isNaN(idx)) setActiveIndex(idx);
+              }
             }
           });
         },
@@ -122,15 +120,13 @@ export function ReelsFeed({
     (targetIndex: number) => {
       const container = containerRef.current;
       if (!container) return;
-      const targetPost = posts[targetIndex];
-      if (!targetPost) return;
 
-      const targetEl = container.querySelector(`[data-post-id="${targetPost.id}"]`);
+      const targetEl = container.querySelector(`[data-index="${targetIndex}"]`);
       if (targetEl) {
         targetEl.scrollIntoView({ behavior: "smooth" });
       }
     },
-    [posts],
+    [],
   );
 
   useEffect(() => {
@@ -253,18 +249,20 @@ export function ReelsFeed({
         }}
       >
         {posts.map((post, index) => {
-          const distance = Math.abs(index - activeIndex);
+          const isCurrentActive = activeIndex === index;
+          const isNear = Math.abs(index - activeIndex) <= 1;
 
           return (
             <ReelItem
               key={`${post.id}-${index}`}
               post={post}
-              isActive={activeVideoId === post.id}
-              isNearActive={distance <= 1}
+              index={index}
+              isActive={isCurrentActive}
+              isNearActive={isNear}
               isMuted={isMuted}
               showControls={showControls}
               onUserActivity={resetControlsTimer}
-              onPauseChange={(paused) => handlePauseChange(post.id, paused)}
+              onPauseChange={(paused) => handlePauseChange(index, paused)}
               getObserver={getObserver}
               onForceMute={forceMute}
             />

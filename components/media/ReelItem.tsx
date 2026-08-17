@@ -17,6 +17,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export const ReelItem = React.memo(function ReelItem({
   post,
+  index,
   isActive,
   isNearActive,
   isMuted,
@@ -27,6 +28,7 @@ export const ReelItem = React.memo(function ReelItem({
   onForceMute,
 }: {
   post: PostItem;
+  index: number;
   isActive: boolean;
   isNearActive: boolean;
   isMuted: boolean;
@@ -132,6 +134,7 @@ export const ReelItem = React.memo(function ReelItem({
       ref={itemRef}
       className="reel-item relative h-[100dvh] w-full snap-center snap-always flex items-center justify-center bg-black overflow-hidden select-none"
       data-post-id={post.id}
+      data-index={index}
     >
       {/* Background Poster (Clean object-contain, no blurred backdrop) */}
       {post.thumbnailUrl && (
