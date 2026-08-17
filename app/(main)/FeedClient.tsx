@@ -67,6 +67,21 @@ export function FeedClient({
 
   const showPublicPosts = useAppStore((s) => s.showPublicPosts);
 
+  // Read sessionStorage synchronously on first render to avoid flash of public posts
+  // (Zustand persist hydration is async, so showPublicPosts defaults to true before hydrate)
+  const [initialShowPublic] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const stored = sessionStorage.getItem("yeahtube-app-state");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed?.state?.showPublicPosts ?? true;
+      }
+    } catch { /* noop */ }
+    return true;
+  });
+  const effectiveShowPublic = showPublicPosts && initialShowPublic;
+
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
 
@@ -81,7 +96,7 @@ export function FeedClient({
     return initialPage;
   });
 
-  const { posts, setPosts, loading, page, total, totalPages, goToPage } =
+  const { posts: rawPosts, setPosts, loading, page, total, totalPages, goToPage } =
     usePaginatedPosts({
       initialPosts,
       initialTotal,
@@ -93,10 +108,15 @@ export function FeedClient({
         sort: activeSort,
         category: activeCategory,
         year: activeYear,
-        channel: showPublicPosts ? null : "private",
+        channel: effectiveShowPublic ? null : "private",
       },
       autoFetch: !disableFiltersAndPagination && activeMediaType !== "playlist",
     });
+
+  // Client-side filter to prevent flash of public posts before API refetch completes
+  const posts = effectiveShowPublic
+    ? rawPosts
+    : rawPosts.filter((p) => p.channel !== "public");
 
   const isPlaylistMode = activeMediaType === "playlist";
   const { data: publicPlaylistsData, isLoading: loadingPlaylists } = usePublicPlaylistsQuery({
