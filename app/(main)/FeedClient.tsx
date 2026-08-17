@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useFeedFilters } from "@/hooks/useFeedFilters";
 import { MobileFilters } from "@/components/filters/MobileFilters";
@@ -162,11 +162,20 @@ export function FeedClient({
     setActiveYear(null);
   };
 
-  const navigateToPage = (newPage: number) => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const [, startTransition] = useTransition();
+
+  const navigateToPage = useCallback((newPage: number) => {
+    window.scrollTo({ top: 0, behavior: "instant" });
     setFeedScrollY(0);
-    goToPage(newPage);
-  };
+    startTransition(() => {
+      goToPage(newPage);
+    });
+  }, [goToPage, setFeedScrollY, startTransition]);
+
+  const handleNextPage = useCallback(() => navigateToPage(page + 1), [navigateToPage, page]);
+  const handlePrevPage = useCallback(() => navigateToPage(page - 1), [navigateToPage, page]);
+  const handleFirstPage = useCallback(() => navigateToPage(1), [navigateToPage]);
+  const handleLastPage = useCallback(() => navigateToPage(totalPages), [navigateToPage, totalPages]);
 
   // ---- Admin post selection ----
   const {
@@ -298,10 +307,10 @@ export function FeedClient({
               totalPages={totalPages}
               total={total}
               loading={loading}
-              onNext={() => navigateToPage(page + 1)}
-              onPrev={() => navigateToPage(page - 1)}
-              onFirst={() => navigateToPage(1)}
-              onLast={() => navigateToPage(totalPages)}
+              onNext={handleNextPage}
+              onPrev={handlePrevPage}
+              onFirst={handleFirstPage}
+              onLast={handleLastPage}
               onPage={navigateToPage}
             />
           )}
@@ -360,10 +369,10 @@ export function FeedClient({
               totalPages={totalPages}
               total={total}
               loading={loading}
-              onNext={() => navigateToPage(page + 1)}
-              onPrev={() => navigateToPage(page - 1)}
-              onFirst={() => navigateToPage(1)}
-              onLast={() => navigateToPage(totalPages)}
+              onNext={handleNextPage}
+              onPrev={handlePrevPage}
+              onFirst={handleFirstPage}
+              onLast={handleLastPage}
               onPage={navigateToPage}
             />
           )}

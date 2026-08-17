@@ -45,7 +45,7 @@ function renderPages(pgs: (number | "ellipsis")[], page: number, loading: boolea
   );
 }
 
-export function PaginationControls({
+export const PaginationControls = React.memo(function PaginationControls({
   page, totalPages, total, loading,
   onNext, onPrev, onFirst, onLast, onPage,
 }: PaginationControlsProps) {
@@ -88,4 +88,4 @@ export function PaginationControls({
       </div>
     </div>
   );
-}
+});
