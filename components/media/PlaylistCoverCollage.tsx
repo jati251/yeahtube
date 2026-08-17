@@ -31,8 +31,9 @@ export function PlaylistCoverCollage({
           src={validThumbnails[0].thumbnailUrl!}
           alt={playlistName}
           fill
-          unoptimized
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
         <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
@@ -53,8 +54,9 @@ export function PlaylistCoverCollage({
               src={item.thumbnailUrl!}
               alt=""
               fill
-              unoptimized
+              sizes="(max-width: 640px) 50vw, 25vw"
               className="object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
             />
           </div>
         ))}
@@ -75,8 +77,9 @@ export function PlaylistCoverCollage({
             src={validThumbnails[0].thumbnailUrl!}
             alt=""
             fill
-            unoptimized
+            sizes="(max-width: 640px) 50vw, 25vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
           />
         </div>
         <div className="grid grid-rows-2 gap-0.5 h-full w-full">
@@ -86,8 +89,9 @@ export function PlaylistCoverCollage({
                 src={item.thumbnailUrl!}
                 alt=""
                 fill
-                unoptimized
+                sizes="(max-width: 640px) 25vw, 15vw"
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
               />
             </div>
           ))}
@@ -110,8 +114,9 @@ export function PlaylistCoverCollage({
               src={item.thumbnailUrl!}
               alt=""
               fill
-              unoptimized
+              sizes="(max-width: 640px) 25vw, 15vw"
               className="object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
             />
           </div>
         ))}
@@ -124,7 +129,7 @@ export function PlaylistCoverCollage({
   }
 
   // Case 5+: 5 Thumbnails Collage (Left Large + Right 2x2 Mini Tiles with +Count on 5th tile)
-  const remainingCount = totalCount - 4; // 1 large + 3 mini + 1 overlay tile
+  const remainingCount = totalCount - 4;
   const rightGridThumbnails = validThumbnails.slice(1, 5);
 
   return (
@@ -135,8 +140,9 @@ export function PlaylistCoverCollage({
           src={validThumbnails[0].thumbnailUrl!}
           alt={playlistName}
           fill
-          unoptimized
+          sizes="(max-width: 640px) 50vw, 25vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
         />
       </div>
 
@@ -152,8 +158,9 @@ export function PlaylistCoverCollage({
                 src={item.thumbnailUrl!}
                 alt=""
                 fill
-                unoptimized
+                sizes="(max-width: 640px) 25vw, 15vw"
                 className={`object-cover ${showPlusBadge ? "filter blur-[1px] brightness-50" : ""} group-hover:scale-105 transition-transform duration-500`}
+                loading="lazy"
               />
               {showPlusBadge && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/55 backdrop-blur-[2px]">

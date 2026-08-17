@@ -168,7 +168,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
               src={currentPhoto.imageUrl}
               alt={currentPhoto.filename}
               fill
-              unoptimized
+              sizes="90vw"
               style={{ transform: `scale(${zoom})`, transition: "transform 0.2s" }}
               className="object-contain select-none"
               draggable={false}
