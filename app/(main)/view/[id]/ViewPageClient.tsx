@@ -69,9 +69,9 @@ export function ViewPageClient({
               {canEdit && (
                 <button
                   onClick={() => setShowEditModal(true)}
-                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-sm"
+                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all active:scale-95 cursor-pointer shadow-sm"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                   Edit
                 </button>
               )}

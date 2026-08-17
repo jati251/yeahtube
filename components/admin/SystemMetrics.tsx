@@ -79,11 +79,11 @@ export function SystemMetrics({ initialStats }: SystemMetricsProps) {
         </div>
       </div>
 
-      {/* Infrastructure & Transcoder Grid */}
-      <InfrastructureGrid stats={stats} />
-
-      {/* Storage Breakdown & Progress */}
-      <StorageBreakdownCard stats={stats} />
+      {/* Infrastructure & Storage 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
+        <InfrastructureGrid stats={stats} />
+        <StorageBreakdownCard stats={stats} />
+      </div>
 
       {/* Top 10 Largest Videos Grid */}
       <TopVideosGrid videos={stats.largestFiles} />

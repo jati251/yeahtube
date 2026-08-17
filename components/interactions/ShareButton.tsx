@@ -84,11 +84,23 @@ export function ShareButton({
 
   const handleCopyEmbed = async () => {
     const finalUrl = getShareUrl();
-    const iframeCode = `<iframe width="560" height="315" src="${finalUrl}" title="${title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+    let embedSrc = finalUrl;
+    try {
+      const parsed = new URL(finalUrl);
+      const v = parsed.searchParams.get("v") || parsed.searchParams.get("id");
+      if (v) {
+        embedSrc = `${parsed.origin}/embed/${v}`;
+      } else if (parsed.pathname.startsWith("/watch/")) {
+        embedSrc = `${parsed.origin}/embed/${parsed.pathname.replace("/watch/", "")}`;
+      }
+    } catch {
+      // fallback
+    }
+    const iframeCode = `<iframe width="560" height="315" src="${embedSrc}" title="${title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
     try {
       await navigator.clipboard.writeText(iframeCode);
       setCopiedEmbed(true);
-      addToast("success", "Embed code copied!");
+      addToast("success", "Embed code copied to clipboard!");
       setTimeout(() => setCopiedEmbed(false), 2000);
     } catch {
       addToast("error", "Failed to copy embed code");
@@ -126,7 +138,7 @@ export function ShareButton({
         <button
           onClick={handleShareClick}
           className={clsx(
-            "flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 cursor-pointer shadow-sm",
+            "flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 cursor-pointer shadow-sm",
             className
           )}
           title="Share"

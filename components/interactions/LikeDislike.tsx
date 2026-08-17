@@ -80,32 +80,32 @@ export function LikeDislike({ postId, variant = "horizontal" }: LikeDislikeProps
   }
 
   return (
-    <div className="flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800/80 p-1 border border-zinc-200 dark:border-zinc-700/50">
+    <div className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/50 shadow-sm overflow-hidden">
       <button
         onClick={() => handleAction("like")}
         disabled={loading}
-        className={`flex items-center gap-2 rounded-l-full px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 ${
+        className={`flex items-center gap-1.5 pl-3.5 pr-2.5 py-1.5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 ${
           current.userAction === "like"
             ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40"
-            : "text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            : "text-zinc-700 hover:bg-zinc-200 dark:text-zinc-200 dark:hover:bg-zinc-700"
         }`}
       >
-        <ThumbsUp className={`h-4 w-4 ${current.userAction === "like" ? "fill-current" : ""}`} />
+        <ThumbsUp className={`h-4 w-4 ${current.userAction === "like" ? "fill-current text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-300"}`} />
         <span>{current.likes}</span>
       </button>
 
-      <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-700 my-auto" />
+      <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-700 shrink-0" />
 
       <button
         onClick={() => handleAction("dislike")}
         disabled={loading}
-        className={`flex items-center gap-2 rounded-r-full px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 ${
+        className={`flex items-center gap-1.5 pl-2.5 pr-3.5 py-1.5 text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 ${
           current.userAction === "dislike"
             ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40"
-            : "text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            : "text-zinc-700 hover:bg-zinc-200 dark:text-zinc-200 dark:hover:bg-zinc-700"
         }`}
       >
-        <ThumbsDown className={`h-4 w-4 ${current.userAction === "dislike" ? "fill-current" : ""}`} />
+        <ThumbsDown className={`h-4 w-4 ${current.userAction === "dislike" ? "fill-current text-red-600 dark:text-red-400" : "text-zinc-600 dark:text-zinc-300"}`} />
         <span>{current.dislikes}</span>
       </button>
     </div>

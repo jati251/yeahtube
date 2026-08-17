@@ -33,6 +33,7 @@ const PUBLIC_ROUTES = [
   "/shorts",
   "/watch*",
   "/view/*",
+  "/embed*",
   "/user/*",
   "/playlists/*",
 ];
@@ -45,6 +46,7 @@ const PUBLIC_GET_API_ROUTES = [
   "/api/categories*",
   "/api/tags*",
   "/api/user/*",
+  "/api/oembed*",
 ];
 
 /**

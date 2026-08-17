@@ -31,3 +31,17 @@ export function useLogoutMutation() {
     },
   });
 }
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword?: string;
+}
+
+export function useChangePasswordMutation() {
+  return useMutation({
+    mutationFn: (payload: ChangePasswordPayload) =>
+      api.post<{ success: boolean; message: string }>("/api/auth/change-password", payload),
+  });
+}
+

@@ -45,14 +45,24 @@ export async function generateMetadata({ searchParams }: WatchQueryPageProps): P
   const images = primaryThumb ? [primaryThumb] : [];
   const primaryVideo = videos[0];
 
+  const siteUrl = SITE_URL;
+  const canonicalWatchUrl = `${siteUrl}/watch?v=${post.slug || post.id}`;
+  const embedUrl = `${siteUrl}/embed/${post.slug || post.id}`;
+
   return {
     title: post.title,
     description,
     keywords: tags.map((t) => t.name),
+    alternates: {
+      types: {
+        "application/json+oembed": `${siteUrl}/api/oembed?url=${encodeURIComponent(canonicalWatchUrl)}&format=json`,
+      },
+    },
     openGraph: {
       title: post.title,
       description,
       type: "video.other",
+      url: canonicalWatchUrl,
       images: images.map((img) => ({
         url: img,
         width: primaryVideo?.width || 1280,
@@ -61,6 +71,12 @@ export async function generateMetadata({ searchParams }: WatchQueryPageProps): P
       })),
       videos: primaryVideo
         ? [
+            {
+              url: embedUrl,
+              type: "text/html",
+              width: primaryVideo.width ?? 1280,
+              height: primaryVideo.height ?? 720,
+            },
             {
               url: primaryVideo.streamUrl,
               type: primaryVideo.mimeType || "video/mp4",
@@ -71,10 +87,18 @@ export async function generateMetadata({ searchParams }: WatchQueryPageProps): P
         : undefined,
     },
     twitter: {
-      card: "summary_large_image",
+      card: "player",
       title: post.title,
       description,
       images,
+      players: [
+        {
+          playerUrl: embedUrl,
+          streamUrl: primaryVideo?.streamUrl || "",
+          width: primaryVideo?.width || 1280,
+          height: primaryVideo?.height || 720,
+        },
+      ],
     },
   };
 }

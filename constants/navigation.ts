@@ -1,4 +1,4 @@
-import { Home, Upload, Clock, ListVideo, TrendingUp, Shield, PlaySquare, Bookmark, LucideProps } from "lucide-react";
+import { Home, Upload, Clock, ListVideo, TrendingUp, Shield, PlaySquare, Bookmark, Settings, LucideProps } from "lucide-react";
 
 export interface BottomNavItem {
   href: string;
@@ -30,6 +30,7 @@ export const DRAWER_NAV_ITEMS: readonly DrawerNavItem[] = [
   { href: "/playlists", label: "Library", icon: Bookmark, matchPrefix: true },
   { href: "/history", label: "History", icon: Clock },
   { href: "/upload", label: "Upload", icon: Upload },
+  { href: "/settings", label: "Settings", icon: Settings, matchPrefix: true },
 ];
 
 export const ADMIN_NAV_ITEM: DrawerNavItem = {
@@ -38,3 +39,4 @@ export const ADMIN_NAV_ITEM: DrawerNavItem = {
   icon: Shield,
   matchPrefix: true,
 };
+
