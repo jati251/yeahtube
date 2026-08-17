@@ -58,6 +58,7 @@ export function usePostsQuery(
       if (params.category) p.set("category", params.category);
       if (params.year) p.set("year", params.year);
       if (params.channel) p.set("channel", params.channel);
+      p.set("_t", String(Date.now())); // Bypass browser cache on auth state change
 
       return api.get<PostsResponse>(`/api/posts?${p.toString()}`);
     },

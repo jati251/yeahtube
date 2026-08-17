@@ -11,11 +11,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const result = await getFeedPosts(searchParams, user);
 
-    return NextResponse.json(result, {
-      headers: {
-        "Cache-Control": "private, max-age=60, stale-while-revalidate=240",
-      },
-    });
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Posts error:", error);
     return NextResponse.json(
