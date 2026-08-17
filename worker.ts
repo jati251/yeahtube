@@ -597,6 +597,8 @@ async function main() {
                 slots[slotIdx]!.fps = p.currentFps ? `${p.currentFps} fps` : "";
                 slots[slotIdx]!.etaSec = etaSec;
               }
+
+              job.updateProgress(Math.round(percent)).catch(() => {});
             })
             .on("end", () => {
               resolve();
@@ -780,7 +782,10 @@ async function main() {
     {
       connection: getRedisConnection(),
       concurrency: CONCURRENCY,
-      stalledInterval: 60000,
+      lockDuration: 300000,
+      lockRenewTime: 30000,
+      stalledInterval: 120000,
+      maxStalledCount: 3,
     },
   );
 
