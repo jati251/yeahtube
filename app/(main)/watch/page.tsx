@@ -197,6 +197,7 @@ export default async function WatchPage({ searchParams }: WatchQueryPageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <WatchPageClient
+        key={detail.post.id}
         post={detail.post}
         canEdit={detail.canEdit}
         videos={detail.videos}

@@ -32,11 +32,6 @@ export function ViewPageClient({
   const [showEditModal, setShowEditModal] = useState(false);
   const [postData, setPostData] = useState(post);
 
-  // Re-sync postData when post prop changes
-  useEffect(() => {
-    setPostData(post);
-  }, [post]);
-
   // Fire-and-forget tracking
   useEffect(() => {
     trackPostView(post.id);

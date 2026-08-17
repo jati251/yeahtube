@@ -134,6 +134,7 @@ export default async function ViewPage({ params }: RouteIdPageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ViewPageClient
+        key={detail.post.id}
         post={detail.post}
         canEdit={detail.canEdit}
         images={detail.images}
