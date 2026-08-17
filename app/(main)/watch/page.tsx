@@ -109,15 +109,20 @@ export default async function WatchPage({ searchParams }: WatchQueryPageProps) {
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://yeahtube.local";
   const watchUrl = `${siteUrl}/watch?v=${post.slug || post.id}`;
 
-  // Google VideoObject JSON-LD Schema
+  // Google VideoObject JSON-LD Schema (Compliant with Google Video Search Rich Snippets)
+  const absoluteThumbnails = videos
+    .map((v) => v.thumbnailUrl)
+    .filter(Boolean)
+    .map((thumb) => (thumb!.startsWith("http") ? thumb! : `${siteUrl}${thumb}`));
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "VideoObject",
     name: post.title,
-    description: post.description || post.title,
-    thumbnailUrl: videos.map((v) => v.thumbnailUrl).filter(Boolean),
+    description: post.description || `Watch ${post.title} on YeahTube`,
+    thumbnailUrl: absoluteThumbnails.length > 0 ? absoluteThumbnails : [`${siteUrl}/icon`],
     uploadDate: new Date(post.createdAt).toISOString(),
-    duration: formatDurationISO(primaryVideo?.duration),
+    duration: formatDurationISO(primaryVideo?.duration) || "PT0S",
     contentUrl: primaryVideo?.streamUrl
       ? primaryVideo.streamUrl.startsWith("http")
         ? primaryVideo.streamUrl
@@ -131,6 +136,23 @@ export default async function WatchPage({ searchParams }: WatchQueryPageProps) {
         userInteractionCount: post.views || 0,
       },
     ],
+    author: post.author
+      ? {
+          "@type": "Person",
+          name: post.author.username,
+          url: `${siteUrl}/user/${post.author.username}`,
+        }
+      : undefined,
+    publisher: {
+      "@type": "Organization",
+      name: "YeahTube",
+      url: siteUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteUrl}/icon`,
+      },
+    },
+    isFamilyFriendly: true,
     keywords: tags.map((t) => t.name).join(", "),
   };
 

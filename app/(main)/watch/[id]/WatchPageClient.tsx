@@ -9,6 +9,7 @@ import { MediaListItem } from "@/components/media/MediaListItem";
 import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
+import { ShareButton } from "@/components/interactions/ShareButton";
 import dynamic from "next/dynamic";
 import { getQualityLabel, formatDate } from "@/utils";
 import { WatchPageClientProps, VideoData, ImageData, PostData } from "@/types";
@@ -189,6 +190,7 @@ export function WatchPageClient({
                   <BookmarkPlus className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                   Save
                 </button>
+                <ShareButton title={postData.title} />
                 <LikeDislike postId={post.id} />
               </div>
             </div>

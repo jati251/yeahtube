@@ -69,19 +69,27 @@ export default async function ViewPage({ params }: RouteIdPageProps) {
     "@context": "https://schema.org",
     "@type": "ImageGallery",
     name: post.title,
-    description: post.description || post.title,
+    description: post.description || `View ${post.title} photo gallery on YeahTube`,
     url: `${siteUrl}/view/${post.id}`,
     datePublished: new Date(post.createdAt).toISOString(),
     keywords: tags.map((t) => t.name).join(", "),
-    image: galleryImages.map((img) => ({
-      "@type": "ImageObject",
-      contentUrl: img.imageUrl || img.thumbnailUrl,
-      thumbnailUrl: img.thumbnailUrl || img.imageUrl,
-      width: img.width,
-      height: img.height,
-      name: post.title,
-      description: post.description || post.title,
-    })),
+    image: galleryImages.map((img) => {
+      const fullImageUrl = img.imageUrl?.startsWith("http")
+        ? img.imageUrl
+        : `${siteUrl}${img.imageUrl || img.thumbnailUrl}`;
+      const fullThumbUrl = img.thumbnailUrl?.startsWith("http")
+        ? img.thumbnailUrl
+        : `${siteUrl}${img.thumbnailUrl || img.imageUrl}`;
+      return {
+        "@type": "ImageObject",
+        contentUrl: fullImageUrl,
+        thumbnailUrl: fullThumbUrl,
+        width: img.width,
+        height: img.height,
+        name: post.title,
+        description: post.description || post.title,
+      };
+    }),
     interactionStatistic: [
       {
         "@type": "InteractionCounter",
@@ -89,6 +97,22 @@ export default async function ViewPage({ params }: RouteIdPageProps) {
         userInteractionCount: post.views || 0,
       },
     ],
+    author: post.author
+      ? {
+          "@type": "Person",
+          name: post.author.username,
+          url: `${siteUrl}/user/${post.author.username}`,
+        }
+      : undefined,
+    publisher: {
+      "@type": "Organization",
+      name: "YeahTube",
+      url: siteUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteUrl}/icon`,
+      },
+    },
   };
 
   return (

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Playlist } from "@/types";
 import { PlaylistLikeButton } from "@/components/interactions/PlaylistLikeButton";
+import { ShareButton } from "@/components/interactions/ShareButton";
 import { EditPlaylistModal } from "./EditPlaylistModal";
 import { Users, Lock, Globe, Pencil } from "lucide-react";
 
@@ -84,13 +85,16 @@ export function PlaylistDetailHeader({
           </div>
         </div>
 
-        {isPublic ? (
-          <PlaylistLikeButton
-            playlistId={playlist.id}
-            initialLikes={totalLikes}
-            initialUserLiked={userLiked}
-          />
-        ) : null}
+        <div className="flex items-center gap-2">
+          <ShareButton title={playlist.name} />
+          {isPublic ? (
+            <PlaylistLikeButton
+              playlistId={playlist.id}
+              initialLikes={totalLikes}
+              initialUserLiked={userLiked}
+            />
+          ) : null}
+        </div>
       </div>
 
       {canEdit && (

@@ -8,6 +8,8 @@ import dynamic from "next/dynamic";
 import { ArrowLeft, Calendar, Pencil } from "lucide-react";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaCard } from "@/components/media/MediaCard";
+import { LikeDislike } from "@/components/interactions/LikeDislike";
+import { ShareButton } from "@/components/interactions/ShareButton";
 import { ViewPageClientProps } from "@/types";
 import { formatDate } from "@/utils";
 import { trackPostView } from "@/services/queries";
@@ -56,20 +58,26 @@ export function ViewPageClient({
           <PhotoGallery photos={images} />
         </div>
 
-        <div className="mt-6 lg:mt-0 lg:w-72 lg:flex-shrink-0">
-          <div className="flex items-start justify-between gap-2">
+        <div className="mt-6 lg:mt-0 lg:w-80 lg:flex-shrink-0">
+          <div className="space-y-3">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words !whitespace-normal !line-clamp-none">
               {postData.title}
             </h1>
-            {canEdit && (
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </button>
-            )}
+
+            {/* Actions Row */}
+            <div className="flex flex-wrap items-center gap-2">
+              {canEdit && (
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-sm"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+              )}
+              <ShareButton title={postData.title} />
+              <LikeDislike postId={post.id} />
+            </div>
           </div>
 
           <div className="mt-3 flex items-center justify-between border-b border-zinc-100 pb-3 dark:border-zinc-800">
