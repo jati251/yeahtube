@@ -10,7 +10,7 @@ import {
   Settings,
 } from "lucide-react";
 import { QualityOption, PlayerControlsProps } from "@/types";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export type { QualityOption, PlayerControlsProps };
 
@@ -25,9 +25,7 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   volume,
   muted,
   currentQualityLabel,
-  qualityOptions,
   hasQualityOptions,
-  playbackSpeed,
   pipSupported,
   isPipActive,
   isFullscreenActive,
@@ -36,9 +34,6 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   onToggleMute,
   onVolumeChange,
   onToggleSettings,
-  onCloseSettings,
-  onSelectQuality,
-  onSelectSpeed,
   onTogglePiP,
   onToggleFullscreen,
   formatTime,

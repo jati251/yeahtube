@@ -251,9 +251,7 @@ export function VideoPlayer({
         volume={volume}
         muted={muted}
         currentQualityLabel={currentQualityLabel}
-        qualityOptions={qualityOptions}
         hasQualityOptions={hasQualityOptions}
-        playbackSpeed={playbackSpeed}
         pipSupported={pipSupported}
         isPipActive={isPipActive}
         isFullscreenActive={isFullscreenActive}
@@ -262,14 +260,6 @@ export function VideoPlayer({
         onToggleMute={toggleMute}
         onVolumeChange={handleVolumeChange}
         onToggleSettings={() => setShowSettings((prev) => !prev)}
-        onCloseSettings={() => setShowSettings(false)}
-        onSelectQuality={onQualityChange}
-        onSelectSpeed={(speed) => {
-          setPlaybackSpeed(speed);
-          if (videoRef.current) {
-            videoRef.current.playbackRate = speed;
-          }
-        }}
         onTogglePiP={togglePiP}
         onToggleFullscreen={toggleFullscreen}
         formatTime={formatDuration}

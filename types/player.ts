@@ -46,9 +46,7 @@ export interface PlayerControlsProps {
   volume: number;
   muted: number | boolean;
   currentQualityLabel: string;
-  qualityOptions?: QualityOption[];
   hasQualityOptions?: boolean;
-  playbackSpeed: number;
   pipSupported: boolean;
   isPipActive: boolean;
   isFullscreenActive: boolean;
@@ -57,9 +55,6 @@ export interface PlayerControlsProps {
   onToggleMute: () => void;
   onVolumeChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onToggleSettings: () => void;
-  onCloseSettings: () => void;
-  onSelectQuality?: (option: QualityOption) => void;
-  onSelectSpeed: (speed: number) => void;
   onTogglePiP: () => void;
   onToggleFullscreen: () => void;
   formatTime: (t: number) => string;
