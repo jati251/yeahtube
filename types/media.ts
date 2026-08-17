@@ -6,7 +6,7 @@ export interface EditablePost {
   description: string | null;
   tags?: TagItem[];
   categoryId?: number | null;
-  category?: string | null;
+  category?: string | { id: number; name: string; slug: string } | null;
   channel?: "public" | "private";
 }
 

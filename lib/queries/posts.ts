@@ -506,7 +506,7 @@ export const getPostDetail = cache(async (
 
   const canEdit = Boolean(user && (user.isAdmin || user.id === post.userId));
 
-  const [media, postTags, authorUser] = await Promise.all([
+  const [media, postTags, authorUser, categoryData] = await Promise.all([
     db
       .select()
       .from(schema.media)
@@ -530,6 +530,18 @@ export const getPostDetail = cache(async (
       .where(eq(schema.users.id, post.userId))
       .limit(1)
       .then((rows) => rows[0] || null),
+    post.categoryId
+      ? db
+          .select({
+            id: schema.categories.id,
+            name: schema.categories.name,
+            slug: schema.categories.slug,
+          })
+          .from(schema.categories)
+          .where(eq(schema.categories.id, post.categoryId))
+          .limit(1)
+          .then((rows) => rows[0] || null)
+      : Promise.resolve(null),
   ]);
 
   const videos = media.filter((m) => m.mediaType === "video");
@@ -572,6 +584,7 @@ export const getPostDetail = cache(async (
       description: post.description,
       createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : String(post.createdAt),
       categoryId: post.categoryId,
+      category: categoryData,
       userId: post.userId,
       channel: postChannel,
       views: post.views || 0,

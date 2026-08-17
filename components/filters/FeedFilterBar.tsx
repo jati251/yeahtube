@@ -17,6 +17,7 @@ import {
 import { SORT_OPTIONS } from "@/lib/constants";
 import { TagItem } from "@/types";
 import { clsx } from "clsx";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FeedFilterBarProps {
   mediaType: string | null;
@@ -165,11 +166,12 @@ export function FeedFilterBar({
       {/* 4. Tags Multi-Select Popover */}
       {tags.length > 0 && (
         <div className="relative">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.94 }}
             type="button"
             onClick={(e) => toggleDropdown("tags", e)}
             className={clsx(
-              "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none active:scale-95",
+              "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none",
               selectedTags.length > 0
                 ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
                 : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
@@ -189,63 +191,69 @@ export function FeedFilterBar({
                 openDropdown === "tags" && "rotate-180",
               )}
             />
-          </button>
+          </motion.button>
 
-          {openDropdown === "tags" && (
-            <div
-              className={clsx(
-                "absolute top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150",
-                dropdownAlign === "right" ? "right-0" : "left-0",
-              )}
-            >
-              <input
-                type="text"
-                placeholder="Search tags..."
-                value={tagSearch}
-                onChange={(e) => setTagSearch(e.target.value)}
-                className="mb-2 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-                autoFocus
-              />
-
-              <div className="max-h-52 overflow-y-auto space-y-0.5 pr-1">
-                {filteredTags.length === 0 ? (
-                  <p className="py-2 text-center text-xs text-zinc-400">No tags found</p>
-                ) : (
-                  filteredTags.map((t) => {
-                    const isSelected = selectedTags.includes(t.slug);
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => onTagToggle(t.slug)}
-                        className={clsx(
-                          "flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors text-left cursor-pointer",
-                          isSelected
-                            ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                            : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                        )}
-                      >
-                        <span className="truncate">#{t.name}</span>
-                        {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                      </button>
-                    );
-                  })
+          <AnimatePresence>
+            {openDropdown === "tags" && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                className={clsx(
+                  "absolute top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95",
+                  dropdownAlign === "right" ? "right-0" : "left-0",
                 )}
-              </div>
+              >
+                <input
+                  type="text"
+                  placeholder="Search tags..."
+                  value={tagSearch}
+                  onChange={(e) => setTagSearch(e.target.value)}
+                  className="mb-2 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+                  autoFocus
+                />
 
-              {selectedTags.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => selectedTags.forEach((s) => onTagToggle(s))}
-                    className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 cursor-pointer"
-                  >
-                    Clear tags
-                  </button>
+                <div className="max-h-52 overflow-y-auto space-y-0.5 pr-1">
+                  {filteredTags.length === 0 ? (
+                    <p className="py-2 text-center text-xs text-zinc-400">No tags found</p>
+                  ) : (
+                    filteredTags.map((t) => {
+                      const isSelected = selectedTags.includes(t.slug);
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => onTagToggle(t.slug)}
+                          className={clsx(
+                            "flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors text-left cursor-pointer",
+                            isSelected
+                              ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
+                              : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                          )}
+                        >
+                          <span className="truncate">#{t.name}</span>
+                          {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+
+                {selectedTags.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => selectedTags.forEach((s) => onTagToggle(s))}
+                      className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 cursor-pointer"
+                    >
+                      Clear tags
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -268,17 +276,18 @@ export function FeedFilterBar({
 
       {/* 6. Reset */}
       {hasActiveFilters && (
-        <button
+        <motion.button
+          whileTap={{ scale: 0.94 }}
           type="button"
           onClick={() => {
             onClearAll();
             setOpenDropdown(null);
           }}
-          className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
         >
           <X className="h-3.5 w-3.5" />
           <span>Reset</span>
-        </button>
+        </motion.button>
       )}
     </div>
   );
@@ -311,11 +320,12 @@ function FilterDropdown({
 }: FilterDropdownProps) {
   return (
     <div className="relative">
-      <button
+      <motion.button
+        whileTap={{ scale: 0.94 }}
         type="button"
         onClick={onToggle}
         className={clsx(
-          "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none active:scale-95",
+          "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none",
           isActive
             ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
             : "bg-white text-zinc-700 border-zinc-200/90 shadow-sm hover:bg-zinc-50 dark:bg-[#141417] dark:text-zinc-300 dark:border-zinc-800/90 dark:hover:bg-[#1a1a1f]",
@@ -329,41 +339,47 @@ function FilterDropdown({
             isOpen && "rotate-180",
           )}
         />
-      </button>
+      </motion.button>
 
-      {isOpen && (
-        <div
-          className={clsx(
-            "absolute top-full z-50 mt-2 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200/90 bg-white/98 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800/90 dark:bg-[#141417]/98 animate-in fade-in zoom-in-95 duration-150 max-h-56 overflow-y-auto space-y-0.5",
-            widthClass,
-            align === "right" ? "right-0" : "left-0",
-          )}
-        >
-          {options.map((opt) => {
-            const OptionIcon = opt.icon;
-            const isSelected = selectedValue === opt.value;
-            return (
-              <button
-                key={opt.label}
-                type="button"
-                onClick={() => onSelect(opt.value)}
-                className={clsx(
-                  "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
-                  isSelected
-                    ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                    : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                )}
-              >
-                <div className="flex items-center gap-2 truncate">
-                  {OptionIcon && <OptionIcon className="h-3.5 w-3.5 opacity-70 shrink-0" />}
-                  <span className="truncate">{opt.label}</span>
-                </div>
-                {isSelected && <Check className="h-3.5 w-3.5 shrink-0 ml-1" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            className={clsx(
+              "absolute top-full z-50 mt-2 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200/90 bg-white/98 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800/90 dark:bg-[#141417]/98 max-h-56 overflow-y-auto space-y-0.5",
+              widthClass,
+              align === "right" ? "right-0" : "left-0",
+            )}
+          >
+            {options.map((opt) => {
+              const OptionIcon = opt.icon;
+              const isSelected = selectedValue === opt.value;
+              return (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() => onSelect(opt.value)}
+                  className={clsx(
+                    "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
+                    isSelected
+                      ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
+                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+                  )}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    {OptionIcon && <OptionIcon className="h-3.5 w-3.5 opacity-70 shrink-0" />}
+                    <span className="truncate">{opt.label}</span>
+                  </div>
+                  {isSelected && <Check className="h-3.5 w-3.5 shrink-0 ml-1" />}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

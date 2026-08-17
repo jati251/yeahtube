@@ -39,7 +39,8 @@ export function EditPostModal({
     if (post?.categoryId !== undefined && post?.categoryId !== null) {
       matchedCatId = post.categoryId;
     } else if (post?.category && categories.length > 0) {
-      const matched = categories.find((c) => c.name === post.category);
+      const catName = typeof post.category === "string" ? post.category : post.category.name;
+      const matched = categories.find((c) => c.name === catName);
       if (matched) matchedCatId = matched.id;
     }
     setCategoryId(matchedCatId);

@@ -71,15 +71,18 @@ export function attachHlsOrNative(
     return {
       hls: null,
       destroy: () => {
+        destroyed = true;
         video.pause();
         video.removeAttribute("src");
-        video.load();
+        // Don't call video.load() during destroy — it triggers error events
+        // on the now-srcless element, which can cause stuck states on re-mount
       },
     };
   }
 
   // Dynamically load Hls.js on demand with YouTube-grade buffer configuration
   import("hls.js").then(({ default: HlsClass }) => {
+    // Guard: if destroy() was called before the async import resolved, bail out
     if (destroyed) return;
 
     if (HlsClass.isSupported()) {
@@ -134,6 +137,8 @@ export function attachHlsOrNative(
       hls.attachMedia(video);
 
       hls.on(HlsClass.Events.ERROR, (_event, data) => {
+        // Don't handle errors if we've been destroyed (stale callback from prior instance)
+        if (destroyed) return;
         if (data.fatal) {
           switch (data.type) {
             case HlsClass.ErrorTypes.NETWORK_ERROR:
@@ -153,10 +158,14 @@ export function attachHlsOrNative(
         }
       });
     } else {
-      video.src = src;
-      video.load();
+      // Guard against destroyed state in the else branch too
+      if (!destroyed) {
+        video.src = src;
+        video.load();
+      }
     }
   }).catch((err) => {
+    if (destroyed) return;
     console.error("[HlsHelper] Failed to load Hls.js dynamically:", err);
     video.src = src;
     video.load();
@@ -178,7 +187,8 @@ export function attachHlsOrNative(
       }
       video.pause();
       video.removeAttribute("src");
-      video.load();
+      // Don't call video.load() during destroy — it triggers error/stalled
+      // events on the now-srcless element which cause stuck states on re-mount
     },
   };
 }

@@ -90,3 +90,12 @@ export function formatBytes(bytes: number, decimals = 2): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(decimals))} ${sizes[i]}`;
 }
+
+// ── Views Formatting ──────────────────────────────────
+
+export function formatViews(views: number | null | undefined): string {
+  if (views == null || isNaN(views) || views <= 0) return "0 views";
+  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1).replace(/\.0$/, "")}M views`;
+  if (views >= 1_000) return `${(views / 1_000).toFixed(1).replace(/\.0$/, "")}K views`;
+  return `${views.toLocaleString()} view${views === 1 ? "" : "s"}`;
+}

@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { PwaProvider } from "@/components/providers/PwaProvider";
 import TopProgressBar from "@/components/ui/TopProgressBar";
 import { SITE_URL } from "@/constants";
 
@@ -18,6 +19,18 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = SITE_URL;
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -43,6 +56,21 @@ export const metadata: Metadata = {
     email: false,
     address: false,
     telephone: false,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "YeahTube",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   openGraph: {
     type: "website",
@@ -128,10 +156,12 @@ export default function RootLayout({
       <body className="antialiased" suppressHydrationWarning>
         <QueryProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-            <ToastProvider>
-              {children}
-              <TopProgressBar />
-            </ToastProvider>
+            <PwaProvider>
+              <ToastProvider>
+                {children}
+                <TopProgressBar />
+              </ToastProvider>
+            </PwaProvider>
           </ThemeProvider>
         </QueryProvider>
       </body>

@@ -11,6 +11,7 @@ import { UserNav } from "./UserNav";
 import { MobileDrawer } from "./MobileDrawer";
 import { HeaderUpload } from "@/components/upload/HeaderUpload";
 import { HeaderProps } from "@/types";
+import { motion } from "framer-motion";
 
 export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
   const pathname = usePathname();
@@ -26,13 +27,14 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
       <header className="sticky top-0 z-50 glass-header">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
           {/* Mobile menu button */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.88 }}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 lg:hidden transition-colors cursor-pointer"
             aria-label="Toggle menu"
           >
             <Menu className="h-5 w-5" />
-          </button>
+          </motion.button>
 
           {/* Logo */}
           <Link

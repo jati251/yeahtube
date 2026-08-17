@@ -31,6 +31,7 @@ export interface PostData {
   description: string | null;
   createdAt: string;
   categoryId?: number | null;
+  category?: { id: number; name: string; slug: string } | null;
   userId?: number;
   views?: number;
   author?: PostAuthor | null;

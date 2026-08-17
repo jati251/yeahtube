@@ -1,8 +1,18 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Calendar, Pencil, BookmarkPlus } from "lucide-react";
+import {
+  Calendar,
+  Pencil,
+  BookmarkPlus,
+  Eye,
+  Clock,
+  Sparkles,
+  Info,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaListItem } from "@/components/media/MediaListItem";
@@ -11,11 +21,18 @@ import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
 import { ShareButton } from "@/components/interactions/ShareButton";
 import dynamic from "next/dynamic";
-import { getQualityLabel, formatDate } from "@/utils";
+import {
+  getQualityLabel,
+  formatDate,
+  formatViews,
+  getTimeAgo,
+  formatDuration,
+} from "@/utils";
 import { WatchPageClientProps, VideoData, ImageData, PostData } from "@/types";
 import { trackWatchHistory, trackPostView } from "@/services/queries";
 import { clsx } from "clsx";
 import { useInView } from "react-intersection-observer";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useRecommendationsQuery, useSessionQuery } from "@/services/queries";
 import { useAppStore } from "@/stores/appStore";
@@ -37,11 +54,18 @@ export function WatchPageClient({
   recommendations = [],
 }: WatchPageClientProps) {
   const requireAuth = useRequireAuth();
-  const [currentVideoIndex, setCurrentVideoIndex] = React.useState(0);
-  const [showSaveModal, setShowSaveModal] = React.useState(false);
-  const [showEditModal, setShowEditModal] = React.useState(false);
-  const [postData, setPostData] = React.useState(post);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
+  const [showTechSpecs, setShowTechSpecs] = useState(false);
+  const [postData, setPostData] = useState(post);
   const currentVideo = videos[currentVideoIndex] || videos[0];
+
+  const quality = useMemo(
+    () => (currentVideo ? getQualityLabel(currentVideo.width, currentVideo.height) : null),
+    [currentVideo],
+  );
 
   const { ref: loadMoreRef, inView } = useInView({
     rootMargin: "200px",
@@ -64,12 +88,12 @@ export function WatchPageClient({
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Flatten and filter duplicates
-  const recs = React.useMemo(() => {
+  const recs = useMemo(() => {
     if (!recsData) return [];
-    
+
     const uniquePosts = new Map();
     uniquePosts.set(post.id, true); // Exclude current post
-    
+
     const result = [];
     for (const page of recsData.pages) {
       if (!page?.posts) continue;
@@ -93,14 +117,17 @@ export function WatchPageClient({
     trackPostView(post.id);
   }, [post.id, session?.authenticated]);
 
-  const qualityOptions = videos.length > 1 ? videos.map((v, idx) => ({
-    label: getQualityLabel(v.width, v.height)?.label ?? "Auto",
-    src: v.streamUrl,
-    type: v.mimeType,
-    width: v.width,
-    height: v.height,
-    isCurrent: idx === currentVideoIndex,
-  })) : undefined;
+  const qualityOptions =
+    videos.length > 1
+      ? videos.map((v, idx) => ({
+          label: getQualityLabel(v.width, v.height)?.label ?? "Auto",
+          src: v.streamUrl,
+          type: v.mimeType,
+          width: v.width,
+          height: v.height,
+          isCurrent: idx === currentVideoIndex,
+        }))
+      : undefined;
 
   const handleQualityChange = (option: { label: string; src: string; type?: string }) => {
     const idx = videos.findIndex((v) => v.streamUrl === option.src);
@@ -128,10 +155,12 @@ export function WatchPageClient({
 
         <div className="lg:col-span-8 lg:col-start-1 lg:row-start-2">
           <div className="mt-4 lg:mt-0">
+            {/* Title */}
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50 break-words !whitespace-normal leading-snug !line-clamp-none">
               {postData.title}
             </h1>
 
+            {/* Author & Action Bar */}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-100 pb-4 dark:border-zinc-800">
               <div className="flex items-center gap-3">
                 {postData.author ? (
@@ -153,7 +182,7 @@ export function WatchPageClient({
                               "rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider border",
                               postData.channel === "public"
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
-                                : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50"
+                                : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50",
                             )}
                           >
                             {postData.channel}
@@ -173,49 +202,167 @@ export function WatchPageClient({
                 )}
               </div>
 
+              {/* Action Buttons */}
               <div className="flex items-center gap-2">
                 {canEdit && (
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.94 }}
                     onClick={() => setShowEditModal(true)}
-                    className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 cursor-pointer shadow-sm"
+                    className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer shadow-sm"
                   >
                     <Pencil className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                     Edit
-                  </button>
+                  </motion.button>
                 )}
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.94 }}
                   onClick={requireAuth(() => setShowSaveModal(true))}
-                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 cursor-pointer shadow-sm"
+                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer shadow-sm"
                 >
                   <BookmarkPlus className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                   Save
-                </button>
+                </motion.button>
                 <ShareButton title={postData.title} />
                 <LikeDislike postId={post.id} />
               </div>
             </div>
 
-            {tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <Link
-                    key={tag.id}
-                    href={`/?tags=${tag.slug}`}
-                    className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-650 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                  >
-                    #{tag.name}
-                  </Link>
-                ))}
-              </div>
-            )}
+            {/* Rich Video Description & Metadata Box */}
+            <div className="mt-4 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4.5 dark:border-zinc-800/80 dark:bg-zinc-900/60 shadow-sm">
+              {/* Metadata Highlights Bar */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 pb-3 border-b border-zinc-200/60 dark:border-zinc-800/60">
+                {/* Views */}
+                <div className="flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100">
+                  <Eye className="h-4 w-4 text-blue-500" />
+                  <span>{formatViews(postData.views)}</span>
+                </div>
 
-            {postData.description && (
-              <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-850 dark:bg-zinc-900/40">
-                <p className="whitespace-pre-wrap text-sm text-zinc-750 dark:text-zinc-300">
-                  {postData.description}
-                </p>
+                {/* Relative Time */}
+                <span className="text-zinc-500 dark:text-zinc-400 text-[11px]">
+                  {getTimeAgo(postData.createdAt)}
+                </span>
+
+                {/* Category Pill */}
+                {postData.category && (
+                  <Link
+                    href={`/?category=${postData.category.slug}`}
+                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-400 dark:hover:bg-blue-900/80 border border-blue-200/60 dark:border-blue-800/60 transition-colors"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    <span>{postData.category.name}</span>
+                  </Link>
+                )}
+
+                {/* Video Quality Badge */}
+                {quality && (
+                  <span className="rounded-md bg-zinc-200/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border border-zinc-300/60 dark:border-zinc-700/60">
+                    {quality.label}
+                  </span>
+                )}
+
+                {/* Duration Badge */}
+                {currentVideo.duration ? (
+                  <div className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400 text-[11px]">
+                    <Clock className="h-3 w-3" />
+                    <span>{formatDuration(currentVideo.duration)}</span>
+                  </div>
+                ) : null}
               </div>
-            )}
+
+              {/* Description Body */}
+              {postData.description ? (
+                <div className="mt-3">
+                  <p
+                    className={clsx(
+                      "whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed transition-all",
+                      !isDescExpanded && "line-clamp-3",
+                    )}
+                  >
+                    {postData.description}
+                  </p>
+                  {postData.description.length > 180 && (
+                    <button
+                      onClick={() => setIsDescExpanded(!isDescExpanded)}
+                      className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer flex items-center gap-1"
+                    >
+                      {isDescExpanded ? (
+                        <>
+                          Show less <ChevronUp className="h-3.5 w-3.5" />
+                        </>
+                      ) : (
+                        <>
+                          Show more <ChevronDown className="h-3.5 w-3.5" />
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs italic text-zinc-400 dark:text-zinc-500">
+                  No description provided.
+                </p>
+              )}
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div className="mt-3.5 pt-3 border-t border-zinc-200/60 dark:border-zinc-800/60 flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <Link
+                      key={tag.id}
+                      href={`/?tags=${tag.slug}`}
+                      className="rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-medium text-zinc-650 hover:bg-zinc-200 dark:bg-zinc-800/90 dark:text-zinc-400 dark:hover:bg-zinc-750 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors"
+                    >
+                      #{tag.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {/* Technical Specifications Accordion */}
+              <div className="mt-3.5 pt-3 border-t border-zinc-200/60 dark:border-zinc-800/60">
+                <button
+                  onClick={() => setShowTechSpecs(!showTechSpecs)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 cursor-pointer transition-colors"
+                >
+                  <Info className="h-3.5 w-3.5 text-zinc-400" />
+                  <span>Media details & specs</span>
+                  <ChevronDown
+                    className={clsx(
+                      "h-3 w-3 transition-transform duration-200",
+                      showTechSpecs && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showTechSpecs && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden pt-2.5"
+                    >
+                      <div className="grid grid-cols-2 gap-2 text-xs rounded-xl bg-white/60 dark:bg-zinc-950/60 p-3 border border-zinc-200/50 dark:border-zinc-800/50">
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-zinc-400">Resolution</p>
+                          <p className="font-semibold text-zinc-800 dark:text-zinc-200">
+                            {currentVideo.width && currentVideo.height
+                              ? `${currentVideo.width} × ${currentVideo.height}`
+                              : "Adaptive HLS"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-bold text-zinc-400">Visibility</p>
+                          <p className="font-semibold capitalize text-zinc-800 dark:text-zinc-200">
+                            {postData.channel || "Private"}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           </div>
 
           {images.length > 0 && (

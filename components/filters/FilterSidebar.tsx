@@ -4,6 +4,7 @@ import React from "react";
 import { clsx } from "clsx";
 import { FilterSidebarProps } from "@/types";
 import { Film, Image as ImageIcon, ListVideo, Layers, Calendar, Tag, Sparkles, X } from "lucide-react";
+import { motion } from "framer-motion";
 
 export function FilterSidebar({
   mediaType,
@@ -32,13 +33,14 @@ export function FilterSidebar({
           Filters
         </h3>
         {activeFilters > 0 && (
-          <button
+          <motion.button
+            whileTap={{ scale: 0.92 }}
             onClick={onClearAll}
             className="flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors cursor-pointer"
           >
             <X className="h-3.5 w-3.5" />
             Reset ({activeFilters})
-          </button>
+          </motion.button>
         )}
       </div>
 
@@ -58,11 +60,12 @@ export function FilterSidebar({
             const Icon = option.icon;
             const isSelected = mediaType === option.value;
             return (
-              <button
+              <motion.button
                 key={option.label}
+                whileTap={{ scale: 0.94 }}
                 onClick={() => onMediaTypeChange(option.value)}
                 className={clsx(
-                  "flex items-center gap-2 rounded-xl p-2.5 text-xs font-semibold border transition-all active:scale-95 cursor-pointer shadow-sm",
+                  "flex items-center gap-2 rounded-xl p-2.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm",
                   isSelected
                     ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
                     : "bg-zinc-50 dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800",
@@ -70,7 +73,7 @@ export function FilterSidebar({
               >
                 <Icon className={clsx("h-3.5 w-3.5", isSelected ? "text-white dark:text-zinc-900" : "text-zinc-400")} />
                 <span className="truncate">{option.label}</span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -84,7 +87,8 @@ export function FilterSidebar({
             Category
           </h4>
           <div className="flex flex-wrap gap-1.5">
-            <button
+            <motion.button
+              whileTap={{ scale: 0.92 }}
               onClick={() => onCategoryChange(null)}
               className={clsx(
                 "rounded-full px-3 py-1 text-xs font-medium border transition-all cursor-pointer",
@@ -94,10 +98,11 @@ export function FilterSidebar({
               )}
             >
               All
-            </button>
+            </motion.button>
             {categories.map((cat) => (
-              <button
+              <motion.button
                 key={cat.id}
+                whileTap={{ scale: 0.92 }}
                 onClick={() => onCategoryChange(category === cat.slug ? null : cat.slug)}
                 className={clsx(
                   "rounded-full px-3 py-1 text-xs font-medium border transition-all cursor-pointer",
@@ -107,7 +112,7 @@ export function FilterSidebar({
                 )}
               >
                 {cat.name}
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -120,7 +125,8 @@ export function FilterSidebar({
           Release Year
         </h4>
         <div className="grid grid-cols-3 gap-1.5">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.92 }}
             onClick={() => onYearChange(null)}
             className={clsx(
               "rounded-xl py-2 text-center text-xs font-medium border transition-all cursor-pointer",
@@ -130,10 +136,11 @@ export function FilterSidebar({
             )}
           >
             Any Year
-          </button>
+          </motion.button>
           {years.map((y) => (
-            <button
+            <motion.button
               key={y}
+              whileTap={{ scale: 0.92 }}
               onClick={() => onYearChange(year === y ? null : y)}
               className={clsx(
                 "rounded-xl py-2 text-center text-xs font-medium border transition-all cursor-pointer",
@@ -143,7 +150,7 @@ export function FilterSidebar({
               )}
             >
               {y}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
@@ -159,18 +166,19 @@ export function FilterSidebar({
             {tags.map((tag) => {
               const isSelected = selectedTags.includes(tag.slug);
               return (
-                <button
+                <motion.button
                   key={tag.id}
+                  whileTap={{ scale: 0.92 }}
                   onClick={() => onTagToggle(tag.slug)}
                   className={clsx(
-                    "rounded-full px-3 py-1 text-xs font-medium border transition-all active:scale-95 cursor-pointer",
+                    "rounded-full px-3 py-1 text-xs font-medium border transition-all cursor-pointer",
                     isSelected
-                      ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-sm font-semibold"
                       : "bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800",
                   )}
                 >
                   #{tag.name}
-                </button>
+                </motion.button>
               );
             })}
           </div>

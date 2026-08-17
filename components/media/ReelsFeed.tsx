@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { ArrowLeft, Volume2, VolumeX, ChevronDown, ChevronUp } from "lucide-react";
 import { ReelItem } from "./ReelItem";
 import { clsx } from "clsx";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useAppStore } from "@/stores/appStore";
 import { ReelsFeedProps } from "@/types";
@@ -181,50 +182,64 @@ export function ReelsFeed({
           topControlsVisible ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
       >
-        <button
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={onClose}
-          className="p-2 text-white/90 hover:text-white transition-all active:scale-90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer"
+          className="p-2 text-white/90 hover:text-white transition-all drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer"
           aria-label="Back"
         >
           <ArrowLeft className="h-6 w-6 stroke-[2.5]" />
-        </button>
+        </motion.button>
 
         <div />
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={toggleSound}
-          className="p-2 text-white/90 hover:text-white transition-all active:scale-90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer"
+          className="p-2 text-white/90 hover:text-white transition-all drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] cursor-pointer"
           aria-label="Toggle Sound"
         >
           {isMuted ? <VolumeX className="h-6 w-6 stroke-[2.5]" /> : <Volume2 className="h-6 w-6 stroke-[2.5]" />}
-        </button>
+        </motion.button>
       </div>
 
       {/* Sound Feedback Pill */}
-      {soundFeedback && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-1.5 bg-black/80 backdrop-blur-md rounded-full border border-white/20 text-xs font-bold tracking-wide shadow-2xl animate-in zoom-in-75 fade-in duration-200">
-          {soundFeedback}
-        </div>
-      )}
+      <AnimatePresence>
+        {soundFeedback && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: -10 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="absolute top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-1.5 bg-black/80 backdrop-blur-md rounded-full border border-white/20 text-xs font-bold tracking-wide shadow-2xl"
+          >
+            {soundFeedback}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Desktop Up/Down Floating Nav Buttons */}
       <div className="hidden lg:flex fixed right-6 top-1/2 -translate-y-1/2 flex-col gap-3 z-30">
-        <button
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          whileHover={{ scale: 1.08 }}
           onClick={() => activeIndex > 0 && scrollToReel(activeIndex - 1)}
           disabled={activeIndex === 0}
-          className="p-3 bg-zinc-900/80 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-md rounded-full border border-white/10 text-white shadow-xl transition-all active:scale-95"
+          className="p-3 bg-zinc-900/80 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-md rounded-full border border-white/10 text-white shadow-xl transition-colors"
           title="Previous (Arrow Up)"
         >
           <ChevronUp className="h-5 w-5" />
-        </button>
-        <button
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          whileHover={{ scale: 1.08 }}
           onClick={() => activeIndex < posts.length - 1 && scrollToReel(activeIndex + 1)}
           disabled={activeIndex >= posts.length - 1}
-          className="p-3 bg-zinc-900/80 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-md rounded-full border border-white/10 text-white shadow-xl transition-all active:scale-95"
+          className="p-3 bg-zinc-900/80 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-md rounded-full border border-white/10 text-white shadow-xl transition-colors"
           title="Next (Arrow Down)"
         >
           <ChevronDown className="h-5 w-5" />
-        </button>
+        </motion.button>
       </div>
 
       {/* Virtualized Snap Container */}

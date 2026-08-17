@@ -227,18 +227,22 @@ export function useVideoPlaybackEngine({
       isQualityChangingRef.current = true;
       savedTimeRef.current = currentTime;
       savedPlayingRef.current = playing;
+    } else {
+      // Fresh navigation (not quality switch) — reset play state
+      setPlaying(false);
     }
 
     setCurrentTime(0);
     setDuration(0);
     setBuffered(0);
-    setWaiting(false);
+    setWaiting(true); // Set waiting=true until the video actually loads
 
     const handle = attachHlsOrNative(video, src, {
       mimeType: type,
-      duration: duration || undefined,
+      duration: undefined, // Don't pass stale duration — let HLS calculate from manifest
       onError: (err) => {
         console.error("HLS playback error:", err);
+        setWaiting(false); // Clear waiting on error to prevent stuck spinner
         if (hasQualityOptions && qualityOptions && onQualityChange) {
           const fallbackOption = qualityOptions.find((opt) => opt.src !== src);
           if (fallbackOption) {
@@ -248,7 +252,22 @@ export function useVideoPlaybackEngine({
       },
     });
 
-    return () => handle.destroy();
+    // Watchdog: if waiting is still true after 10s, force-clear it
+    // This prevents permanent stuck states from edge-case race conditions
+    const stuckWatchdog = setTimeout(() => {
+      setWaiting((prev) => {
+        if (prev && video.readyState >= 3) {
+          // Video is actually ready, just clear the stuck waiting state
+          return false;
+        }
+        return prev;
+      });
+    }, 10000);
+
+    return () => {
+      clearTimeout(stuckWatchdog);
+      handle.destroy();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, type, videoRef]);
 

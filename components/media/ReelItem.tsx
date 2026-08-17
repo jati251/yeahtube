@@ -9,6 +9,7 @@ import { LikeDislike } from "@/components/interactions/LikeDislike";
 import { Comments } from "@/components/interactions/Comments";
 import { SaveToPlaylist } from "@/components/interactions/SaveToPlaylist";
 import { clsx } from "clsx";
+import { motion, AnimatePresence } from "framer-motion";
 import { attachHlsOrNative } from "@/lib/hls-helper";
 import { useReelItem } from "@/hooks/player/useReelItem";
 import { useLikeMutation } from "@/services/queries";
@@ -45,12 +46,19 @@ export const ReelItem = React.memo(function ReelItem({
   const requireAuth = useRequireAuth();
   const likeMutation = useLikeMutation(post.id);
 
-  const handleDoubleTap = useCallback(() => {
+  const handleLikeAction = requireAuth(() => {
     onUserActivity();
-    requireAuth(() => {
-      likeMutation.mutate("like");
-    });
-  }, [likeMutation, onUserActivity, requireAuth]);
+    likeMutation.mutate("like");
+  });
+
+  const handleDoubleTap = useCallback(() => {
+    handleLikeAction();
+  }, [handleLikeAction]);
+
+  const handleOpenSaveModal = requireAuth(() => {
+    onUserActivity();
+    setShowSaveModal(true);
+  });
 
   const {
     isPaused,
@@ -145,14 +153,22 @@ export const ReelItem = React.memo(function ReelItem({
       )}
 
       {/* 2X Fast Forward Top Badge */}
-      {isFastForwarding && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/80 px-4 py-1.5 backdrop-blur-md border border-white/20 shadow-xl animate-in fade-in zoom-in duration-150 pointer-events-none">
-          <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-          <span className="text-xs font-bold tracking-wide text-white uppercase">
-            2X Speed ⏩
-          </span>
-        </div>
-      )}
+      <AnimatePresence>
+        {isFastForwarding && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.7, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.7, y: -10 }}
+            transition={{ type: "spring", stiffness: 400, damping: 22 }}
+            className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full bg-black/80 px-4 py-1.5 backdrop-blur-md border border-white/20 shadow-xl pointer-events-none"
+          >
+            <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+            <span className="text-xs font-bold tracking-wide text-white uppercase">
+              2X Speed ⏩
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Media Video Element */}
       {post.videoUrl && isNearActive && (
@@ -178,31 +194,57 @@ export const ReelItem = React.memo(function ReelItem({
           />
 
           {/* Center Play/Pause Overlay Indicator */}
-          {isPaused && !skipInfo && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity pointer-events-none">
-              <div className="bg-black/60 p-5 rounded-full text-white backdrop-blur-md animate-scale-up shadow-2xl border border-white/10">
-                <Play className="h-10 w-10 fill-white translate-x-0.5" />
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {isPaused && !skipInfo && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none"
+              >
+                <motion.div
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0.5 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className="bg-black/60 p-5 rounded-full text-white backdrop-blur-md shadow-2xl border border-white/10"
+                >
+                  <Play className="h-10 w-10 fill-white translate-x-0.5" />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Skip Forward/Backward Overlay */}
-          {skipInfo && (
-            <div
-              className={`absolute inset-0 flex items-center ${
-                skipInfo.side === "left" ? "justify-start pl-12" : "justify-end pr-12"
-              } transition-opacity pointer-events-none`}
-            >
-              <div className="bg-black/60 rounded-full px-5 py-3 flex flex-col items-center backdrop-blur-md border border-white/20 shadow-2xl animate-in fade-in zoom-in duration-150">
-                {skipInfo.side === "left" ? (
-                  <Rewind className="h-8 w-8 text-white mb-1" fill="currentColor" />
-                ) : (
-                  <FastForward className="h-8 w-8 text-white mb-1" fill="currentColor" />
-                )}
-                <span className="text-white font-bold tracking-wider">{skipInfo.amount}s</span>
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {skipInfo && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
+                className={`absolute inset-0 flex items-center ${
+                  skipInfo.side === "left" ? "justify-start pl-12" : "justify-end pr-12"
+                } pointer-events-none`}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.6 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                  className="bg-black/60 rounded-full px-5 py-3 flex flex-col items-center backdrop-blur-md border border-white/20 shadow-2xl"
+                >
+                  {skipInfo.side === "left" ? (
+                    <Rewind className="h-8 w-8 text-white mb-1" fill="currentColor" />
+                  ) : (
+                    <FastForward className="h-8 w-8 text-white mb-1" fill="currentColor" />
+                  )}
+                  <span className="text-white font-bold tracking-wider">{skipInfo.amount}s</span>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -240,35 +282,33 @@ export const ReelItem = React.memo(function ReelItem({
       >
         <LikeDislike postId={post.id} variant="vertical" />
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={() => {
             onUserActivity();
             setShowComments(true);
           }}
-          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer active:scale-95 transition-transform"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer"
         >
           <div className="p-3 bg-zinc-900/60 backdrop-blur-md rounded-full text-white group-hover:bg-zinc-800 transition-colors border border-white/10 shadow-lg">
             <MessageCircle className="h-6 w-6" />
           </div>
           <span className="text-xs text-white font-medium drop-shadow">Comments</span>
-        </button>
+        </motion.button>
 
-        <button
-          onClick={() => {
-            onUserActivity();
-            requireAuth(() => {
-              setShowSaveModal(true);
-            });
-          }}
-          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer active:scale-95 transition-transform"
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          onClick={handleOpenSaveModal}
+          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer"
         >
           <div className="p-3 bg-zinc-900/60 backdrop-blur-md rounded-full text-white group-hover:bg-zinc-800 transition-colors border border-white/10 shadow-lg">
             <BookmarkPlus className="h-6 w-6" />
           </div>
           <span className="text-xs text-white font-medium drop-shadow">Save</span>
-        </button>
+        </motion.button>
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.85 }}
           onClick={() => {
             onUserActivity();
             if (typeof navigator !== "undefined" && navigator.share) {
@@ -282,13 +322,13 @@ export const ReelItem = React.memo(function ReelItem({
               navigator.clipboard.writeText(window.location.origin + `/watch?v=${post.slug || post.id}`);
             }
           }}
-          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer active:scale-95 transition-transform"
+          className="flex flex-col items-center gap-1 group drop-shadow-lg cursor-pointer"
         >
           <div className="p-3 bg-zinc-900/60 backdrop-blur-md rounded-full text-white group-hover:bg-zinc-800 transition-colors border border-white/10 shadow-lg">
             <Share2 className="h-6 w-6" />
           </div>
           <span className="text-xs text-white font-medium drop-shadow">Share</span>
-        </button>
+        </motion.button>
       </div>
 
       {/* Video Info Bottom Overlay */}
@@ -339,22 +379,31 @@ export const ReelItem = React.memo(function ReelItem({
       </div>
 
       {/* Comments Drawer / Modal */}
-      {showComments && (
-        <div className="absolute inset-x-0 bottom-16 lg:bottom-0 top-1/4 bg-zinc-900 border-t border-zinc-800 rounded-t-3xl z-40 flex flex-col p-4 animate-in slide-in-from-bottom duration-300 shadow-2xl">
-          <div className="flex justify-between items-center pb-3 border-b border-zinc-800">
-            <h3 className="text-white font-semibold text-sm">Comments</h3>
-            <button
-              onClick={() => setShowComments(false)}
-              className="text-zinc-400 hover:text-white text-xs px-2.5 py-1 bg-zinc-800 rounded-lg cursor-pointer transition-colors"
-            >
-              Close
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto py-2">
-            <Comments postId={post.id} />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showComments && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 350, damping: 30 }}
+            className="absolute inset-x-0 bottom-16 lg:bottom-0 top-1/4 bg-zinc-900 border-t border-zinc-800 rounded-t-3xl z-40 flex flex-col p-4 shadow-2xl"
+          >
+            <div className="flex justify-between items-center pb-3 border-b border-zinc-800">
+              <h3 className="text-white font-semibold text-sm">Comments</h3>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowComments(false)}
+                className="text-zinc-400 hover:text-white text-xs px-2.5 py-1 bg-zinc-800 rounded-lg cursor-pointer transition-colors"
+              >
+                Close
+              </motion.button>
+            </div>
+            <div className="flex-1 overflow-y-auto py-2">
+              <Comments postId={post.id} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Save to Playlist Modal */}
       {showSaveModal && (

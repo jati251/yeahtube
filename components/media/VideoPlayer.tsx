@@ -155,8 +155,13 @@ export function VideoPlayer({
           ref={videoRef}
           className="h-full w-full object-contain pointer-events-none"
           poster={poster || undefined}
+          preload="auto"
           onError={(e) => {
+            const video = e.currentTarget;
+            // Ignore error events on empty src (fired during destroy/cleanup)
+            if (!video.src && !video.currentSrc) return;
             console.error("Video error event:", e);
+            setWaiting(false);
             if (hasQualityOptions && qualityOptions && onQualityChange) {
               const fallbackOption = qualityOptions.find((opt) => opt.src !== src);
               if (fallbackOption) onQualityChange(fallbackOption);
@@ -179,6 +184,16 @@ export function VideoPlayer({
             setWaiting(false);
           }}
           onWaiting={() => setWaiting(true)}
+          onStalled={() => {
+            // Only show waiting if the video is supposed to be playing
+            if (videoRef.current && !videoRef.current.paused) {
+              setWaiting(true);
+            }
+          }}
+          onEmptied={() => {
+            // Fired when src is removed during destroy — clear stuck states
+            setWaiting(false);
+          }}
           onPlaying={() => setWaiting(false)}
           onEnded={() => {
             setPlaying(false);
