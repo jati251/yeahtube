@@ -8,18 +8,22 @@ export function FeedHeader({
   total,
   viewMode,
   onToggleViewMode,
+  title = "Media Library",
+  itemLabel = "item",
   isAdmin = false,
   selectMode = false,
   onToggleSelectMode,
 }: FeedHeaderProps) {
+  const pluralLabel = itemLabel === "playlist" ? "playlists" : `${itemLabel}s`;
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/80 pb-4 dark:border-zinc-800/80">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Media Library
+          {title}
         </h1>
         <p className="mt-0.5 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-          {total} {total === 1 ? "item" : "items"} available
+          {total} {total === 1 ? itemLabel : pluralLabel} available
         </p>
       </div>
 

@@ -283,13 +283,15 @@ export function FeedClient({
 
         <div className="w-full">
           <FeedHeader
-            total={total}
+            total={isPlaylistMode ? (loadingPlaylists ? 0 : publicPlaylists.length) : total}
+            title={isPlaylistMode ? "Playlists" : "Media Library"}
+            itemLabel={isPlaylistMode ? "playlist" : "item"}
             viewMode={viewMode}
             onToggleViewMode={setViewMode}
             disableFiltersAndPagination={disableFiltersAndPagination}
-            isAdmin={isAdmin}
+            isAdmin={isAdmin && !isPlaylistMode}
             selectMode={selectMode}
-            onToggleSelectMode={toggleSelectMode}
+            onToggleSelectMode={isPlaylistMode ? undefined : toggleSelectMode}
             onOpenMobileFilters={() => setMobileFiltersOpen(true)}
           />
 
