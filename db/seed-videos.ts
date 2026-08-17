@@ -9,10 +9,9 @@ import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import { eq, asc } from "drizzle-orm";
 
-
 import { getDb, schema } from "./index";
 import { getS3Client, getStorageConfig } from "../lib/storage";
-import { enqueueTranscode } from "../lib/transcode-queue";
+
 import { generateYouTubeId } from "../lib/slug";
 
 // Helper to check video mime/type
@@ -61,8 +60,12 @@ async function generateVideoAssets(
         if (err) return reject(err);
 
         actualDuration = metadata.format.duration || 0;
-        const videoStream = metadata.streams?.find((s: any) => s.codec_type === "video");
-        const audioStream = metadata.streams?.find((s: any) => s.codec_type === "audio");
+        const videoStream = metadata.streams?.find(
+          (s: any) => s.codec_type === "video",
+        );
+        const audioStream = metadata.streams?.find(
+          (s: any) => s.codec_type === "audio",
+        );
         if (videoStream) {
           if (videoStream.width) videoWidth = videoStream.width;
           if (videoStream.height) videoHeight = videoStream.height;
@@ -107,7 +110,10 @@ async function generateVideoAssets(
     });
 
     console.log(`    🖼️  Generating thumbnail & preview clip...`);
-    const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
+    const seekTime = Math.max(
+      0,
+      Math.min(actualDuration * 0.1, actualDuration - 0.5, 10),
+    );
 
     // Thumbnail
     await new Promise<void>((resolve) => {
@@ -125,17 +131,25 @@ async function generateVideoAssets(
     let thumbnailBuffer: Buffer;
     try {
       const pngBuffer = await fs.readFile(tmpThumbPng);
-      thumbnailBuffer = await sharp(pngBuffer)
-        .webp({ quality: 80 })
-        .toBuffer();
+      thumbnailBuffer = await sharp(pngBuffer).webp({ quality: 80 }).toBuffer();
     } catch {
       thumbnailBuffer = await sharp({
-        create: { width: 400, height: 225, channels: 3, background: { r: 30, g: 30, b: 30 } },
-      }).webp({ quality: 50 }).toBuffer();
+        create: {
+          width: 400,
+          height: 225,
+          channels: 3,
+          background: { r: 30, g: 30, b: 30 },
+        },
+      })
+        .webp({ quality: 50 })
+        .toBuffer();
     }
 
     // Preview
-    const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
+    const previewDuration = Math.min(
+      3,
+      Math.max(0.5, actualDuration - seekTime),
+    );
     await new Promise<void>((resolve) => {
       ffmpeg(tmpAv1)
         .setStartTime(seekTime)
@@ -143,7 +157,12 @@ async function generateVideoAssets(
         .videoFilters("scale='min(360,iw)':-2")
         .noAudio()
         .videoCodec("libx264")
-        .outputOptions(["-preset veryfast", "-crf 30", "-movflags +faststart", "-pix_fmt yuv420p"])
+        .outputOptions([
+          "-preset veryfast",
+          "-crf 30",
+          "-movflags +faststart",
+          "-pix_fmt yuv420p",
+        ])
         .output(tmpPreview)
         .on("end", () => resolve())
         .on("error", () => resolve())
@@ -169,7 +188,9 @@ async function generateVideoAssets(
     };
   } finally {
     for (const f of [tmpInput, tmpAv1, tmpThumbPng, tmpPreview]) {
-      try { await fs.unlink(f); } catch {}
+      try {
+        await fs.unlink(f);
+      } catch {}
     }
   }
 }
@@ -180,7 +201,10 @@ async function cleanDuplicates() {
   const s3 = getS3Client();
   const storageConfig = getStorageConfig();
 
-  const allPosts = await db.select().from(schema.posts).orderBy(asc(schema.posts.id));
+  const allPosts = await db
+    .select()
+    .from(schema.posts)
+    .orderBy(asc(schema.posts.id));
   const titleGroups = new Map<string, typeof allPosts>();
 
   for (const post of allPosts) {
@@ -192,28 +216,51 @@ async function cleanDuplicates() {
   let deletedCount = 0;
   for (const [title, posts] of titleGroups.entries()) {
     if (posts.length > 1) {
-      console.log(`Found duplicate title: "${posts[0].title}" (${posts.length} copies)`);
+      console.log(
+        `Found duplicate title: "${posts[0].title}" (${posts.length} copies)`,
+      );
       const keepPost = posts[0];
       const duplicatesToDelete = posts.slice(1);
       console.log(`  Keeping Post ID: ${keepPost.id}`);
 
       for (const dup of duplicatesToDelete) {
         console.log(`  Deleting Post ID: ${dup.id}...`);
-        const mediaFiles = await db.select().from(schema.media).where(eq(schema.media.postId, dup.id));
+        const mediaFiles = await db
+          .select()
+          .from(schema.media)
+          .where(eq(schema.media.postId, dup.id));
         for (const m of mediaFiles) {
           try {
             console.log(`    - Deleting S3 key: ${m.storageKey}`);
-            await s3.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: m.storageKey }));
+            await s3.send(
+              new DeleteObjectCommand({
+                Bucket: storageConfig.bucket,
+                Key: m.storageKey,
+              }),
+            );
             if (m.thumbnailKey) {
               console.log(`    - Deleting S3 key: ${m.thumbnailKey}`);
-              await s3.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: m.thumbnailKey }));
+              await s3.send(
+                new DeleteObjectCommand({
+                  Bucket: storageConfig.bucket,
+                  Key: m.thumbnailKey,
+                }),
+              );
             }
             if (m.previewKey) {
               console.log(`    - Deleting S3 key: ${m.previewKey}`);
-              await s3.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: m.previewKey }));
+              await s3.send(
+                new DeleteObjectCommand({
+                  Bucket: storageConfig.bucket,
+                  Key: m.previewKey,
+                }),
+              );
             }
           } catch (s3Err) {
-            console.error(`    ❌ S3 Delete failed for media ID ${m.id}:`, s3Err);
+            console.error(
+              `    ❌ S3 Delete failed for media ID ${m.id}:`,
+              s3Err,
+            );
           }
         }
         await db.delete(schema.posts).where(eq(schema.posts.id, dup.id));
@@ -224,7 +271,9 @@ async function cleanDuplicates() {
   }
 
   if (deletedCount > 0) {
-    console.log(`🎉 Duplicate cleanup finished. Deleted ${deletedCount} duplicate post(s).\n`);
+    console.log(
+      `🎉 Duplicate cleanup finished. Deleted ${deletedCount} duplicate post(s).\n`,
+    );
   } else {
     console.log("✅ No duplicates found.\n");
   }
@@ -242,7 +291,10 @@ async function main() {
   const files = await fs.readdir(seedDir);
   const videoFiles = files.filter((f) => {
     const ext = path.extname(f).toLowerCase();
-    return [".mp4", ".webm", ".mov", ".avi", ".ts"].includes(ext) && !f.endsWith(".part");
+    return (
+      [".mp4", ".webm", ".mov", ".avi", ".ts"].includes(ext) &&
+      !f.endsWith(".part")
+    );
   });
 
   if (videoFiles.length === 0) {
@@ -259,9 +311,14 @@ async function main() {
   const storageConfig = getStorageConfig();
 
   // Parse channel from CLI args (e.g. --channel=public or --channel=private, default: private)
-  const channelArg = process.argv.find((arg) => arg.startsWith("--channel="))?.split("=")[1]?.toLowerCase()
-    || (process.argv.includes("--public") ? "public" : "private");
-  const channel: "public" | "private" = channelArg === "public" ? "public" : "private";
+  const channelArg =
+    process.argv
+      .find((arg) => arg.startsWith("--channel="))
+      ?.split("=")[1]
+      ?.toLowerCase() ||
+    (process.argv.includes("--public") ? "public" : "private");
+  const channel: "public" | "private" =
+    channelArg === "public" ? "public" : "private";
   console.log(`📺 Seeding to channel: [${channel.toUpperCase()}]`);
 
   // Find admin or first user in the system
@@ -271,14 +328,18 @@ async function main() {
     .where(eq(schema.users.isAdmin, 1))
     .limit(1);
 
-  const [firstUser] = adminUser ? [adminUser] : await db.select().from(schema.users).limit(1);
+  const [firstUser] = adminUser
+    ? [adminUser]
+    : await db.select().from(schema.users).limit(1);
 
   if (!firstUser) {
     console.error("❌ No users found in database. Please run db:seed first.");
     process.exit(1);
   }
 
-  console.log(`👤 Using user: ${firstUser.username} (ID: ${firstUser.id}) to create posts.`);
+  console.log(
+    `👤 Using user: ${firstUser.username} (ID: ${firstUser.id}) to create posts.`,
+  );
 
   // Find or create "Videos" category
   let categoryId: number | null = null;
@@ -292,7 +353,10 @@ async function main() {
     categoryId = videoCategory.id;
   } else {
     // Try to get first available category
-    const [fallbackCategory] = await db.select().from(schema.categories).limit(1);
+    const [fallbackCategory] = await db
+      .select()
+      .from(schema.categories)
+      .limit(1);
     if (fallbackCategory) {
       categoryId = fallbackCategory.id;
     }
@@ -322,7 +386,7 @@ async function main() {
     try {
       const fileBuffer = await fs.readFile(filepath);
       const ext = path.extname(filename).toLowerCase();
-      
+
       let mimeType = "video/mp4";
       if (ext === ".webm") mimeType = "video/webm";
       if (ext === ".mov") mimeType = "video/quicktime";
@@ -342,10 +406,19 @@ async function main() {
       const previewKey = `previews/${folderPath}/${storageId}_preview.mp4`;
 
       console.log(`  - Transcoding to AV1 & generating assets...`);
-      const { av1Buffer, av1FileSize, thumbnailBuffer, previewBuffer, duration, width, height } = 
-        await generateVideoAssets(fileBuffer, ext);
+      const {
+        av1Buffer,
+        av1FileSize,
+        thumbnailBuffer,
+        previewBuffer,
+        duration,
+        width,
+        height,
+      } = await generateVideoAssets(fileBuffer, ext);
 
-      console.log(`  - Uploading AV1 video to S3 (${(av1FileSize / (1024 * 1024)).toFixed(2)} MB)...`);
+      console.log(
+        `  - Uploading AV1 video to S3 (${(av1FileSize / (1024 * 1024)).toFixed(2)} MB)...`,
+      );
       await s3.send(
         new PutObjectCommand({
           Bucket: storageConfig.bucket,
@@ -411,16 +484,23 @@ async function main() {
         })
         .returning();
 
-      console.log(`  ✅ Successfully seeded: "${title}" (Post ID: ${newPost.id})`);
+      console.log(
+        `  ✅ Successfully seeded: "${title}" (Post ID: ${newPost.id})`,
+      );
     } catch (err) {
       console.error(`  ❌ Failed to seed "${filename}":`, err);
-      
+
       // Cleanup S3 on failure
       if (typeof uploadedS3Keys !== "undefined" && uploadedS3Keys.length > 0) {
         console.log(`  🧹 Cleaning up partial S3 uploads...`);
         for (const key of uploadedS3Keys) {
           try {
-            await s3.send(new DeleteObjectCommand({ Bucket: storageConfig.bucket, Key: key }));
+            await s3.send(
+              new DeleteObjectCommand({
+                Bucket: storageConfig.bucket,
+                Key: key,
+              }),
+            );
           } catch (e) {
             console.error(`    ⚠️ Failed to delete ${key} during cleanup`);
           }
@@ -431,7 +511,8 @@ async function main() {
 
   // Invalidate Redis feed & taxonomy cache so newly seeded posts appear immediately
   try {
-    const { invalidateFeedCache, invalidateTaxonomyCache } = await import("../lib/cache");
+    const { invalidateFeedCache, invalidateTaxonomyCache } =
+      await import("../lib/cache");
     await invalidateFeedCache();
     await invalidateTaxonomyCache();
     console.log("  ⚡ Redis cache purged successfully.");
