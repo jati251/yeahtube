@@ -76,7 +76,7 @@ export function VideoPlayer({
   const isLandscape = width && height ? width >= height : true;
 
   // Fullscreen hook
-  const { isFullscreenActive, isRotatedLandscape, toggleFullscreen } = usePlayerFullscreen(
+  const { isFullscreenActive, toggleFullscreen } = usePlayerFullscreen(
     containerRef,
     { isLandscape }
   );
@@ -142,9 +142,7 @@ export function VideoPlayer({
       ref={containerRef}
       className={`group relative bg-black select-none ${
         isFullscreenActive
-          ? isRotatedLandscape
-            ? "!fixed !top-0 !left-0 !w-[100dvh] !h-[100dvw] !max-w-none !max-h-none !origin-top-left !rotate-90 !translate-x-[100dvw] !z-[99999] !rounded-none !aspect-auto"
-            : "!fixed !inset-0 !z-[99999] !h-screen !h-[100dvh] !w-screen !w-[100dvw] !rounded-none !aspect-auto"
+          ? "!fixed !inset-0 !z-[99999] !h-screen !h-[100dvh] !w-screen !w-[100dvw] !rounded-none !aspect-auto"
           : "aspect-video rounded-xl"
       }`}
       onPointerMove={(e) => {
