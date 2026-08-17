@@ -64,7 +64,7 @@ export function FeedPostsDisplay({
     >
       {viewMode === "grid" ? (
         <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 animate-slide-up">
-          {posts.map((post) => (
+          {posts.map((post, index) => (
             <MediaCard
               key={post.id}
               post={post}
@@ -75,6 +75,7 @@ export function FeedPostsDisplay({
               onDelete={onDelete}
               onEdit={onEdit}
               deleting={deletingId === post.id}
+              priority={index < 4}
             />
           ))}
         </div>

@@ -88,7 +88,7 @@ export const MediaListItem = React.memo(function MediaListItem({ post, isAdmin, 
 
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
-          <span>{timeAgo}</span>
+          <span suppressHydrationWarning>{timeAgo}</span>
           {post.views !== undefined && (
             <>
               <span>·</span>

@@ -31,6 +31,7 @@ export interface MediaCardProps {
   onDelete?: (id: number) => void;
   onEdit?: (post: EditablePost) => void;
   deleting?: boolean;
+  priority?: boolean;
 }
 
 export interface MediaListItemProps {
@@ -42,6 +43,7 @@ export interface MediaListItemProps {
   onDelete?: (id: number) => void;
   onEdit?: (post: EditablePost) => void;
   deleting?: boolean;
+  priority?: boolean;
 }
 
 export interface Photo {

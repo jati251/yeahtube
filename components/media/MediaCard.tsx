@@ -9,7 +9,7 @@ import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
 import { useAppStore } from "@/stores/appStore";
 import { MediaCardProps } from "@/types";
 
-export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, onEdit, deleting }: MediaCardProps) {
+export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMode, selected, onToggleSelect, onDelete, onEdit, deleting, priority = false }: MediaCardProps) {
   const quality = getQualityLabel(post.width, post.height);
   const href =
     post.mediaType === "video" ? `/watch/${post.id}` : `/view/${post.id}`;
@@ -121,7 +121,8 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
                 "relative z-10 mx-auto h-full w-full object-contain transition-all duration-300",
                 isPlaying ? "scale-110 opacity-0" : "scale-100 group-hover:scale-105 opacity-100"
               )}
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
+              priority={priority}
               decoding="async"
             />
           </>
@@ -194,7 +195,7 @@ export const MediaCard = React.memo(function MediaCard({ post, isAdmin, selectMo
         )}
 
         <div className="mt-3 flex items-center justify-between text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-          <p className="truncate">{timeAgo}</p>
+          <p className="truncate" suppressHydrationWarning>{timeAgo}</p>
           {post.views !== undefined && (
             <p className="shrink-0">{post.views.toLocaleString()} views</p>
           )}
