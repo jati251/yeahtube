@@ -79,7 +79,7 @@ spec:
             secretKeyRef:
               key: STORAGE_TYPE
               name: yeahtube-secret
-        image: 192.168.1.230:30500/yeahtube:latest
+        image: ghcr.io/jati251/yeahtube-image:latest
         imagePullPolicy: Always
         name: yeahtube
         ports:

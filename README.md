@@ -142,10 +142,10 @@ Create a `.env` or `.env.local` file in the root directory:
 
 ```env
 # Database (PostgreSQL)
-DATABASE_URL=postgresql://yeahtube:yeahtube@localhost:5432/yeahtube
+DATABASE_URL=postgresql://postgres:password@localhost:5432/yeahtube
 
 # Cache & Queue (Redis)
-REDIS_URL=redis://:strongpassword123@localhost:6379
+REDIS_URL=redis://localhost:6379
 
 # Storage (S3 / MinIO)
 S3_ENDPOINT=http://localhost:9000
@@ -156,7 +156,7 @@ S3_SECRET_KEY=minioadmin
 S3_FORCE_PATH_STYLE=true
 
 # Authentication
-JWT_SECRET=super_secret_jwt_key_at_least_32_characters_long
+JWT_SECRET=generate-a-random-secret-here
 ```
 
 ---
