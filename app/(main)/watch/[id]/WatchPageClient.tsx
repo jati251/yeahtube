@@ -2,8 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Calendar, Pencil, BookmarkPlus } from "lucide-react";
+import { Calendar, Pencil, BookmarkPlus } from "lucide-react";
 import { VideoPlayer } from "@/components/media/VideoPlayer";
 import { PhotoGallery } from "@/components/media/PhotoGallery";
 import { MediaListItem } from "@/components/media/MediaListItem";
@@ -32,8 +31,6 @@ export function WatchPageClient({
   tags = [],
   recommendations = [],
 }: WatchPageClientProps) {
-  const router = useRouter();
-  
   const [currentVideoIndex, setCurrentVideoIndex] = React.useState(0);
   const [showSaveModal, setShowSaveModal] = React.useState(false);
   const [showEditModal, setShowEditModal] = React.useState(false);
@@ -46,13 +43,8 @@ export function WatchPageClient({
     rootMargin: "200px",
   });
 
-  useEffect(() => {
-    if (inView && !loadingMore) {
-      loadMoreRecs();
-    }
-  }, [inView, loadingMore]);
-
-  const loadMoreRecs = async () => {
+  const loadMoreRecs = React.useCallback(async () => {
+    if (loadingMore) return;
     setLoadingMore(true);
     try {
       const res = await fetch("/api/posts?sort=random&limit=10");
@@ -61,7 +53,7 @@ export function WatchPageClient({
         setRecs((prev) => {
           const existingIds = new Set(prev.map((p) => p.id));
           existingIds.add(post.id); // Exclude current post
-          const newRecs = data.posts.filter((p: any) => !existingIds.has(p.id));
+          const newRecs = data.posts.filter((p: { id: number }) => !existingIds.has(p.id));
           return [...prev, ...newRecs];
         });
       }
@@ -70,7 +62,14 @@ export function WatchPageClient({
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [loadingMore, post.id]);
+
+  useEffect(() => {
+    if (inView) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadMoreRecs();
+    }
+  }, [inView, loadMoreRecs]);
 
   // Fire-and-forget tracking
   useEffect(() => {
