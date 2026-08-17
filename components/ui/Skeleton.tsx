@@ -10,16 +10,16 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function MediaCardSkeleton() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900 shadow-sm">
+    <div className="flex flex-col overflow-hidden rounded-2xl glass-card">
       {/* 4:3 Thumbnail */}
-      <div className="aspect-[4/3] w-full bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+      <div className="aspect-[4/3] w-full bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
 
       {/* Card Info */}
       <div className="p-3.5 sm:p-4 space-y-2.5">
         {/* Title (2 lines) */}
         <div className="space-y-1.5">
-          <div className="h-4 w-full rounded-md bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
-          <div className="h-4 w-3/4 rounded-md bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+          <div className="h-4 w-full rounded-md bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
+          <div className="h-4 w-3/4 rounded-md bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
         </div>
 
         {/* Description */}
@@ -46,7 +46,7 @@ export function MediaCardSkeleton() {
 
 export function MediaListItemSkeleton() {
   return (
-    <div className="flex gap-3 sm:gap-4 rounded-2xl border border-zinc-200/80 bg-white p-3 sm:p-4 dark:border-zinc-800 dark:bg-zinc-900 shadow-sm animate-pulse">
+    <div className="flex gap-3 sm:gap-4 rounded-xl glass-card p-3 sm:p-4 animate-pulse">
       {/* Thumbnail */}
       <div className="aspect-[4/3] w-28 sm:w-40 shrink-0 rounded-xl bg-zinc-200 dark:bg-zinc-800" />
 

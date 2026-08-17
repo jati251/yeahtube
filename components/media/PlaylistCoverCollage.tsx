@@ -13,7 +13,7 @@ export function PlaylistCoverCollage({
   // Case 0: Empty Playlist
   if (validThumbnails.length === 0) {
     return (
-      <div className="relative aspect-video flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 overflow-hidden">
+      <div className="relative h-full w-full flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 overflow-hidden">
         <ListVideo className="h-12 w-12 text-zinc-400 dark:text-zinc-500 group-hover:scale-110 transition-transform duration-300" />
         <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
           <ListVideo className="h-3 w-3" />
@@ -26,7 +26,7 @@ export function PlaylistCoverCollage({
   // Case 1: Exactly 1 Thumbnail
   if (validThumbnails.length === 1) {
     return (
-      <div className="relative aspect-video bg-zinc-900 overflow-hidden">
+      <div className="relative h-full w-full bg-zinc-900 overflow-hidden">
         <NextImage
           src={validThumbnails[0].thumbnailUrl!}
           alt={playlistName}
@@ -47,7 +47,7 @@ export function PlaylistCoverCollage({
   // Case 2: 2 Thumbnails (Split 2 Columns)
   if (validThumbnails.length === 2) {
     return (
-      <div className="relative aspect-video bg-zinc-900 overflow-hidden grid grid-cols-2 gap-0.5">
+      <div className="relative h-full w-full bg-zinc-900 overflow-hidden grid grid-cols-2 gap-0.5">
         {validThumbnails.map((item, idx) => (
           <div key={item.id || idx} className="relative h-full w-full overflow-hidden">
             <NextImage
@@ -71,7 +71,7 @@ export function PlaylistCoverCollage({
   // Case 3: 3 Thumbnails (Left Large, Right 2 Stacked)
   if (validThumbnails.length === 3) {
     return (
-      <div className="relative aspect-video bg-zinc-900 overflow-hidden grid grid-cols-2 gap-0.5">
+      <div className="relative h-full w-full bg-zinc-900 overflow-hidden grid grid-cols-2 gap-0.5">
         <div className="relative h-full w-full overflow-hidden">
           <NextImage
             src={validThumbnails[0].thumbnailUrl!}
@@ -107,7 +107,7 @@ export function PlaylistCoverCollage({
   // Case 4: 4 Thumbnails (2x2 Grid)
   if (validThumbnails.length === 4) {
     return (
-      <div className="relative aspect-video bg-zinc-900 overflow-hidden grid grid-cols-2 grid-rows-2 gap-0.5">
+      <div className="relative h-full w-full bg-zinc-900 overflow-hidden grid grid-cols-2 grid-rows-2 gap-0.5">
         {validThumbnails.map((item, idx) => (
           <div key={item.id || idx} className="relative h-full w-full overflow-hidden">
             <NextImage
@@ -133,7 +133,7 @@ export function PlaylistCoverCollage({
   const rightGridThumbnails = validThumbnails.slice(1, 5);
 
   return (
-    <div className="relative aspect-video bg-zinc-900 overflow-hidden grid grid-cols-2 gap-0.5">
+    <div className="relative h-full w-full bg-zinc-900 overflow-hidden grid grid-cols-2 gap-0.5">
       {/* 1. Left Featured Large Cover */}
       <div className="relative h-full w-full overflow-hidden">
         <NextImage

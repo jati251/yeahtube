@@ -318,7 +318,7 @@ function FilterDropdown({
           "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none active:scale-95",
           isActive
             ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
-            : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
+            : "bg-white text-zinc-700 border-zinc-200/90 shadow-sm hover:bg-zinc-50 dark:bg-[#141417] dark:text-zinc-300 dark:border-zinc-800/90 dark:hover:bg-[#1a1a1f]",
         )}
       >
         <Icon className="h-3.5 w-3.5" />
@@ -334,7 +334,7 @@ function FilterDropdown({
       {isOpen && (
         <div
           className={clsx(
-            "absolute top-full z-50 mt-2 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 animate-in fade-in zoom-in-95 duration-150 max-h-56 overflow-y-auto space-y-0.5",
+            "absolute top-full z-50 mt-2 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200/90 bg-white/98 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800/90 dark:bg-[#141417]/98 animate-in fade-in zoom-in-95 duration-150 max-h-56 overflow-y-auto space-y-0.5",
             widthClass,
             align === "right" ? "right-0" : "left-0",
           )}

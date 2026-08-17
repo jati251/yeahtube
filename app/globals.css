@@ -3,9 +3,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Premium minimalist light theme */
-  --background: #ffffff;
-  --foreground: #09090b; /* zinc-950 */
+  /* Crisp modern light canvas */
+  --background: #f8fafc;
+  --foreground: #09090b;
 }
 
 @theme inline {
@@ -38,9 +38,9 @@
 }
 
 .dark {
-  /* Pure dark aesthetic (OLED-friendly) */
-  --background: #000000;
-  --foreground: #fafafa; /* zinc-50 */
+  /* Rich deep dark canvas with distinct elevated card surfaces */
+  --background: #09090b;
+  --foreground: #fafafa;
 }
 
 html,
@@ -90,19 +90,19 @@ p {
 /* Custom Utilities for Premium Aesthetics */
 @layer utilities {
   .glass-header {
-    @apply bg-white/80 dark:bg-[#000000]/80 backdrop-blur-2xl border-b border-zinc-200/50 dark:border-zinc-800/50;
+    @apply bg-white/85 dark:bg-[#09090b]/85 backdrop-blur-xl border-b border-zinc-200/80 dark:border-zinc-800/80 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:shadow-none;
   }
   
   .glass-card {
-    @apply bg-white dark:bg-zinc-950/50 border border-zinc-200/60 dark:border-zinc-800/60 transition-all duration-300;
+    @apply bg-white dark:bg-[#141417] border border-zinc-200/90 dark:border-zinc-800/90 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.45)] transition-all duration-300;
   }
 
   .premium-shadow {
-    @apply shadow-[0_4px_24px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.2)];
+    @apply shadow-[0_4px_20px_-2px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_28px_rgba(0,0,0,0.5)];
   }
 
   .premium-hover {
-    @apply hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 ease-out;
+    @apply hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_10px_35px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 hover:dark:bg-[#18181c] transition-all duration-300 ease-out;
   }
 
   .scrollbar-none {

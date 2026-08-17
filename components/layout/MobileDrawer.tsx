@@ -36,7 +36,7 @@ export function MobileDrawer({ isOpen, onClose, isAdmin }: MobileDrawerProps) {
       {/* Drawer Container */}
       <div
         className={clsx(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-white/95 p-5 shadow-2xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden transition-all duration-300 ease-in-out transform overscroll-contain",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200/90 bg-white/98 p-5 shadow-2xl backdrop-blur-xl dark:border-zinc-800/90 dark:bg-[#111114]/98 lg:hidden transition-all duration-300 ease-in-out transform overscroll-contain",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >

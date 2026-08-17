@@ -81,16 +81,16 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
               className="fixed inset-0 z-10"
               onClick={() => setUserMenuOpen(false)}
             />
-            <div className="absolute right-0 z-20 mt-1 w-52 rounded-2xl border border-zinc-200 bg-white py-1 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 animate-in zoom-in-95 duration-150">
-              <div className="border-b border-zinc-100 px-4 py-2 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+            <div className="absolute right-0 z-20 mt-1.5 w-56 rounded-2xl border border-zinc-200/90 bg-white py-1.5 shadow-xl dark:border-zinc-800/90 dark:bg-[#141417] animate-in zoom-in-95 duration-150">
+              <div className="border-b border-zinc-100 px-4 py-2 text-xs text-zinc-500 dark:border-zinc-800/80 dark:text-zinc-400">
                 Signed in as{" "}
-                <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+                <span className="font-bold text-zinc-900 dark:text-zinc-50">
                   {username}
                 </span>
               </div>
               <Link
                 href={`/user/${username}`}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/60 transition-colors"
                 onClick={() => setUserMenuOpen(false)}
               >
                 <Video className="h-4 w-4 text-blue-500" />
@@ -99,14 +99,14 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/60 transition-colors"
                   onClick={() => setUserMenuOpen(false)}
                 >
                   <Shield className="h-4 w-4 text-amber-500" />
                   Admin Panel
                 </Link>
               )}
-              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+              <div className="my-1 border-t border-zinc-100 dark:border-zinc-800/80" />
               <button
                 type="button"
                 onClick={() => {
@@ -116,7 +116,7 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
                   // Sync to cookie so server can read preference on SSR (like theme)
                   document.cookie = `show-public-posts=${next}; path=/; max-age=31536000; SameSite=Lax`;
                 }}
-                className="flex w-full items-center justify-between px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+                className="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
               >
                 <span className="flex items-center gap-2">
                   {showPublicPosts ? (

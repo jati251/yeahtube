@@ -20,7 +20,7 @@ export function FeedHeader({
           className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
             selectMode
               ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-md"
-              : "border border-zinc-200/80 bg-white/80 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-300 dark:hover:bg-zinc-800 shadow-sm"
+              : "border border-zinc-200/90 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800/90 dark:bg-[#141417] dark:text-zinc-300 dark:hover:bg-[#1a1a1f] shadow-sm"
           }`}
         >
           {selectMode ? "Done Selecting" : "Select"}
@@ -28,7 +28,7 @@ export function FeedHeader({
       )}
 
       {/* View mode toggle */}
-      <div className="flex items-center rounded-full border border-zinc-200/80 bg-zinc-100/80 p-1 dark:border-zinc-800 dark:bg-zinc-900/80 shadow-inner">
+      <div className="flex items-center rounded-full border border-zinc-200/90 bg-zinc-200/60 p-1 dark:border-zinc-800/90 dark:bg-[#141417] shadow-inner">
         <button
           onClick={() => onToggleViewMode("grid")}
           className={`rounded-full p-1.5 transition-all cursor-pointer ${
