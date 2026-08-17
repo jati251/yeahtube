@@ -10,8 +10,13 @@
 import "./db/env";
 import readline from "readline/promises";
 import { Worker, Job, Queue } from "bullmq";
-import { GetObjectCommand, PutObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  HeadObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import os from "os";
@@ -65,13 +70,19 @@ interface WorkerConfig {
 
 // ── Interactive Wizard / CLI Args Parser ──────────────
 async function resolveConfig(): Promise<WorkerConfig> {
-  const hasHelp = process.argv.includes("-h") || process.argv.includes("--help");
+  const hasHelp =
+    process.argv.includes("-h") || process.argv.includes("--help");
   if (hasHelp) showHelp();
 
   // Check if explicit CLI flags or non-interactive mode is requested
-  const hasEncoderFlag = process.argv.includes("-e") || process.argv.includes("--encoder");
-  const hasConcFlag = process.argv.includes("-c") || process.argv.includes("--concurrency");
-  const hasNonInteractive = process.argv.includes("-y") || process.argv.includes("--yes") || process.argv.includes("--non-interactive");
+  const hasEncoderFlag =
+    process.argv.includes("-e") || process.argv.includes("--encoder");
+  const hasConcFlag =
+    process.argv.includes("-c") || process.argv.includes("--concurrency");
+  const hasNonInteractive =
+    process.argv.includes("-y") ||
+    process.argv.includes("--yes") ||
+    process.argv.includes("--non-interactive");
 
   const hasExplicitArgs = hasEncoderFlag || hasConcFlag || hasNonInteractive;
 
@@ -89,13 +100,19 @@ async function resolveConfig(): Promise<WorkerConfig> {
 `);
 
     console.log("Pilih Hardware / Encoder Video:");
-    console.log("  1) SVT-AV1 (CPU) - Paling hemat storage 30-50% [Direkomendasikan]");
+    console.log(
+      "  1) SVT-AV1 (CPU) - Paling hemat storage 30-50% [Direkomendasikan]",
+    );
     console.log("  2) NVIDIA NVENC (GPU RTX/GTX) - Super kilat 400-800 FPS");
-    console.log("  3) Intel QuickSync QSV (Intel Core i3/i5/i7/i9 Hardware Encoder)");
+    console.log(
+      "  3) Intel QuickSync QSV (Intel Core i3/i5/i7/i9 Hardware Encoder)",
+    );
     console.log("  4) Apple VideoToolbox (Mac M1/M2/M3/M4 GPU)");
     console.log("  5) Universal H.264 (libx264 CPU)");
 
-    const encoderAns = (await rl.question("\nPilih nomor [1-5, tekan Enter untuk default: 1]: ")).trim();
+    const encoderAns = (
+      await rl.question("\nPilih nomor [1-5, tekan Enter untuk default: 1]: ")
+    ).trim();
     let encoder: EncoderType = "svtav1";
     if (encoderAns === "2") encoder = "nvenc";
     else if (encoderAns === "3") encoder = "qsv";
@@ -103,9 +120,16 @@ async function resolveConfig(): Promise<WorkerConfig> {
     else if (encoderAns === "5") encoder = "x264";
 
     const defaultConcurrency = encoder === "nvenc" || encoder === "qsv" ? 4 : 2;
-    const concAns = (await rl.question(`Berapa video diproses paralel? [1-16, tekan Enter untuk default: ${defaultConcurrency}]: `)).trim();
+    const concAns = (
+      await rl.question(
+        `Berapa video diproses paralel? [1-16, tekan Enter untuk default: ${defaultConcurrency}]: `,
+      )
+    ).trim();
     const parsedConc = parseInt(concAns, 10);
-    const concurrency = !isNaN(parsedConc) && parsedConc > 0 ? Math.min(parsedConc, 16) : defaultConcurrency;
+    const concurrency =
+      !isNaN(parsedConc) && parsedConc > 0
+        ? Math.min(parsedConc, 16)
+        : defaultConcurrency;
 
     rl.close();
     return { concurrency, encoder };
@@ -115,13 +139,19 @@ async function resolveConfig(): Promise<WorkerConfig> {
   let encoder: EncoderType = "svtav1";
   const eIndex = process.argv.indexOf("-e");
   const encoderIndex = process.argv.indexOf("--encoder");
-  const rawEncoder = encoderIndex !== -1 ? process.argv[encoderIndex + 1] : eIndex !== -1 ? process.argv[eIndex + 1] : process.env.WORKER_ENCODER;
+  const rawEncoder =
+    encoderIndex !== -1
+      ? process.argv[encoderIndex + 1]
+      : eIndex !== -1
+        ? process.argv[eIndex + 1]
+        : process.env.WORKER_ENCODER;
 
   if (rawEncoder) {
     const norm = rawEncoder.toLowerCase().trim();
     if (norm === "nvenc" || norm === "gpu") encoder = "nvenc";
     else if (norm === "qsv" || norm === "intel") encoder = "qsv";
-    else if (norm === "videotoolbox" || norm === "apple") encoder = "videotoolbox";
+    else if (norm === "videotoolbox" || norm === "apple")
+      encoder = "videotoolbox";
     else if (norm === "x264" || norm === "h264") encoder = "x264";
     else encoder = "svtav1";
   }
@@ -129,7 +159,12 @@ async function resolveConfig(): Promise<WorkerConfig> {
   let concurrency = 2;
   const cIndex = process.argv.indexOf("-c");
   const concIndex = process.argv.indexOf("--concurrency");
-  const rawConc = concIndex !== -1 ? process.argv[concIndex + 1] : cIndex !== -1 ? process.argv[cIndex + 1] : process.env.WORKER_CONCURRENCY;
+  const rawConc =
+    concIndex !== -1
+      ? process.argv[concIndex + 1]
+      : cIndex !== -1
+        ? process.argv[cIndex + 1]
+        : process.env.WORKER_CONCURRENCY;
 
   if (rawConc) {
     const val = parseInt(rawConc, 10);
@@ -229,7 +264,11 @@ async function main() {
 
   async function getRemainingCount(): Promise<number> {
     try {
-      const counts = await transcodeQueue.getJobCounts("waiting", "active", "delayed");
+      const counts = await transcodeQueue.getJobCounts(
+        "waiting",
+        "active",
+        "delayed",
+      );
       return (counts.waiting || 0) + (counts.delayed || 0);
     } catch {
       return 0;
@@ -237,7 +276,10 @@ async function main() {
   }
 
   // ── Multi-Line Terminal Dashboard Manager ─────────────
-  const slots: (SlotState | null)[] = Array.from({ length: CONCURRENCY }, () => null);
+  const slots: (SlotState | null)[] = Array.from(
+    { length: CONCURRENCY },
+    () => null,
+  );
   let lastDashboardLineCount = 0;
   let cachedRemainingCount = 0;
 
@@ -295,11 +337,12 @@ async function main() {
         const cur = formatDuration(slot.currentTime);
         const dur = formatDuration(slot.duration);
         const fps = slot.fps ? `| ${slot.fps} ` : "";
-        const eta = slot.etaSec > 0 ? `| ETA:${formatDuration(slot.etaSec)}` : "";
-        
+        const eta =
+          slot.etaSec > 0 ? `| ETA:${formatDuration(slot.etaSec)}` : "";
+
         const line1 = `[Slot ${i + 1} #${slot.mediaId}] "${slot.filename}"`;
         const line2 = `  ${slot.step} ${bar} (${cur}/${dur}) ${fps}${eta}`;
-        
+
         lines.push(truncateLine(line1, cols));
         lines.push(truncateLine(line2, cols));
       } else {
@@ -336,7 +379,10 @@ async function main() {
   });
 
   pool.on("error", (err) => {
-    console.warn("[Worker] PostgreSQL idle connection event (auto-recovering):", err.message);
+    console.warn(
+      "[Worker] PostgreSQL idle connection event (auto-recovering):",
+      err.message,
+    );
   });
 
   // ── Worker ────────────────────────────────────────────
@@ -344,32 +390,46 @@ async function main() {
     "yeahtube-transcode",
     async (job: Job<TranscodeJobData>) => {
       const {
-        mediaId, postId, storageKey, filename,
-        bucket, endpoint, region, accessKey, secretKey, forcePathStyle,
+        mediaId,
+        postId,
+        storageKey,
+        filename,
+        bucket,
+        endpoint,
+        region,
+        accessKey,
+        secretKey,
+        forcePathStyle,
       } = job.data;
 
       const slotIdx = acquireSlot(mediaId, filename);
       cachedRemainingCount = await getRemainingCount();
-      logMessage(`🎬 [Slot ${slotIdx + 1} | Job #${job.id}] Mulai proses Media #${mediaId}: "${filename}"`);
+      logMessage(
+        `🎬 [Slot ${slotIdx + 1} | Job #${job.id}] Mulai proses Media #${mediaId}: "${filename}"`,
+      );
 
       const effectiveEndpoint = process.env.S3_ENDPOINT || endpoint;
       const effectiveRegion = process.env.S3_REGION || region;
       const effectiveAccessKey = process.env.S3_ACCESS_KEY || accessKey;
       const effectiveSecretKey = process.env.S3_SECRET_KEY || secretKey;
-      const effectiveForcePathStyle = process.env.S3_FORCE_PATH_STYLE !== undefined
-        ? process.env.S3_FORCE_PATH_STYLE === "true"
-        : forcePathStyle;
+      const effectiveForcePathStyle =
+        process.env.S3_FORCE_PATH_STYLE !== undefined
+          ? process.env.S3_FORCE_PATH_STYLE === "true"
+          : forcePathStyle;
 
       const s3 = new S3Client({
         endpoint: effectiveEndpoint,
         region: effectiveRegion,
-        credentials: { accessKeyId: effectiveAccessKey, secretAccessKey: effectiveSecretKey },
+        credentials: {
+          accessKeyId: effectiveAccessKey,
+          secretAccessKey: effectiveSecretKey,
+        },
         forcePathStyle: effectiveForcePathStyle,
       });
 
       const tmpDir = os.tmpdir();
       const uniqueId = uuidv4();
-      
+
       const now = new Date();
       const folderPath = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`;
       const thumbnailFilename = `${uniqueId}_thumb.webp`;
@@ -388,20 +448,35 @@ async function main() {
       try {
         // Pre-check if source video exists in S3
         try {
-          await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: storageKey }));
+          await s3.send(
+            new HeadObjectCommand({ Bucket: bucket, Key: storageKey }),
+          );
         } catch (headErr: unknown) {
-          const err = headErr as { name?: string; $metadata?: { httpStatusCode?: number } };
-          if (err.name === "NotFound" || err.$metadata?.httpStatusCode === 404 || err.name === "NoSuchKey") {
-            logMessage(`⚠️ [Slot ${slotIdx + 1}] Media #${mediaId} ("${filename}") tidak ditemukan di S3 (${storageKey}). Skipped.`);
+          const err = headErr as {
+            name?: string;
+            $metadata?: { httpStatusCode?: number };
+          };
+          if (
+            err.name === "NotFound" ||
+            err.$metadata?.httpStatusCode === 404 ||
+            err.name === "NoSuchKey"
+          ) {
+            logMessage(
+              `⚠️ [Slot ${slotIdx + 1}] Media #${mediaId} ("${filename}") tidak ditemukan di S3 (${storageKey}). Skipped.`,
+            );
             return;
           }
         }
 
         if (slots[slotIdx]) slots[slotIdx]!.step = "📥 [1/5] Downloading";
 
-        const getRes = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: storageKey }));
+        const getRes = await s3.send(
+          new GetObjectCommand({ Bucket: bucket, Key: storageKey }),
+        );
         if (!getRes.Body) {
-          throw new Error(`Failed to download object ${storageKey} from bucket ${bucket}`);
+          throw new Error(
+            `Failed to download object ${storageKey} from bucket ${bucket}`,
+          );
         }
         const fileStream = createWriteStream(tmpInput);
         await pipeline(getRes.Body as NodeJS.ReadableStream, fileStream);
@@ -414,12 +489,18 @@ async function main() {
         let hasAudio = false;
 
         const metadata: FfprobeData = await new Promise((resolve, reject) => {
-          ffmpeg.ffprobe(tmpInput, (err, meta) => (err ? reject(err) : resolve(meta)));
+          ffmpeg.ffprobe(tmpInput, (err, meta) =>
+            err ? reject(err) : resolve(meta),
+          );
         });
 
         actualDuration = metadata.format.duration || 0;
-        const videoStream = metadata.streams?.find((s) => s.codec_type === "video");
-        const audioStream = metadata.streams?.find((s) => s.codec_type === "audio");
+        const videoStream = metadata.streams?.find(
+          (s) => s.codec_type === "video",
+        );
+        const audioStream = metadata.streams?.find(
+          (s) => s.codec_type === "audio",
+        );
         if (videoStream) {
           if (videoStream.width) videoWidth = videoStream.width;
           if (videoStream.height) videoHeight = videoStream.height;
@@ -438,7 +519,8 @@ async function main() {
 
           // Configure chosen encoder options
           if (ENCODER === "nvenc") {
-            cmd.videoCodec("hevc_nvenc")
+            cmd
+              .videoCodec("hevc_nvenc")
               .outputOptions([
                 "-preset p5",
                 "-cq 28",
@@ -446,7 +528,8 @@ async function main() {
                 "-movflags +faststart",
               ]);
           } else if (ENCODER === "qsv") {
-            cmd.videoCodec("hevc_qsv")
+            cmd
+              .videoCodec("hevc_qsv")
               .outputOptions([
                 "-preset medium",
                 "-global_quality 25",
@@ -454,14 +537,16 @@ async function main() {
                 "-movflags +faststart",
               ]);
           } else if (ENCODER === "videotoolbox") {
-            cmd.videoCodec("hevc_videotoolbox")
+            cmd
+              .videoCodec("hevc_videotoolbox")
               .outputOptions([
                 "-q:v 60",
                 "-pix_fmt yuv420p",
                 "-movflags +faststart",
               ]);
           } else if (ENCODER === "x264") {
-            cmd.videoCodec("libx264")
+            cmd
+              .videoCodec("libx264")
               .outputOptions([
                 "-preset medium",
                 "-crf 23",
@@ -470,7 +555,8 @@ async function main() {
               ]);
           } else {
             // Default SVT-AV1
-            cmd.videoCodec("libsvtav1")
+            cmd
+              .videoCodec("libsvtav1")
               .outputOptions([
                 "-preset 8",
                 "-crf 30",
@@ -491,12 +577,19 @@ async function main() {
             .on("progress", (p) => {
               const now = Date.now();
               const currentTime = parseTimemark(p.timemark);
-              const percent = actualDuration > 0
-                ? Math.min(100, Math.max(0, (currentTime / actualDuration) * 100))
-                : (p.percent || 0);
-              
+              const percent =
+                actualDuration > 0
+                  ? Math.min(
+                      100,
+                      Math.max(0, (currentTime / actualDuration) * 100),
+                    )
+                  : p.percent || 0;
+
               const elapsedSec = (now - startEncode) / 1000;
-              const etaSec = percent > 0 ? Math.max(0, (elapsedSec / (percent / 100)) - elapsedSec) : 0;
+              const etaSec =
+                percent > 0
+                  ? Math.max(0, elapsedSec / (percent / 100) - elapsedSec)
+                  : 0;
 
               if (slots[slotIdx]) {
                 slots[slotIdx]!.percent = percent;
@@ -515,7 +608,10 @@ async function main() {
         });
 
         if (slots[slotIdx]) slots[slotIdx]!.step = "🖼️ [3/5] Thumb & Preview";
-        const seekTime = Math.max(0, Math.min(actualDuration * 0.1, actualDuration - 0.5, 10));
+        const seekTime = Math.max(
+          0,
+          Math.min(actualDuration * 0.1, actualDuration - 0.5, 10),
+        );
 
         // Extract Thumbnail
         await new Promise<void>((resolve) => {
@@ -538,12 +634,22 @@ async function main() {
             .toBuffer();
         } catch {
           thumbnailBuffer = await sharp({
-            create: { width: 400, height: 225, channels: 3, background: { r: 30, g: 30, b: 30 } },
-          }).webp({ quality: 50 }).toBuffer();
+            create: {
+              width: 400,
+              height: 225,
+              channels: 3,
+              background: { r: 30, g: 30, b: 30 },
+            },
+          })
+            .webp({ quality: 50 })
+            .toBuffer();
         }
 
         // Extract Preview Clip
-        const previewDuration = Math.min(3, Math.max(0.5, actualDuration - seekTime));
+        const previewDuration = Math.min(
+          3,
+          Math.max(0.5, actualDuration - seekTime),
+        );
         await new Promise<void>((resolve) => {
           ffmpeg(tmpOutput)
             .setStartTime(seekTime)
@@ -551,7 +657,12 @@ async function main() {
             .videoFilters("scale='min(360,iw)':-2")
             .noAudio()
             .videoCodec("libx264")
-            .outputOptions(["-preset veryfast", "-crf 30", "-movflags +faststart", "-pix_fmt yuv420p"])
+            .outputOptions([
+              "-preset veryfast",
+              "-crf 30",
+              "-movflags +faststart",
+              "-pix_fmt yuv420p",
+            ])
             .output(tmpPreview)
             .on("end", () => resolve())
             .on("error", () => resolve())
@@ -606,7 +717,9 @@ async function main() {
         if (storageKey !== newStorageKey) {
           try {
             const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
-            await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: storageKey }));
+            await s3.send(
+              new DeleteObjectCommand({ Bucket: bucket, Key: storageKey }),
+            );
           } catch (delErr) {
             console.warn(`[Worker] Could not delete old raw upload:`, delErr);
           }
@@ -623,12 +736,22 @@ async function main() {
             thumbnail_key = $6, 
             preview_key = $7 
            WHERE id = $8`,
-          [newStorageKey, newFileSize, videoWidth, videoHeight, actualDuration, thumbnailKey, finalPreviewKey, mediaId]
+          [
+            newStorageKey,
+            newFileSize,
+            videoWidth,
+            videoHeight,
+            actualDuration,
+            thumbnailKey,
+            finalPreviewKey,
+            mediaId,
+          ],
         );
 
         // Invalidate Redis feed & post cache so UI immediately reflects updated metadata
         try {
-          const { invalidatePostCache, invalidateFeedCache } = await import("./lib/cache");
+          const { invalidatePostCache, invalidateFeedCache } =
+            await import("./lib/cache");
           await invalidatePostCache(postId);
           await invalidateFeedCache();
         } catch {
@@ -637,14 +760,20 @@ async function main() {
 
         const elapsed = ((Date.now() - startEncode) / 1000).toFixed(1);
         cachedRemainingCount = await getRemainingCount();
-        logMessage(`✅ [Slot ${slotIdx + 1}] Media #${mediaId} selesai dalam ${elapsed}s! (${(newFileSize / (1024 * 1024)).toFixed(2)} MB)`);
+        logMessage(
+          `✅ [Slot ${slotIdx + 1}] Media #${mediaId} selesai dalam ${elapsed}s! (${(newFileSize / (1024 * 1024)).toFixed(2)} MB)`,
+        );
       } catch (err) {
-        logMessage(`❌ [Slot ${slotIdx + 1}] Media #${mediaId} gagal: ${err instanceof Error ? err.message : String(err)}`);
+        logMessage(
+          `❌ [Slot ${slotIdx + 1}] Media #${mediaId} gagal: ${err instanceof Error ? err.message : String(err)}`,
+        );
         throw err;
       } finally {
         releaseSlot(slotIdx);
         for (const f of [tmpInput, tmpOutput, tmpThumbPng, tmpPreview]) {
-          try { await fs.unlink(f); } catch {}
+          try {
+            await fs.unlink(f);
+          } catch {}
         }
       }
     },
@@ -670,7 +799,9 @@ async function main() {
   process.on("SIGINT", shutdown);
 
   if (process.stdout.isTTY) process.stdout.write("\x1b[?25h");
-  console.log(`⚡ YeahTube Worker started [Concurrency: ${CONCURRENCY}, Encoder: ${encoderLabels[ENCODER]}]\n`);
+  console.log(
+    `⚡ YeahTube Worker started [Concurrency: ${CONCURRENCY}, Encoder: ${encoderLabels[ENCODER]}]\n`,
+  );
 }
 
 main().catch((err) => {
