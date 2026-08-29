@@ -17,6 +17,8 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
+import https from "https";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
@@ -426,6 +428,11 @@ async function main() {
           secretAccessKey: effectiveSecretKey,
         },
         forcePathStyle: effectiveForcePathStyle,
+        requestHandler: new NodeHttpHandler({
+          httpsAgent: new https.Agent({
+            rejectUnauthorized: false,
+          }),
+        }),
       });
 
       const tmpDir = os.tmpdir();

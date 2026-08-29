@@ -6,6 +6,7 @@ import os from "os";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 import sharp from "sharp";
 import { eq, asc } from "drizzle-orm";
 
@@ -447,14 +448,18 @@ async function main() {
       console.log(
         `  - Uploading AV1 video to S3 (${(av1FileSize / (1024 * 1024)).toFixed(2)} MB)...`,
       );
-      await s3.send(
-        new PutObjectCommand({
+      const videoUpload = new Upload({
+        client: s3,
+        params: {
           Bucket: storageConfig.bucket,
           Key: storageKey,
           Body: av1Buffer,
           ContentType: "video/mp4",
-        }),
-      );
+        },
+        partSize: 5 * 1024 * 1024, // 5MB chunks to prevent HTTP 413 Payload Too Large
+        leavePartsOnError: false,
+      });
+      await videoUpload.done();
       uploadedS3Keys.push(storageKey);
 
       console.log(`  - Uploading thumbnail to S3...`);

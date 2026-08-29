@@ -19,6 +19,8 @@
  */
 
 import { S3Client } from "@aws-sdk/client-s3";
+import https from "https";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -73,6 +75,11 @@ export function getS3Client(): S3Client {
         secretAccessKey: config.secretKey,
       },
       forcePathStyle: config.forcePathStyle,
+      requestHandler: new NodeHttpHandler({
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false,
+        }),
+      }),
     });
   }
   return s3Client;
