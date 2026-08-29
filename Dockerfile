@@ -10,13 +10,14 @@ FROM node:20-alpine AS builder
 
 RUN apk add --no-cache python3 make g++ ffmpeg
 WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-COPY package.json package-lock.json ./
-RUN npm install --ignore-scripts && npm rebuild sharp && npm cache clean --force
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --ignore-scripts && npm rebuild sharp && npm cache clean --force
 
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN pnpm run build
 
 # ── Stage 2: Production image with nginx + worker ──────
 FROM node:20-alpine
