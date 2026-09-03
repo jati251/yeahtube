@@ -161,29 +161,29 @@ JWT_SECRET=generate-a-random-secret-here
 
 ### 1. Install Dependencies
 ```bash
-npm install
+pnpm install
 ```
 
 ### 2. Database Migration & Seeding
 Push the Drizzle schema to your PostgreSQL instance and seed initial data:
 ```bash
 # Push schema to database
-npx drizzle-kit push
+pnpm exec drizzle-kit push
 
 # Seed initial admin user and default categories
-npm run db:seed
+pnpm run db:seed
 ```
 
 ### 3. Run Development Server
 ```bash
-npm run dev
+pnpm dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### 4. Run Transcoding Worker (Optional for background video transcoding)
 In a separate terminal, launch the background transcode worker:
 ```bash
-npm run worker
+pnpm run worker
 ```
 
 ---
@@ -192,8 +192,8 @@ npm run worker
 
 ### Build Next.js Application
 ```bash
-npm run build
-npm start
+pnpm run build
+pnpm start
 ```
 
 ### Docker Deployment

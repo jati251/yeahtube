@@ -12,8 +12,8 @@ RUN apk add --no-cache python3 make g++ ffmpeg
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --ignore-scripts && npm rebuild sharp && npm cache clean --force
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1

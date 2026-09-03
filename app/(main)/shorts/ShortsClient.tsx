@@ -1,17 +1,29 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { ReelsFeed } from "@/components/media/ReelsFeed";
-import { PostItem, ShortsClientProps } from "@/types";
+import { ShortsClientProps } from "@/types";
 import { fetchRandomShorts } from "@/services/queries";
 import { useRouter } from "next/navigation";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useShortsStore } from "@/stores/shortsStore";
 
 export function ShortsClient({ initialPosts }: ShortsClientProps) {
   const router = useRouter();
-  const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const seenIdsRef = useRef<Set<number>>(new Set(initialPosts.map((p) => p.id)));
+
+  // Initialize store on mount if not yet initialized
+  useEffect(() => {
+    useShortsStore.getState().initShorts(initialPosts);
+  }, [initialPosts]);
+
+  const storePosts = useShortsStore((s) => s.posts);
+  const activeIndex = useShortsStore((s) => s.activeIndex);
+  const setActiveIndex = useShortsStore((s) => s.setActiveIndex);
+  const appendPosts = useShortsStore((s) => s.appendPosts);
+
+  // Use store posts if initialized, otherwise fallback to server initialPosts
+  const posts = storePosts.length > 0 ? storePosts : initialPosts;
 
   // Hide global scrollbar on body when mounted
   useBodyScrollLock(true);
@@ -25,32 +37,29 @@ export function ShortsClient({ initialPosts }: ShortsClientProps) {
       const newPosts = await fetchRandomShorts(15);
 
       if (newPosts.length > 0) {
-        setPosts((prev) => {
-          // Prefer posts not seen yet; if all seen, still append to maintain infinite loop
-          const unseen = newPosts.filter((p) => !seenIdsRef.current.has(p.id));
-          const toAdd = unseen.length > 0 ? unseen : newPosts;
-
-          toAdd.forEach((p) => seenIdsRef.current.add(p.id));
-          return [...prev, ...toAdd];
-        });
+        appendPosts(newPosts);
       }
     } catch (err) {
       console.error("[Shorts] Load more error:", err);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore]);
+  }, [isLoadingMore, appendPosts]);
+
+  const handleClose = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  }, [router]);
 
   return (
-    <ReelsFeed 
-      posts={posts} 
-      onClose={() => {
-        if (typeof window !== "undefined" && window.history.length > 1) {
-          router.back();
-        } else {
-          router.push("/");
-        }
-      }} 
+    <ReelsFeed
+      posts={posts}
+      initialIndex={activeIndex}
+      onIndexChange={setActiveIndex}
+      onClose={handleClose}
       onLoadMore={loadMore}
       hasMore={true}
       isLoadingMore={isLoadingMore}

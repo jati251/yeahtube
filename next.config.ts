@@ -13,7 +13,12 @@ const nextConfig: NextConfig = {
   // prevents excessive memory usage for large file uploads.
   experimental: {
     proxyClientMaxBodySize: "2GB",
-    optimizePackageImports: ["lucide-react"],
+    optimizePackageImports: [
+      "lucide-react",
+      "@tanstack/react-query",
+      "framer-motion",
+      "@hookform/resolvers",
+    ],
   },
 
   serverExternalPackages: ["pg", "sharp"],

@@ -82,7 +82,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-    return [...staticRoutes, ...postRoutes, ...playlistRoutes];
+    // 3. Fetch public user channels
+    const publicUsers = await db
+      .select({
+        username: schema.users.username,
+        createdAt: schema.users.createdAt,
+      })
+      .from(schema.users)
+      .limit(200);
+
+    const userRoutes: MetadataRoute.Sitemap = publicUsers.map((u) => ({
+      url: `${siteUrl}/user/${u.username}`,
+      lastModified: new Date(u.createdAt),
+      changeFrequency: "weekly",
+      priority: 0.6,
+    }));
+
+    return [...staticRoutes, ...postRoutes, ...playlistRoutes, ...userRoutes];
   } catch (error) {
     console.error("Error generating dynamic sitemap:", error);
     return staticRoutes;

@@ -7,17 +7,22 @@ import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useAppStore } from "@/stores/appStore";
-import { ReelsFeedProps } from "@/types";
+import { ReelsFeedProps, PostItem } from "@/types";
 
 export function ReelsFeed({
   posts,
+  initialIndex = 0,
+  onIndexChange,
   onClose,
   onLoadMore,
   hasMore,
   isLoadingMore,
 }: ReelsFeedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [activeIndex, setActiveIndex] = useState<number>(initialIndex);
+  const isRestoringRef = useRef(initialIndex > 0);
+  const hasScrolledToInitialRef = useRef(false);
+
   const isMuted = useAppStore((s) => s.globalMuted);
   const setGlobalMuted = useAppStore((s) => s.setGlobalMuted);
   const [soundFeedback, setSoundFeedback] = useState<string | null>(null);
@@ -30,6 +35,23 @@ export function ReelsFeed({
     setSoundFeedback(next ? "Muted 🔇" : "Sound On 🔊");
     setTimeout(() => setSoundFeedback(null), 1200);
   }, [setGlobalMuted]);
+
+  // Restore scroll position on initial mount if initialIndex > 0
+  useEffect(() => {
+    if (initialIndex > 0 && !hasScrolledToInitialRef.current && containerRef.current) {
+      hasScrolledToInitialRef.current = true;
+      const targetEl = containerRef.current.querySelector(`[data-index="${initialIndex}"]`);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "instant" as ScrollBehavior });
+      }
+      const timer = setTimeout(() => {
+        isRestoringRef.current = false;
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      isRestoringRef.current = false;
+    }
+  }, [initialIndex]);
 
   // Controls auto-fade timer
   const [showControls, setShowControls] = useState(true);
@@ -72,11 +94,14 @@ export function ReelsFeed({
       observerRef.current = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
-            if (entry.isIntersecting) {
+            if (entry.isIntersecting && !isRestoringRef.current) {
               const idxAttr = entry.target.getAttribute("data-index");
               if (idxAttr !== null) {
                 const idx = Number(idxAttr);
-                if (!isNaN(idx)) setActiveIndex(idx);
+                if (!isNaN(idx)) {
+                  setActiveIndex(idx);
+                  onIndexChange?.(idx);
+                }
               }
             }
           });
@@ -88,7 +113,7 @@ export function ReelsFeed({
       );
     }
     return observerRef.current;
-  }, []);
+  }, [onIndexChange]);
 
   useEffect(() => {
     return () => observerRef.current?.disconnect();
@@ -124,9 +149,11 @@ export function ReelsFeed({
       const targetEl = container.querySelector(`[data-index="${targetIndex}"]`);
       if (targetEl) {
         targetEl.scrollIntoView({ behavior: "smooth" });
+        setActiveIndex(targetIndex);
+        onIndexChange?.(targetIndex);
       }
     },
-    [],
+    [onIndexChange],
   );
 
   useEffect(() => {
@@ -251,6 +278,19 @@ export function ReelsFeed({
         {posts.map((post, index) => {
           const isCurrentActive = activeIndex === index;
           const isNear = Math.abs(index - activeIndex) <= 1;
+          const isWindowed = Math.abs(index - activeIndex) <= 2;
+
+          // Render lightweight placeholder for items far outside active window to save memory & GPU
+          if (!isWindowed) {
+            return (
+              <ReelPlaceholder
+                key={`${post.id}-${index}`}
+                post={post}
+                index={index}
+                getObserver={getObserver}
+              />
+            );
+          }
 
           return (
             <ReelItem
@@ -281,6 +321,47 @@ export function ReelsFeed({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Lightweight placeholder for offscreen reels to optimize memory and DOM performance
+function ReelPlaceholder({
+  post,
+  index,
+  getObserver,
+}: {
+  post: PostItem;
+  index: number;
+  getObserver: () => IntersectionObserver;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = getObserver();
+    observer.observe(el);
+    return () => observer.unobserve(el);
+  }, [getObserver]);
+
+  return (
+    <div
+      ref={ref}
+      data-index={index}
+      data-post-id={post.id}
+      className="relative h-[100dvh] w-full snap-center snap-always flex items-center justify-center bg-black overflow-hidden select-none"
+      style={{ contentVisibility: "auto" }}
+    >
+      {post.thumbnailUrl && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={post.thumbnailUrl}
+          alt={post.title}
+          loading="lazy"
+          className="h-full w-full object-contain opacity-25 pointer-events-none"
+        />
+      )}
     </div>
   );
 }

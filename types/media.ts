@@ -66,6 +66,8 @@ export interface PhotoGalleryProps {
 
 export interface ReelsFeedProps {
   posts: PostItem[];
+  initialIndex?: number;
+  onIndexChange?: (index: number) => void;
   onClose: () => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
