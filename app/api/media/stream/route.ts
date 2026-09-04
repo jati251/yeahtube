@@ -76,6 +76,10 @@ export async function GET(request: NextRequest) {
   // Forward the Range header if present (for video seeking)
   const rangeHeader = request.headers.get("range") ?? undefined;
 
+  if (request.signal.aborted) {
+    return new Response(null, { status: 499 });
+  }
+
   try {
     const command = new GetObjectCommand({
       Bucket: bucket,
@@ -83,7 +87,9 @@ export async function GET(request: NextRequest) {
       Range: rangeHeader,
     });
 
-    const s3Response = await s3.send(command);
+    const s3Response = await s3.send(command, {
+      abortSignal: request.signal,
+    });
 
     // Abort if the body is unexpectedly missing
     if (!s3Response.Body) {
@@ -132,9 +138,15 @@ export async function GET(request: NextRequest) {
       headers,
     });
   } catch (error: unknown) {
-    // S3 throws NoSuchKey when the object doesn't exist
-    if (error instanceof Error && error.name === "NoSuchKey") {
-      return new Response("Object not found", { status: 404 });
+    if (error instanceof Error) {
+      // S3 throws NoSuchKey when the object doesn't exist
+      if (error.name === "NoSuchKey") {
+        return new Response("Object not found", { status: 404 });
+      }
+      // Client cancelled/aborted request (e.g. video switch, seek, tab close)
+      if (error.name === "AbortError" || request.signal.aborted) {
+        return new Response(null, { status: 499 });
+      }
     }
 
     // Re-throw unexpected errors so Next.js handles them (500)

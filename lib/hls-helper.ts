@@ -74,8 +74,11 @@ export function attachHlsOrNative(
         destroyed = true;
         video.pause();
         video.removeAttribute("src");
-        // Don't call video.load() during destroy — it triggers error events
-        // on the now-srcless element, which can cause stuck states on re-mount
+        try {
+          video.load(); // Forces the browser media engine to release hardware decoders and media buffers
+        } catch {
+          // Ignore
+        }
       },
     };
   }
@@ -187,8 +190,11 @@ export function attachHlsOrNative(
       }
       video.pause();
       video.removeAttribute("src");
-      // Don't call video.load() during destroy — it triggers error/stalled
-      // events on the now-srcless element which cause stuck states on re-mount
+      try {
+        video.load();
+      } catch {
+        // Ignore
+      }
     },
   };
 }

@@ -71,7 +71,10 @@ export const MediaCard = React.memo(function MediaCard({
     }
     if (videoRef.current) {
       videoRef.current.pause();
-      videoRef.current.currentTime = 0;
+      videoRef.current.removeAttribute("src");
+      try {
+        videoRef.current.load();
+      } catch {}
     }
   }, [activePreviewCardId, post.id, setActivePreviewCardId]);
 
@@ -95,18 +98,15 @@ export const MediaCard = React.memo(function MediaCard({
         if (post.previewUrl) stopPlaying();
       }}
     >
-      {post.previewUrl && (
+      {post.previewUrl && isPlaying && (
         <video
           ref={videoRef}
           src={post.previewUrl}
-          className={clsx(
-            "pointer-events-none absolute inset-0 z-20 h-full w-full object-contain transition-opacity duration-500",
-            isPlaying ? "opacity-100" : "opacity-0"
-          )}
+          autoPlay
+          className="pointer-events-none absolute inset-0 z-20 h-full w-full object-contain"
           muted
           loop
           playsInline
-          preload="none"
         />
       )}
       {post.thumbnailUrl ? (

@@ -165,6 +165,7 @@ export function VideoPlayer({
             const video = e.currentTarget;
             // Ignore error events on empty src (fired during destroy/cleanup)
             if (!video.src && !video.currentSrc) return;
+            if (!video.getAttribute("src")) return;
             console.error("Video error event:", e);
             setWaiting(false);
             if (hasQualityOptions && qualityOptions && onQualityChange) {

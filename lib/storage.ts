@@ -19,6 +19,7 @@
  */
 
 import { S3Client } from "@aws-sdk/client-s3";
+import http from "http";
 import https from "https";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
 
@@ -76,7 +77,13 @@ export function getS3Client(): S3Client {
       },
       forcePathStyle: config.forcePathStyle,
       requestHandler: new NodeHttpHandler({
+        httpAgent: new http.Agent({
+          keepAlive: true,
+          maxSockets: 50,
+        }),
         httpsAgent: new https.Agent({
+          keepAlive: true,
+          maxSockets: 50,
           rejectUnauthorized: false,
         }),
       }),
