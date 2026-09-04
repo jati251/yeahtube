@@ -6,7 +6,7 @@
 #   docker run -d --restart always --name yeahtube -p 5207:5207 --network jati_default yeahtube:latest
 
 # ── Stage 1: Build Next.js ─────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 RUN apk add --no-cache python3 make g++ ffmpeg
 WORKDIR /app
@@ -20,7 +20,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm run build
 
 # ── Stage 2: Production image with nginx + worker ──────
-FROM node:20-alpine
+FROM node:22-alpine
 
 RUN apk add --no-cache nginx ffmpeg curl supervisor && \
     mkdir -p /run/nginx /app /var/log/supervisor
