@@ -52,6 +52,8 @@ export interface PlayerControlsProps {
   pipSupported: boolean;
   isPipActive: boolean;
   isFullscreenActive: boolean;
+  playing?: boolean;
+  onTogglePlay?: () => void;
   onSeek: (e: MouseEvent<HTMLDivElement>) => void;
   onSeekStart: (e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => void;
   onToggleMute: () => void;

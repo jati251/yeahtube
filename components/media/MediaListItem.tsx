@@ -121,7 +121,7 @@ export const MediaListItem = React.memo(function MediaListItem({
       {selectMode ? (
         ThumbnailContent
       ) : (
-        <Link href={href} prefetch={true} className="shrink-0">
+        <Link href={href} className="shrink-0">
           {ThumbnailContent}
         </Link>
       )}
@@ -138,7 +138,7 @@ export const MediaListItem = React.memo(function MediaListItem({
               {post.title}
             </h3>
           ) : (
-            <Link href={href} prefetch={true} className="block group/title">
+            <Link href={href} className="block group/title">
               <h3
                 className="line-clamp-2 text-xs sm:text-sm font-bold tracking-tight text-zinc-900 group-hover/title:text-blue-600 dark:text-zinc-50 dark:group-hover/title:text-blue-400 leading-snug break-words transition-colors"
                 title={post.title}

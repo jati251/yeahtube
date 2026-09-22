@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
+  Play,
+  Pause,
   Volume2,
   VolumeX,
   Maximize,
@@ -29,6 +31,8 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   pipSupported,
   isPipActive,
   isFullscreenActive,
+  playing,
+  onTogglePlay,
   onSeek,
   onSeekStart,
   onToggleMute,
@@ -38,6 +42,22 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
   onToggleFullscreen,
   formatTime,
 }) => {
+  const [hoverPos, setHoverPos] = useState<number | null>(null);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+
+  const handleScrubberPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "touch" || !progressRef.current || !duration) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setHoverPos(ratio * 100);
+    setHoverTime(ratio * duration);
+  };
+
+  const handleScrubberPointerLeave = () => {
+    setHoverPos(null);
+    setHoverTime(null);
+  };
+
   return (
     <>
       {/* Mini Progress Bar when controls are hidden */}
@@ -59,12 +79,38 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
         {/* Timeline Scrubber Bar */}
         <div
           ref={progressRef}
+          role="slider"
+          aria-label="Seek slider"
+          aria-valuenow={Math.round(currentTime)}
+          aria-valuemin={0}
+          aria-valuemax={Math.round(duration)}
+          aria-valuetext={formatTime(currentTime)}
+          tabIndex={0}
           onPointerDown={onSeekStart}
+          onPointerMove={handleScrubberPointerMove}
+          onPointerLeave={handleScrubberPointerLeave}
           onClick={onSeek}
-          className="group/scrub relative mb-3 sm:mb-3.5 flex h-4 sm:h-5 w-full cursor-pointer touch-none items-center"
+          className="group/scrub relative mb-3 sm:mb-3.5 flex h-4 sm:h-5 w-full cursor-pointer touch-none items-center outline-none focus-visible:ring-1 focus-visible:ring-blue-400 rounded-sm"
         >
+          {/* Hover time tooltip */}
+          {hoverTime !== null && hoverPos !== null && duration > 0 && (
+            <div
+              className="absolute -top-7 -translate-x-1/2 pointer-events-none z-30 rounded-md bg-black/90 px-1.5 py-0.5 text-[11px] font-semibold text-white shadow-xl border border-white/15 backdrop-blur-sm"
+              style={{ left: `${hoverPos}%` }}
+            >
+              {formatTime(hoverTime)}
+            </div>
+          )}
+
           {/* Track background */}
           <div className="relative h-1 sm:h-1.5 w-full overflow-hidden rounded-full bg-white/25 transition-all group-hover/scrub:h-2">
+            {/* Hover bar indicator */}
+            {hoverPos !== null && (
+              <div
+                className="absolute top-0 bottom-0 left-0 bg-white/20 pointer-events-none transition-opacity"
+                style={{ width: `${hoverPos}%` }}
+              />
+            )}
             {/* Buffered */}
             <div
               className="absolute top-0 bottom-0 left-0 bg-white/35 transition-all duration-200"
@@ -88,11 +134,29 @@ export const PlayerControls: React.FC<PlayerControlsProps> = ({
 
         {/* Controls Row */}
         <div className="flex items-center justify-between text-white select-none">
-          {/* Left: Time indicator */}
-          <div className="flex items-center gap-2 text-xs font-medium text-white/90">
-            <span>{formatTime(currentTime)}</span>
-            <span className="text-white/40">/</span>
-            <span>{formatTime(duration)}</span>
+          {/* Left: Play/Pause button & Time indicator */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {onTogglePlay && (
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={onTogglePlay}
+                className="text-white/90 hover:text-white transition-colors cursor-pointer flex items-center justify-center p-0.5"
+                aria-label={playing ? "Pause (k)" : "Play (k)"}
+                title={playing ? "Pause (k)" : "Play (k)"}
+              >
+                {playing ? (
+                  <Pause className="h-4 w-4 sm:h-5 sm:w-5 fill-white" />
+                ) : (
+                  <Play className="h-4 w-4 sm:h-5 sm:w-5 fill-white ml-0.5" />
+                )}
+              </motion.button>
+            )}
+
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium text-white/90">
+              <span>{formatTime(currentTime)}</span>
+              <span className="text-white/40">/</span>
+              <span>{formatTime(duration)}</span>
+            </div>
           </div>
 
           {/* Right: Actions (Volume, Settings, PiP, Fullscreen) */}

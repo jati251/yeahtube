@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useCallback } from "react";
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { Film, Image as ImageIcon, Clock } from "lucide-react";
@@ -31,9 +31,18 @@ export const MediaCard = React.memo(function MediaCard({
   const [previewTriggered, setPreviewTriggered] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverIntentTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const activePreviewCardId = useAppStore((s) => s.activePreviewCardId);
   const setActivePreviewCardId = useAppStore((s) => s.setActivePreviewCardId);
+
+  // Clean up any pending timers on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverIntentTimerRef.current) clearTimeout(hoverIntentTimerRef.current);
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    };
+  }, []);
 
   // Derived state: active card is the one playing globally
   const isPlaying = activePreviewCardId === post.id;
@@ -47,7 +56,7 @@ export const MediaCard = React.memo(function MediaCard({
     }
 
     // Auto-stop after 3s on mobile
-    if (window.matchMedia("(pointer: coarse)").matches) {
+    if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
       previewTimerRef.current = setTimeout(() => {
         setPreviewTriggered(false);
@@ -62,6 +71,10 @@ export const MediaCard = React.memo(function MediaCard({
 
   const stopPlaying = useCallback(() => {
     setPreviewTriggered(false);
+    if (hoverIntentTimerRef.current) {
+      clearTimeout(hoverIntentTimerRef.current);
+      hoverIntentTimerRef.current = null;
+    }
     if (activePreviewCardId === post.id) {
       setActivePreviewCardId(null);
     }
@@ -78,15 +91,28 @@ export const MediaCard = React.memo(function MediaCard({
     }
   }, [activePreviewCardId, post.id, setActivePreviewCardId]);
 
+  const handleMouseEnter = useCallback(() => {
+    if (!post.previewUrl) return;
+    if (hoverIntentTimerRef.current) clearTimeout(hoverIntentTimerRef.current);
+    // 220ms hover intent delay prevents accidental triggers when cursor sweeps across cards
+    hoverIntentTimerRef.current = setTimeout(() => {
+      startPlaying();
+    }, 220);
+  }, [post.previewUrl, startPlaying]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverIntentTimerRef.current) {
+      clearTimeout(hoverIntentTimerRef.current);
+      hoverIntentTimerRef.current = null;
+    }
+    if (post.previewUrl) stopPlaying();
+  }, [post.previewUrl, stopPlaying]);
+
   const ThumbnailContent = (
     <div
       className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-900 rounded-t-2xl cursor-pointer"
-      onMouseEnter={() => {
-        if (post.previewUrl) startPlaying();
-      }}
-      onMouseLeave={() => {
-        if (post.previewUrl) stopPlaying();
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onTouchStart={(e) => {
         if (post.previewUrl && !previewTriggered) {
           e.stopPropagation();
@@ -209,7 +235,7 @@ export const MediaCard = React.memo(function MediaCard({
       {selectMode ? (
         ThumbnailContent
       ) : (
-        <Link href={href} prefetch={true} className="block">
+        <Link href={href} className="block">
           {ThumbnailContent}
         </Link>
       )}
@@ -233,7 +259,7 @@ export const MediaCard = React.memo(function MediaCard({
               )}
             </div>
           ) : (
-            <Link href={href} prefetch={true} className="block group/title">
+            <Link href={href} className="block group/title">
               <h3
                 className="line-clamp-2 text-xs sm:text-sm font-semibold tracking-tight text-zinc-900 group-hover/title:text-blue-600 dark:text-zinc-50 dark:group-hover/title:text-blue-400 leading-snug break-words transition-colors"
                 title={post.title}

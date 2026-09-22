@@ -30,12 +30,24 @@ export const PlayerSettingsMenu: React.FC<PlayerSettingsMenuProps> = ({
 }) => {
   const [view, setView] = useState<MenuView>("main");
 
-  if (!isOpen) return null;
-
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     setView("main");
     onClose();
-  };
+  }, [onClose]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
+
+  if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     e.stopPropagation();

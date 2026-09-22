@@ -212,7 +212,9 @@ export function VideoPlayer({
 
       {/* Tap zones overlay with Hold-for-2X and Double Tap seek */}
       <div
-        className="absolute inset-0 z-[5] cursor-pointer rounded-xl overflow-hidden select-none touch-none"
+        className={`absolute inset-0 z-[5] cursor-pointer overflow-hidden select-none touch-none ${
+          isFullscreenActive ? "rounded-none" : "rounded-xl"
+        }`}
         onClick={handleTapZone}
         onMouseDown={startHold2X}
         onMouseUp={endHold2X}
@@ -260,6 +262,8 @@ export function VideoPlayer({
         pipSupported={pipSupported}
         isPipActive={isPipActive}
         isFullscreenActive={isFullscreenActive}
+        playing={playing}
+        onTogglePlay={togglePlay}
         onSeek={handleSeek}
         onSeekStart={handleSeekStart}
         onToggleMute={toggleMute}

@@ -6,7 +6,7 @@ export default function TopProgressBar() {
   return (
     <ProgressBar
       height="3px"
-      color="#ef4444" // red-500 matching YouTube style
+      color="#3b82f6" // blue-500 matching YeahTube electric blue theme
       options={{ showSpinner: false }}
       shallowRouting
     />

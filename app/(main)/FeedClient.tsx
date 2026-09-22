@@ -46,7 +46,6 @@ export function FeedClient({
   const isPaginationDisabled = Boolean(disablePagination || disableFiltersAndPagination);
   const { addToast } = useToast();
 
-  const feedScrollY = useAppStore((s) => s.feedScrollY);
   const setFeedScrollY = useAppStore((s) => s.setFeedScrollY);
   const viewMode = useAppStore((s) => s.feedViewMode);
   const setViewMode = useAppStore((s) => s.setFeedViewMode);
@@ -113,29 +112,33 @@ export function FeedClient({
   // ---- Scroll: restore position on back-navigation ----
   const scrollRestoredRef = useRef(false);
   useEffect(() => {
-    if (!scrollRestoredRef.current && feedScrollY > 0 && posts.length > 0 && !loading) {
+    const savedY = useAppStore.getState().feedScrollY;
+    if (!scrollRestoredRef.current && savedY > 0 && posts.length > 0 && !loading) {
       scrollRestoredRef.current = true;
       const timer = setTimeout(() => {
-        window.scrollTo({ top: feedScrollY, behavior: "instant" });
+        window.scrollTo({ top: savedY, behavior: "instant" });
       }, 50);
       return () => clearTimeout(timer);
     }
-  }, [feedScrollY, posts.length, loading]);
+  }, [posts.length, loading]);
 
-  // ---- Scroll: track position ----
+  // ---- Scroll: track position (debounced to prevent re-render & storage churn) ----
   useEffect(() => {
-    let ticking = false;
+    let timeoutId: NodeJS.Timeout | null = null;
     const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          setFeedScrollY(window.scrollY);
-          ticking = false;
-        });
-        ticking = true;
-      }
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setFeedScrollY(window.scrollY);
+      }, 150);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        setFeedScrollY(window.scrollY);
+      }
+    };
   }, [setFeedScrollY]);
 
   // Sync the goToPage function to the ref so the hook can call it
