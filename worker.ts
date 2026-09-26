@@ -534,6 +534,7 @@ async function main() {
                 "-cq 28",
                 "-pix_fmt yuv420p",
                 "-movflags +faststart",
+                "-sn",
               ]);
           } else if (ENCODER === "qsv") {
             cmd
@@ -543,6 +544,7 @@ async function main() {
                 "-global_quality 25",
                 "-pix_fmt nv12",
                 "-movflags +faststart",
+                "-sn",
               ]);
           } else if (ENCODER === "videotoolbox") {
             cmd
@@ -551,6 +553,7 @@ async function main() {
                 "-q:v 60",
                 "-pix_fmt yuv420p",
                 "-movflags +faststart",
+                "-sn",
               ]);
           } else if (ENCODER === "x264") {
             cmd
@@ -560,6 +563,7 @@ async function main() {
                 "-crf 23",
                 "-pix_fmt yuv420p",
                 "-movflags +faststart",
+                "-sn",
               ]);
           } else {
             // Default SVT-AV1
@@ -571,6 +575,7 @@ async function main() {
                 "-pix_fmt yuv420p10le",
                 "-svtav1-params tune=0:fast-decode=1",
                 "-movflags +faststart",
+                "-sn",
               ]);
           }
 

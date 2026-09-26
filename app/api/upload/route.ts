@@ -35,6 +35,10 @@ const ALLOWED_VIDEO_TYPES = [
   "video/ts",
   "video/x-mpegts",
   "video/mp2p",
+  "video/x-matroska",
+  "video/mkv",
+  "video/matroska",
+  "video/avi",
 ];
 
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
@@ -146,6 +150,15 @@ export async function POST(request: NextRequest) {
         mimeType === "text/plain")
     ) {
       mimeType = "video/mp2t";
+    }
+    if (
+      filename.toLowerCase().endsWith(".mkv") &&
+      (mimeType === "application/octet-stream" ||
+        !mimeType ||
+        mimeType === "video/mkv" ||
+        mimeType === "video/matroska")
+    ) {
+      mimeType = "video/x-matroska";
     }
     const channelHeader = request.headers.get("x-post-channel");
     const channel = channelHeader === "public" ? "public" : "private";

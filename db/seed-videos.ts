@@ -25,6 +25,9 @@ const ALLOWED_VIDEO_TYPES = [
   "video/mp2t",
   "video/ts",
   "video/x-mpegts",
+  "video/x-matroska",
+  "video/mkv",
+  "video/matroska",
 ];
 
 async function generateVideoAssets(
@@ -89,6 +92,7 @@ async function generateVideoAssets(
           "-pix_fmt yuv420p10le",
           "-svtav1-params tune=0:fast-decode=1",
           "-movflags +faststart",
+          "-sn",
         ]);
 
       if (hasAudio) {
@@ -164,6 +168,7 @@ async function generateVideoAssets(
           "-crf 30",
           "-movflags +faststart",
           "-pix_fmt yuv420p",
+          "-sn",
         ])
         .output(tmpPreview)
         .on("end", () => resolve())
@@ -332,7 +337,8 @@ async function main() {
   const videoFiles = files.filter((f) => {
     const ext = path.extname(f).toLowerCase();
     return (
-      [".mp4", ".webm", ".mov", ".avi", ".ts"].includes(ext) &&
+      [".mp4", ".webm", ".mov", ".avi", ".ts", ".mkv"].includes(ext) &&
+      !f.startsWith(".") &&
       !f.endsWith(".part")
     );
   });
@@ -421,6 +427,7 @@ async function main() {
       if (ext === ".mov") mimeType = "video/quicktime";
       if (ext === ".avi") mimeType = "video/x-msvideo";
       if (ext === ".ts") mimeType = "video/mp2t";
+      if (ext === ".mkv") mimeType = "video/x-matroska";
 
       const storageId = uuidv4();
       const thumbnailFilename = `${storageId}_thumb.webp`;

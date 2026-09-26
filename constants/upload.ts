@@ -5,6 +5,8 @@ export const SUPPORTED_VIDEO_MIME_TYPES = [
   "video/webm",
   "video/quicktime",
   "video/x-matroska",
+  "video/mkv",
+  "video/matroska",
   "video/avi",
 ] as const;
 

@@ -14,6 +14,10 @@ const MAGIC_BYTES: Record<string, string[]> = {
   "video/quicktime": ["0000001c66747970", "0000002066747970"], // ftyp (similar to mp4)
   "video/x-msvideo": ["52494646"], // RIFF....AVI
   "video/webm": ["1a45dfa3"],
+  "video/x-matroska": ["1a45dfa3"],
+  "video/mkv": ["1a45dfa3"],
+  "video/matroska": ["1a45dfa3"],
+  "application/x-matroska": ["1a45dfa3"],
   "video/mp2t": ["47"], // 0x47 sync byte for MPEG-TS
   "video/ts": ["47"],
   "video/x-mpegts": ["47"],
@@ -29,8 +33,16 @@ const EXTENSION_MIME_MAP: Record<string, string[]> = {
   ".avif": ["image/avif"],
   ".mp4": ["video/mp4"],
   ".mov": ["video/quicktime"],
-  ".avi": ["video/x-msvideo"],
+  ".avi": ["video/x-msvideo", "video/avi"],
   ".webm": ["video/webm"],
+  ".mkv": [
+    "video/x-matroska",
+    "video/mkv",
+    "video/matroska",
+    "application/x-matroska",
+    "video/webm",
+    "application/octet-stream",
+  ],
   ".ts": [
     "video/mp2t",
     "video/ts",

@@ -136,6 +136,15 @@ export function useUploadPipeline({
         ) {
           fileType = "video/mp2t";
         }
+        if (
+          file.name.toLowerCase().endsWith(".mkv") &&
+          (fileType === "application/octet-stream" ||
+            !fileType ||
+            fileType === "video/mkv" ||
+            fileType === "video/matroska")
+        ) {
+          fileType = "video/x-matroska";
+        }
 
         xhr.setRequestHeader("x-file-name", encodeURIComponent(file.name));
         xhr.setRequestHeader("x-file-type", fileType);
