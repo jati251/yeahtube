@@ -27,7 +27,7 @@ export const MediaListItem = React.memo(function MediaListItem({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const ThumbnailContent = (
-    <div className="relative aspect-video w-28 sm:w-48 shrink-0 overflow-hidden rounded-md bg-[#10100f] cursor-pointer group/thumb">
+    <div className="relative aspect-video w-28 sm:w-48 shrink-0 overflow-hidden rounded-md bg-[#05080e] cursor-pointer group/thumb">
       {post.thumbnailUrl ? (
         <>
           <NextImage

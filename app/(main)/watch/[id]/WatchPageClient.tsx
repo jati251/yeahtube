@@ -8,7 +8,7 @@ import {
   BookmarkPlus,
   Eye,
   Clock,
-  Sparkles,
+  Folder,
   Info,
   ChevronDown,
   ChevronUp,
@@ -140,9 +140,9 @@ export function WatchPageClient({
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="sticky top-16 z-30 -mx-4 sm:mx-0 bg-black lg:static lg:bg-transparent lg:col-span-8 lg:col-start-1 lg:row-start-1">
+    <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-6 lg:grid-cols-12 xl:gap-x-10">
+        <div className="sticky top-[132px] z-30 -mx-4 sm:top-[76px] sm:mx-0 lg:static lg:col-span-8 lg:col-start-1 lg:row-start-1">
           <VideoPlayer
             key={post.id}
             src={currentVideo.streamUrl}
@@ -173,12 +173,12 @@ export function WatchPageClient({
                     href={`/user/${postData.author.username}`}
                     className="flex items-center gap-3 group/owner"
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-md">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-accent-soft text-sm font-semibold text-accent">
                       {postData.author.username.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-zinc-900 group-hover/owner:text-blue-600 dark:text-zinc-50 dark:group-hover/owner:text-blue-400 text-sm sm:text-base">
+                        <span className="font-semibold text-foreground group-hover/owner:text-accent text-sm sm:text-base">
                           @{postData.author.username}
                         </span>
                         {postData.channel && (
@@ -213,7 +213,7 @@ export function WatchPageClient({
                 <motion.button
                   whileTap={{ scale: 0.94 }}
                   onClick={requireAuth(() => setShowSaveModal(true))}
-                  className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer shadow-sm"
+                  className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-accent-soft"
                 >
                   <BookmarkPlus className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                   Save
@@ -223,7 +223,7 @@ export function WatchPageClient({
                   <motion.button
                     whileTap={{ scale: 0.94 }}
                     onClick={() => setShowEditModal(true)}
-                    className="flex items-center gap-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/50 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer shadow-sm"
+                    className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-accent-soft"
                   >
                     <Pencil className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                     Edit
@@ -233,7 +233,7 @@ export function WatchPageClient({
             </div>
 
             {/* Rich Video Description & Metadata Box */}
-            <div className="mt-4 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-4.5 dark:border-zinc-800/80 dark:bg-zinc-900/60 shadow-sm">
+            <div className="mt-4 rounded-xl border border-line bg-surface p-5">
               {/* Metadata Highlights Bar */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 pb-3 border-b border-zinc-200/60 dark:border-zinc-800/60">
                 {/* Views */}
@@ -251,9 +251,9 @@ export function WatchPageClient({
                 {postData.category && (
                   <Link
                     href={`/?category=${postData.category.slug}`}
-                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-600 hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-400 dark:hover:bg-blue-900/80 border border-blue-200/60 dark:border-blue-800/60 transition-colors"
+                    className="inline-flex min-h-8 items-center gap-1.5 rounded-md bg-accent-soft px-2.5 text-xs font-medium text-accent transition-opacity hover:opacity-80"
                   >
-                    <Sparkles className="h-3 w-3" />
+                    <Folder className="h-3 w-3" />
                     <span>{postData.category.name}</span>
                   </Link>
                 )}
@@ -315,7 +315,7 @@ export function WatchPageClient({
                     <Link
                       key={tag.id}
                       href={`/?tags=${tag.slug}`}
-                      className="rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-medium text-zinc-650 hover:bg-zinc-200 dark:bg-zinc-800/90 dark:text-zinc-400 dark:hover:bg-zinc-750 border border-zinc-200/60 dark:border-zinc-700/60 transition-colors"
+                      className="inline-flex min-h-9 items-center rounded-md border border-line bg-background px-2.5 text-xs font-medium text-muted transition-colors hover:text-foreground hover:border-muted"
                     >
                       #{tag.name}
                     </Link>
@@ -384,7 +384,7 @@ export function WatchPageClient({
 
         <div className="space-y-4 lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-            Recommendations
+            Up next
           </h2>
           <div className="flex flex-col gap-2.5 sm:gap-3">
             {recs.length > 0 ? (

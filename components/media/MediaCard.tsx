@@ -109,7 +109,7 @@ export const MediaCard = React.memo(function MediaCard({
 
   const ThumbnailContent = (
     <div
-      className="relative aspect-video w-full overflow-hidden rounded-lg bg-[#10100f] cursor-pointer"
+      className="relative aspect-video w-full overflow-hidden rounded-lg bg-[#05080e] cursor-pointer"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onTouchStart={(e) => {

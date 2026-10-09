@@ -50,7 +50,7 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
     >
       <Link href={`/playlists/${playlist.id}`} className="block">
         {/* 5-Cover Dynamic Collage Card */}
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-[#10100f]">
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-[#05080e]">
           <PlaylistCoverCollage
             thumbnails={playlist.sampleThumbnails || []}
             totalCount={totalItems}

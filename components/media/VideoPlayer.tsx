@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import { getQualityLabel, formatDuration } from "@/utils";
 import { PlayerOverlays } from "./player/PlayerOverlays";
 import { PlayerControls } from "./player/PlayerControls";
 import { PlayerSettingsMenu } from "./player/PlayerSettingsMenu";
+import { PlayerAmbient } from "./player/PlayerAmbient";
 import { usePlayerFullscreen } from "@/hooks/player/usePlayerFullscreen";
 import { usePlayerScrub } from "@/hooks/player/usePlayerScrub";
 import { usePlayerShortcuts } from "@/hooks/player/usePlayerShortcuts";
@@ -25,7 +27,10 @@ export function VideoPlayer({
   onQualityChange,
   onViewThresholdReached,
   viewThresholdSeconds,
+  ambientLighting = true,
 }: VideoPlayerProps) {
+  const [ambientEnabled, setAmbientEnabled] = useState(true);
+  const reducedMotion = useReducedMotion();
   const quality = getQualityLabel(width, height);
   const currentQualityLabel = quality?.label ?? (height ? "SD" : "Auto");
   const hasQualityOptions = Boolean(qualityOptions && qualityOptions.length > 1);
@@ -140,7 +145,7 @@ export function VideoPlayer({
   return (
     <div
       ref={containerRef}
-      className={`group relative bg-black select-none touch-none ${
+      className={`group relative isolate bg-black select-none touch-none ${
         isFullscreenActive
           ? "!fixed !inset-0 !z-[99999] !h-screen !h-[100dvh] !w-screen !w-[100dvw] !rounded-none !aspect-auto"
           : "aspect-video rounded-xl"
@@ -155,7 +160,8 @@ export function VideoPlayer({
         if (e.pointerType === "mouse" && playing) setShowControls(false);
       }}
     >
-      <div className={`absolute inset-0 overflow-hidden ${isFullscreenActive ? "rounded-none" : "rounded-xl"}`}>
+      {ambientLighting && <PlayerAmbient videoRef={videoRef} src={src} active={ambientEnabled && playing && !isFullscreenActive && !isPipActive && !reducedMotion} />}
+      <div className={`absolute inset-0 overflow-hidden bg-black ${isFullscreenActive ? "rounded-none" : "rounded-xl"}`}>
         <video
           ref={videoRef}
           className="h-full w-full object-contain pointer-events-none"
@@ -276,6 +282,9 @@ export function VideoPlayer({
 
       {/* Responsive Settings Menu (Desktop Popover & Mobile Bottom Sheet) */}
       <PlayerSettingsMenu
+        ambientEnabled={ambientEnabled && !reducedMotion}
+        ambientReducedMotion={Boolean(reducedMotion)}
+        onToggleAmbient={ambientLighting ? () => setAmbientEnabled((enabled) => !enabled) : undefined}
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         currentQualityLabel={currentQualityLabel}

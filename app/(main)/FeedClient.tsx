@@ -225,12 +225,12 @@ export function FeedClient({
       {!isFiltersDisabled && <>
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4 sm:mb-9">
           <div>
-            <span className="mb-3 block text-xs font-medium text-muted">Your media archive</span>
-            <h1 className="text-[clamp(2.4rem,5.5vw,4.5rem)] font-semibold leading-[1.08] tracking-[-0.065em]">The collection<span className="text-accent">.</span></h1>
-            <p className="mt-3 max-w-md text-sm text-muted">Videos, photographs, and playlists. A place for the good stuff.</p>
+            <span className="mb-2 block text-xs font-medium text-muted">Your space to watch</span>
+            <h1 className="text-[clamp(2rem,4vw,3rem)] font-semibold leading-[1.15] tracking-[-0.05em]">Ready when you are<span className="text-accent">.</span></h1>
+            <p className="mt-3 max-w-md text-sm text-muted">Your videos, photos, and playlists, together.</p>
           </div>
           <span className="pb-1 text-xs tabular-nums text-muted" role="status" aria-live="polite">
-            {loading || loadingPlaylists ? "Updating collection…" : `${(isPlaylistMode ? publicPlaylists.length : total).toLocaleString()} ${isPlaylistMode ? "playlists" : "items"}${hasFilters ? " matching your filters" : " in the archive"}`}
+            {loading || loadingPlaylists ? "Updating feed…" : `${(isPlaylistMode ? publicPlaylists.length : total).toLocaleString()} ${isPlaylistMode ? "playlists" : "items"}${hasFilters ? " matching your filters" : " to browse"}`}
           </span>
         </div>
         <LayoutGroup id="feed-media-tabs"><div role="group" aria-label="Media type" className="mb-5 flex gap-5 border-b border-line sm:gap-8">
@@ -359,7 +359,7 @@ export function FeedClient({
           </div>
 
           {!isFiltersDisabled && tags.length > 0 && !hasFilters && <div className="mt-4 flex min-w-0 items-center gap-3 border-b border-line pb-5">
-            <span className="shrink-0 text-xs text-muted">Filed under</span>
+            <span className="shrink-0 text-xs text-muted">Topics</span>
             <TagCloud tags={tags.slice(0, 10)} activeTag={activeTags[0] || null} onTagSelect={(slug) => { setActiveTags(slug ? [slug] : []); goToPage(1); }} />
           </div>}
 

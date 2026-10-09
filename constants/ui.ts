@@ -8,7 +8,7 @@ export const MODAL_SIZE_STYLES = {
 
 export const BUTTON_VARIANT_STYLES = {
   primary:
-    "bg-foreground text-background hover:opacity-90 focus:ring-accent transition-colors duration-200",
+    "bg-accent text-on-accent hover:opacity-90 focus:ring-accent transition-colors duration-200",
   secondary:
     "bg-surface border border-line text-foreground hover:border-muted focus:ring-accent transition-colors duration-200",
   ghost:

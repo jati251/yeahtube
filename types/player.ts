@@ -20,6 +20,7 @@ export interface VideoPlayerProps {
   onQualityChange?: (option: QualityOption) => void;
   onViewThresholdReached?: () => void;
   viewThresholdSeconds?: number;
+  ambientLighting?: boolean;
 }
 
 export interface PlayerOverlaysProps {
@@ -73,5 +74,7 @@ export interface PlayerSettingsMenuProps {
   playbackSpeed: number;
   onSelectQuality?: (option: QualityOption) => void;
   onSelectSpeed: (speed: number) => void;
+  ambientEnabled?: boolean;
+  onToggleAmbient?: () => void;
+  ambientReducedMotion?: boolean;
 }
-

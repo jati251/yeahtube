@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
+  SunMoon,
 } from "lucide-react";
 import { PlayerSettingsMenuProps } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,6 +28,9 @@ export const PlayerSettingsMenu: React.FC<PlayerSettingsMenuProps> = ({
   playbackSpeed,
   onSelectQuality,
   onSelectSpeed,
+  ambientEnabled,
+  onToggleAmbient,
+  ambientReducedMotion,
 }) => {
   const [view, setView] = useState<MenuView>("main");
 
@@ -138,6 +142,19 @@ export const PlayerSettingsMenu: React.FC<PlayerSettingsMenuProps> = ({
                   <ChevronRight className="h-3.5 w-3.5" />
                 </div>
               </motion.button>
+              {onToggleAmbient && <button
+                type="button"
+                role="switch"
+                aria-checked={Boolean(ambientEnabled)}
+                aria-label="Ambient lighting"
+                disabled={ambientReducedMotion}
+                title={ambientReducedMotion ? "Disabled by your reduced-motion preference" : "Match the background light to the video"}
+                onClick={onToggleAmbient}
+                className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-xs text-white/90 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="flex items-center gap-2"><SunMoon className="h-3.5 w-3.5 text-white/70" /><span>Ambient lighting{ambientReducedMotion && <span className="block text-[10px] text-white/70">Reduced motion</span>}</span></span>
+                <span aria-hidden="true" className={`flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 transition-colors ${ambientEnabled ? "bg-blue-400" : "bg-white/25"}`}><motion.span animate={{ x: ambientEnabled ? 12 : 0 }} transition={{ type: "spring", stiffness: 500, damping: 35 }} className="h-3 w-3 rounded-full bg-white" /></span>
+              </button>}
             </motion.div>
           )}
 

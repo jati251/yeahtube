@@ -3,23 +3,25 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f4f3ee;
-  --foreground: #242420;
-  --surface: #fbfaf7;
-  --muted: #66665e;
-  --line: #d7d6ce;
-  --accent: #b83c25;
-  --accent-soft: #f3e3dc;
+  --background: #f3f6fc;
+  --foreground: #142033;
+  --surface: #ffffff;
+  --muted: #52627a;
+  --line: #d3dce9;
+  --accent: #245dde;
+  --accent-soft: #e4edff;
+  --on-accent: #ffffff;
 }
 
 .dark {
-  --background: #171715;
-  --foreground: #f0efe8;
-  --surface: #20201d;
-  --muted: #aaa99f;
-  --line: #3c3c36;
-  --accent: #f18065;
-  --accent-soft: #382720;
+  --background: #090e18;
+  --foreground: #edf2fa;
+  --surface: #111927;
+  --muted: #a2afc2;
+  --line: #29364b;
+  --accent: #8bb4ff;
+  --accent-soft: #182b4b;
+  --on-accent: #091529;
   color-scheme: dark;
 }
 
@@ -31,20 +33,21 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --color-zinc-50: #faf9f5;
-  --color-zinc-100: #efeee7;
-  --color-zinc-200: #deddd4;
-  --color-zinc-300: #c5c4ba;
-  --color-zinc-400: #a3a299;
-  --color-zinc-500: #74746b;
-  --color-zinc-600: #5b5b53;
-  --color-zinc-700: #45453e;
-  --color-zinc-800: #33332e;
-  --color-zinc-900: #242420;
-  --color-zinc-950: #171715;
+  --color-zinc-50: #f8faff;
+  --color-zinc-100: #edf2fa;
+  --color-zinc-200: #d3dce9;
+  --color-zinc-300: #bac8dc;
+  --color-zinc-400: #9daec5;
+  --color-zinc-500: #71839f;
+  --color-zinc-600: #52627a;
+  --color-zinc-700: #384760;
+  --color-zinc-800: #243148;
+  --color-zinc-900: #142033;
+  --color-zinc-950: #090e18;
   --animate-fade-in: fade-in 0.2s ease-out;
   --animate-slide-up: slide-up 0.25s ease-out;
   --animate-slide-in: slide-in 0.25s ease-out;
@@ -62,7 +65,7 @@ body {
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
-::selection { background: var(--accent); color: var(--background); }
+::selection { background: var(--accent); color: var(--on-accent); }
 button, [type="button"], [type="reset"], [type="submit"], [role="button"], select, summary { cursor: pointer; }
 button:disabled, [aria-disabled="true"], select:disabled { cursor: not-allowed; }
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
@@ -75,6 +78,23 @@ h1 { font-size: clamp(1.75rem, 3vw, 2.5rem); }
 h2 { font-size: clamp(1.25rem, 2vw, 1.75rem); }
 h3 { font-size: 1rem; }
 p { line-height: 1.6; }
+
+.player-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  filter: blur(clamp(28px, 5vw, 72px)) saturate(1.35);
+  transition: opacity 700ms ease;
+}
+.player-ambient[data-active="true"] { opacity: 0.28; }
+.dark .player-ambient[data-active="true"] { opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) {
+  .player-ambient { display: none; }
+}
 
 @layer utilities {
   .glass-header { background: var(--background); border-bottom: 1px solid var(--line); }

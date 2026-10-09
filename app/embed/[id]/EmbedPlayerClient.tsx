@@ -41,6 +41,7 @@ export function EmbedPlayerClient({ post, videos }: EmbedPlayerClientProps) {
     <div className="relative w-screen h-screen bg-black flex items-center justify-center overflow-hidden select-none">
       <div className="w-full h-full flex items-center justify-center">
         <VideoPlayer
+          ambientLighting={false}
           key={currentVideo?.id || post.id}
           src={currentVideo?.streamUrl || ""}
           title={post.title}
