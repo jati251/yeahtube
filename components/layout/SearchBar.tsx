@@ -117,12 +117,12 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
       className={
         isMobile
           ? "block px-4 pb-3 sm:hidden"
-          : "hidden flex-1 max-w-lg mx-auto sm:block"
+          : "hidden min-w-0 flex-1 max-w-sm ml-auto sm:block"
       }
     >
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-          <Search className="h-4 w-4 text-zinc-400" />
+          <Search className="h-4 w-4 text-muted" />
         </div>
         <input
           type="text"
@@ -140,6 +140,7 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
           }}
           onKeyDown={handleKeyDown}
           role="combobox"
+          aria-label="Search media"
           aria-expanded={showDropdown && searchResults.length > 0}
           aria-autocomplete="list"
           aria-controls={listboxId}
@@ -147,7 +148,7 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
             selectedIndex >= 0 ? `${listboxId}-item-${selectedIndex}` : undefined
           }
           placeholder="Search media..."
-          className="w-full rounded-full border border-zinc-200/60 bg-zinc-50/50 py-2.5 pl-10 pr-9 text-sm focus:border-zinc-300 focus:outline-none focus:ring-4 focus:ring-zinc-100 dark:border-zinc-800/60 dark:bg-zinc-900/50 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-700 dark:focus:ring-zinc-800 transition-all"
+          className="min-h-11 w-full rounded-md border border-line bg-surface py-2.5 pl-10 pr-11 text-[13px] text-foreground placeholder:text-muted focus:border-muted transition-colors"
         />
 
         {/* Clear Button (X) */}
@@ -155,7 +156,7 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
           <button
             type="button"
             onClick={handleClear}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted hover:text-foreground transition-colors"
             aria-label="Clear search"
           >
             <X className="h-4 w-4" />
@@ -226,4 +227,3 @@ export function SearchBar({ isMobile = false }: SearchBarProps) {
     </form>
   );
 }
-

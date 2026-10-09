@@ -7,7 +7,7 @@ import { clsx } from "clsx";
 import { useAppStore } from "@/stores/appStore";
 import { MOBILE_BOTTOM_NAV_ITEMS } from "@/constants";
 
-import { motion } from "framer-motion";
+import { motion, LayoutGroup } from "framer-motion";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -15,8 +15,8 @@ export function MobileNav() {
   const currentType = searchParams.get("type");
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200/50 bg-white/90 dark:border-zinc-800/50 dark:bg-zinc-950/90 backdrop-blur-xl lg:hidden transition-colors duration-300">
-      <div className="flex h-16 items-center justify-around">
+    <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-background pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <LayoutGroup id="mobile-navigation"><div className="flex h-16 items-center justify-around">
         {MOBILE_BOTTOM_NAV_ITEMS.map((item) => {
           const isPlaylistsFeed = item.href === "/?type=playlist";
           const isActive = isPlaylistsFeed
@@ -41,19 +41,21 @@ export function MobileNav() {
                   }
                 }}
                 className={clsx(
-                  "flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors",
+                  "relative flex min-h-11 flex-col items-center gap-1 px-3 py-2 text-[10px] font-medium transition-colors",
                   isActive
                     ? "text-zinc-900 dark:text-zinc-50 font-semibold"
                     : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300",
                 )}
+                aria-current={isActive ? "page" : undefined}
               >
+                {isActive && <motion.span layoutId="active-mobile-navigation" className="absolute -top-1 inset-x-3 h-0.5 bg-accent" />}
                 <Icon className="h-5 w-5" />
                 {item.label}
               </Link>
             </motion.div>
           );
         })}
-      </div>
+      </div></LayoutGroup>
     </nav>
   );
 }

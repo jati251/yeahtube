@@ -19,6 +19,7 @@ import { BulkAdminBar } from "@/components/feed/BulkAdminBar";
 import { PlaylistCard } from "@/components/media/PlaylistCard";
 import { usePublicPlaylistsQuery } from "@/services/queries";
 import type { EditablePost } from "@/types";
+import { LayoutGroup, motion } from "framer-motion";
 
 const EditPostModal = dynamic(
   () => import("@/components/media/EditPostModal").then((m) => m.EditPostModal),
@@ -84,7 +85,7 @@ export function FeedClient({
     return initialPage;
   });
 
-  const { posts, setPosts, loading, page, total, totalPages, goToPage } =
+  const { posts, setPosts, loading, page, total, totalPages, goToPage, isError, refetch } =
     usePaginatedPosts({
       initialPosts,
       initialTotal,
@@ -102,7 +103,7 @@ export function FeedClient({
     });
 
   const isPlaylistMode = activeMediaType === "playlist";
-  const { data: publicPlaylistsData, isLoading: loadingPlaylists } = usePublicPlaylistsQuery({
+  const { data: publicPlaylistsData, isLoading: loadingPlaylists, isError: playlistsError, refetch: refetchPlaylists } = usePublicPlaylistsQuery({
     q: activeSearchQuery || "",
     sort: activeSort === "views" ? "popular" : "recent",
     enabled: isPlaylistMode,
@@ -220,7 +221,31 @@ export function FeedClient({
   } = usePostSelection(posts, setPosts, addToast);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-[1440px] px-4 py-7 sm:px-6 sm:py-10 lg:px-10">
+      {!isFiltersDisabled && <>
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-4 sm:mb-9">
+          <div>
+            <span className="mb-3 block text-xs font-medium text-muted">Your media archive</span>
+            <h1 className="text-[clamp(2.4rem,5.5vw,4.5rem)] font-semibold leading-[1.08] tracking-[-0.065em]">The collection<span className="text-accent">.</span></h1>
+            <p className="mt-3 max-w-md text-sm text-muted">Videos, photographs, and playlists. A place for the good stuff.</p>
+          </div>
+          <span className="pb-1 text-xs tabular-nums text-muted" role="status" aria-live="polite">
+            {loading || loadingPlaylists ? "Updating collection…" : `${(isPlaylistMode ? publicPlaylists.length : total).toLocaleString()} ${isPlaylistMode ? "playlists" : "items"}${hasFilters ? " matching your filters" : " in the archive"}`}
+          </span>
+        </div>
+        <LayoutGroup id="feed-media-tabs"><div role="group" aria-label="Media type" className="mb-5 flex gap-5 border-b border-line sm:gap-8">
+          {[{ value: null, label: "Everything" }, { value: "video", label: "Videos" }, { value: "image", label: "Photos" }, { value: "playlist", label: "Playlists" }].map((item) => <button
+            key={item.label}
+            type="button"
+            aria-pressed={activeMediaType === item.value}
+            onClick={() => { setActiveMediaType(item.value); goToPage(1); }}
+            className={`relative min-h-12 pb-3 pt-2 text-[13px] font-medium transition-colors ${activeMediaType === item.value ? "text-foreground" : "text-muted hover:text-foreground"}`}
+          >
+            {item.label}
+            {activeMediaType === item.value && <motion.span layoutId="media-type" className="absolute bottom-[-1px] inset-x-0 h-0.5 bg-accent" transition={{ type: "spring", stiffness: 450, damping: 35 }} />}
+          </button>)}
+        </div></LayoutGroup>
+      </>}
       {!isFiltersDisabled && (
         <ActiveFilters
           mediaType={activeMediaType}
@@ -250,19 +275,7 @@ export function FeedClient({
         />
       )}
 
-      {!isFiltersDisabled && tags.length > 0 && !hasFilters && (
-        <TagCloud
-          tags={tags}
-          activeTag={activeTags[0] || null}
-          onTagSelect={(slug) => {
-            if (!slug) setActiveTags([]);
-            else setActiveTags([slug]);
-            goToPage(1);
-          }}
-        />
-      )}
-
-      <div className="mt-6 space-y-4">
+      <div className="space-y-4">
         {!isFiltersDisabled && (
           <MobileFilters
             isOpen={mobileFiltersOpen}
@@ -345,12 +358,21 @@ export function FeedClient({
             </div>
           </div>
 
-          <div className="mt-5">
-            {isPlaylistMode ? (
+          {!isFiltersDisabled && tags.length > 0 && !hasFilters && <div className="mt-4 flex min-w-0 items-center gap-3 border-b border-line pb-5">
+            <span className="shrink-0 text-xs text-muted">Filed under</span>
+            <TagCloud tags={tags.slice(0, 10)} activeTag={activeTags[0] || null} onTagSelect={(slug) => { setActiveTags(slug ? [slug] : []); goToPage(1); }} />
+          </div>}
+
+          <div className="mt-6">
+            {(isPlaylistMode ? playlistsError : isError) ? <div role="alert" className="rounded-lg border border-line bg-surface p-8 text-center">
+              <h2 className="text-lg">The collection couldn’t load.</h2>
+              <p className="mt-2 text-sm text-muted">Check your connection and try again.</p>
+              <button type="button" onClick={() => isPlaylistMode ? refetchPlaylists() : refetch()} className="mt-4 min-h-11 rounded-md bg-foreground px-5 text-sm text-background">Try again</button>
+            </div> : isPlaylistMode ? (
               loadingPlaylists ? (
-                <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 animate-pulse">
+                <div role="status" aria-label="Loading playlists" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-pulse">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="aspect-[4/3] rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
+                    <div key={i} className="aspect-video rounded-lg bg-line" />
                   ))}
                 </div>
               ) : publicPlaylists.length === 0 ? (
@@ -369,7 +391,7 @@ export function FeedClient({
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 animate-slide-up">
+                <div className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-fade-in">
                   {publicPlaylists.map((playlist) => (
                     <PlaylistCard key={playlist.id} playlist={playlist} />
                   ))}

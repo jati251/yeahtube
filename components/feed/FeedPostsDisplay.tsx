@@ -5,6 +5,7 @@ import { MediaCard } from "@/components/media/MediaCard";
 import { MediaListItem } from "@/components/media/MediaListItem";
 import { MediaCardSkeleton, MediaListItemSkeleton } from "@/components/ui/Skeleton";
 import { FeedPostsDisplayProps } from "@/types";
+import { AnimatePresence, motion } from "framer-motion";
 
 export function FeedPostsDisplay({
   posts,
@@ -21,7 +22,7 @@ export function FeedPostsDisplay({
 }: FeedPostsDisplayProps) {
   if (loading && posts.length === 0) {
     return viewMode === "grid" ? (
-      <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 animate-pulse">
+      <div role="status" aria-label="Loading media" className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-pulse">
         {Array.from({ length: 8 }).map((_, i) => (
           <MediaCardSkeleton key={i} />
         ))}
@@ -37,7 +38,7 @@ export function FeedPostsDisplay({
 
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 py-16 text-center dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20">
+      <div className="flex flex-col items-center justify-center border-y border-line px-4 py-16 text-center">
         <p className="text-base font-semibold text-zinc-700 dark:text-zinc-300">
           No media found
         </p>
@@ -47,7 +48,7 @@ export function FeedPostsDisplay({
         {onClearFilters && (
           <button
             onClick={onClearFilters}
-            className="mt-4 rounded-full bg-zinc-900 px-5 py-2 text-xs font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-md transition-all cursor-pointer"
+            className="mt-4 min-h-11 rounded-md bg-foreground px-5 py-2 text-sm text-background hover:opacity-90"
           >
             Clear Filters
           </button>
@@ -58,12 +59,13 @@ export function FeedPostsDisplay({
 
   return (
     <div
+      aria-busy={loading}
       className={`transition-all duration-300 ease-out ${
         loading ? "opacity-50 pointer-events-none scale-[0.998]" : "opacity-100 scale-100"
       }`}
     >
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 animate-slide-up">
+      <AnimatePresence mode="wait" initial={false}>{viewMode === "grid" ? (
+        <motion.div key="grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {posts.map((post, index) => (
             <MediaCard
               key={post.id}
@@ -78,9 +80,9 @@ export function FeedPostsDisplay({
               priority={index < 4}
             />
           ))}
-        </div>
+        </motion.div>
       ) : (
-        <div className="space-y-3 animate-slide-up">
+        <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }} className="space-y-0">
           {posts.map((post) => (
             <MediaListItem
               key={post.id}
@@ -94,8 +96,8 @@ export function FeedPostsDisplay({
               deleting={deletingId === post.id}
             />
           ))}
-        </div>
-      )}
+        </motion.div>
+      )}</AnimatePresence>
     </div>
   );
 }

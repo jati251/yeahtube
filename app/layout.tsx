@@ -1,17 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, Manrope, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { PwaProvider } from "@/components/providers/PwaProvider";
 import TopProgressBar from "@/components/ui/TopProgressBar";
+import { MotionProvider } from "@/components/providers/MotionProvider";
 import { SITE_URL } from "@/constants";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
+
+const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"] });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -22,8 +25,8 @@ const siteUrl = SITE_URL;
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#171715" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f3ee" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -146,7 +149,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${dmSans.variable} ${manrope.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -157,10 +160,10 @@ export default function RootLayout({
         <QueryProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
             <PwaProvider>
-              <ToastProvider>
+              <MotionProvider><ToastProvider>
                 {children}
                 <TopProgressBar />
-              </ToastProvider>
+              </ToastProvider></MotionProvider>
             </PwaProvider>
           </ThemeProvider>
         </QueryProvider>

@@ -29,7 +29,7 @@ export default function MainLayoutError({
 
       <button
         onClick={() => reset()}
-        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-md transition-colors hover:bg-blue-500 cursor-pointer"
+        className="inline-flex min-h-11 items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
       >
         <RefreshCw className="h-4 w-4" />
         Try again

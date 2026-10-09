@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Upload, LogOut, LogIn, Video, Globe, Lock, Shield, Settings } from "lucide-react";
@@ -14,6 +14,13 @@ import { motion, AnimatePresence } from "framer-motion";
 export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setUserMenuOpen(false); menuTrigger.current?.focus(); } };
+    document.addEventListener("keydown", escape);
+    return () => document.removeEventListener("keydown", escape);
+  }, [userMenuOpen]);
   const logoutMutation = useLogoutMutation();
   const showPublicPosts = useAppStore((s) => s.showPublicPosts);
   const setShowPublicPosts = useAppStore((s) => s.setShowPublicPosts);
@@ -32,7 +39,7 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
 
   if (!username) {
     return (
-      <div className="ml-auto flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <ThemeToggle />
         <Link href="/login">
           <Button
@@ -49,7 +56,7 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
   }
 
   return (
-    <div className="ml-auto flex items-center gap-2">
+    <div className="flex shrink-0 items-center gap-1 sm:gap-2">
       <ThemeToggle />
 
       {/* Upload button */}
@@ -69,11 +76,14 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
       {/* User menu */}
       <div className="relative">
         <motion.button
+          ref={menuTrigger}
+          aria-label="Account menu"
+          aria-expanded={userMenuOpen}
           whileTap={{ scale: 0.92 }}
           onClick={() => setUserMenuOpen(!userMenuOpen)}
-          className="flex items-center gap-2 rounded-xl p-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+          className="flex min-h-11 items-center gap-2 rounded-md p-2 text-sm font-medium text-foreground hover:bg-surface transition-colors"
         >
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white shadow-sm">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-line text-xs font-semibold text-foreground">
             {username.charAt(0).toUpperCase()}
           </div>
           <span className="hidden md:inline font-semibold">{username}</span>
@@ -91,7 +101,7 @@ export function UserNav({ username, isAdmin, onOpenUpload }: UserNavProps) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -6 }}
                 transition={{ type: "spring", damping: 25, stiffness: 350 }}
-                className="absolute right-0 z-20 mt-1.5 w-56 rounded-2xl border border-zinc-200/90 bg-white p-1.5 shadow-xl dark:border-zinc-800/90 dark:bg-[#141417]"
+                className="absolute right-0 z-20 mt-1.5 w-56 rounded-lg border border-line bg-surface p-1.5 shadow-lg"
               >
                 {/* Header */}
                 <div className="px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/80 mb-1">

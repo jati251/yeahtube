@@ -1,22 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import {
-  Tag,
-  X,
-  ChevronDown,
-  Check,
-  Film,
-  Image as ImageIcon,
-  ListVideo,
-  Sparkles,
-  Calendar,
-  Layers,
-  ArrowUpDown,
-} from "lucide-react";
+import { Tag, X, ChevronDown, Check } from "lucide-react";
 import { SORT_OPTIONS } from "@/lib/constants";
 import { TagItem } from "@/types";
-import { clsx } from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface FeedFilterBarProps {
@@ -35,351 +22,54 @@ interface FeedFilterBarProps {
   onClearAll: () => void;
 }
 
-export function FeedFilterBar({
-  mediaType,
-  onMediaTypeChange,
-  category,
-  categories,
-  onCategoryChange,
-  year,
-  onYearChange,
-  selectedTags,
-  tags,
-  onTagToggle,
-  sort,
-  onSortChange,
-  onClearAll,
-}: FeedFilterBarProps) {
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [dropdownAlign, setDropdownAlign] = useState<"left" | "right">("left");
-  const [tagSearch, setTagSearch] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
+const selectClass = "min-h-11 max-w-full rounded-md border border-line bg-background px-3 pr-7 text-xs font-medium text-foreground hover:border-muted transition-colors";
 
-  const toggleDropdown = (name: string, e: React.MouseEvent<HTMLButtonElement>) => {
-    if (openDropdown === name) {
-      setOpenDropdown(null);
-    } else {
-      const rect = e.currentTarget.getBoundingClientRect();
-      setDropdownAlign(rect.left + rect.width / 2 > window.innerWidth / 2 ? "right" : "left");
-      setOpenDropdown(name);
-    }
-  };
+export function FeedFilterBar({ mediaType, category, categories, onCategoryChange, year, onYearChange, selectedTags, tags, onTagToggle, sort, onSortChange, onClearAll }: FeedFilterBarProps) {
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
+  const tagContainer = useRef<HTMLDivElement>(null);
+  const tagTrigger = useRef<HTMLButtonElement>(null);
+  const years = useMemo(() => Array.from({ length: 8 }, (_, i) => String(new Date().getFullYear() - i)), []);
+  const filteredTags = tags.filter((tag) => tag.name.toLowerCase().includes(tagSearch.toLowerCase()));
+  const hasFilters = Boolean(mediaType || category || year || selectedTags.length || sort !== "newest");
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpenDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const years = useMemo(() => {
-    const current = new Date().getFullYear();
-    return Array.from({ length: 8 }, (_, i) => String(current - i));
-  }, []);
-
-  const hasActiveFilters = Boolean(
-    mediaType || category || year || selectedTags.length > 0 || sort !== "newest",
-  );
-
-  const selectedCategoryObj = categories.find((c) => c.slug === category);
-  const selectedSortObj = SORT_OPTIONS.find((s) => s.value === sort);
-  const filteredTags = tags.filter((t) =>
-    t.name.toLowerCase().includes(tagSearch.toLowerCase()),
-  );
+    if (!tagsOpen) return;
+    const outside = (event: PointerEvent) => { if (!tagContainer.current?.contains(event.target as Node)) setTagsOpen(false); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { setTagsOpen(false); tagTrigger.current?.focus(); } };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
+  }, [tagsOpen]);
 
   return (
-    <div ref={containerRef} className="relative flex flex-wrap items-center gap-2 py-1">
-      {/* 1. Media Type */}
-      <FilterDropdown
-        label={
-          mediaType === "video"
-            ? "Videos"
-            : mediaType === "image"
-            ? "Photos"
-            : mediaType === "playlist"
-            ? "Playlists"
-            : "All Types"
-        }
-        icon={Layers}
-        isActive={Boolean(mediaType)}
-        isOpen={openDropdown === "type"}
-        align={dropdownAlign}
-        onToggle={(e) => toggleDropdown("type", e)}
-        options={[
-          { value: null, label: "All Types", icon: Sparkles },
-          { value: "video", label: "Videos", icon: Film },
-          { value: "image", label: "Photos", icon: ImageIcon },
-          { value: "playlist", label: "Playlists", icon: ListVideo },
-        ]}
-        selectedValue={mediaType}
-        onSelect={(val) => {
-          onMediaTypeChange(val);
-          setOpenDropdown(null);
-        }}
-      />
-
-      {/* 2. Category */}
-      {categories.length > 0 && (
-        <FilterDropdown
-          label={selectedCategoryObj ? selectedCategoryObj.name : "Categories"}
-          icon={Sparkles}
-          isActive={Boolean(category)}
-          isOpen={openDropdown === "category"}
-          align={dropdownAlign}
-          onToggle={(e) => toggleDropdown("category", e)}
-          widthClass="w-56"
-          options={[
-            { value: null, label: "All Categories" },
-            ...categories.map((c) => ({ value: c.slug, label: c.name })),
-          ]}
-          selectedValue={category}
-          onSelect={(val) => {
-            onCategoryChange(val);
-            setOpenDropdown(null);
-          }}
-        />
-      )}
-
-      {/* 3. Year */}
-      <FilterDropdown
-        label={year || "Year"}
-        icon={Calendar}
-        isActive={Boolean(year)}
-        isOpen={openDropdown === "year"}
-        align={dropdownAlign}
-        onToggle={(e) => toggleDropdown("year", e)}
-        widthClass="w-44"
-        options={[
-          { value: null, label: "All Years" },
-          ...years.map((y) => ({ value: y, label: y })),
-        ]}
-        selectedValue={year}
-        onSelect={(val) => {
-          onYearChange(val);
-          setOpenDropdown(null);
-        }}
-      />
-
-      {/* 4. Tags Multi-Select Popover */}
-      {tags.length > 0 && (
-        <div className="relative">
-          <motion.button
-            whileTap={{ scale: 0.94 }}
-            type="button"
-            onClick={(e) => toggleDropdown("tags", e)}
-            className={clsx(
-              "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none",
-              selectedTags.length > 0
-                ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
-                : "bg-white/80 text-zinc-700 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-800",
-            )}
-          >
-            <Tag className="h-3.5 w-3.5" />
-            <span>
-              {selectedTags.length === 0
-                ? "Tags"
-                : selectedTags.length === 1
-                ? `#${selectedTags[0]}`
-                : `Tags (${selectedTags.length})`}
-            </span>
-            <ChevronDown
-              className={clsx(
-                "h-3 w-3 opacity-60 transition-transform duration-200",
-                openDropdown === "tags" && "rotate-180",
-              )}
-            />
-          </motion.button>
-
-          <AnimatePresence>
-            {openDropdown === "tags" && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                transition={{ type: "spring", damping: 25, stiffness: 350 }}
-                className={clsx(
-                  "absolute top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95",
-                  dropdownAlign === "right" ? "right-0" : "left-0",
-                )}
-              >
-                <input
-                  type="text"
-                  placeholder="Search tags..."
-                  value={tagSearch}
-                  onChange={(e) => setTagSearch(e.target.value)}
-                  className="mb-2 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-900 placeholder-zinc-400 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-                  autoFocus
-                />
-
-                <div className="max-h-52 overflow-y-auto space-y-0.5 pr-1">
-                  {filteredTags.length === 0 ? (
-                    <p className="py-2 text-center text-xs text-zinc-400">No tags found</p>
-                  ) : (
-                    filteredTags.map((t) => {
-                      const isSelected = selectedTags.includes(t.slug);
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => onTagToggle(t.slug)}
-                          className={clsx(
-                            "flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors text-left cursor-pointer",
-                            isSelected
-                              ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                              : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                          )}
-                        >
-                          <span className="truncate">#{t.name}</span>
-                          {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-
-                {selectedTags.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => selectedTags.forEach((s) => onTagToggle(s))}
-                      className="text-[11px] font-semibold text-rose-500 hover:text-rose-600 cursor-pointer"
-                    >
-                      Clear tags
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* 5. Sort By */}
-      <FilterDropdown
-        label={selectedSortObj ? selectedSortObj.label : "Sort"}
-        icon={ArrowUpDown}
-        isActive={sort !== "newest"}
-        isOpen={openDropdown === "sort"}
-        align={dropdownAlign}
-        onToggle={(e) => toggleDropdown("sort", e)}
-        widthClass="w-48"
-        options={SORT_OPTIONS.map((o) => ({ value: o.value as string | null, label: o.label }))}
-        selectedValue={sort}
-        onSelect={(val) => {
-          if (val) onSortChange(val);
-          setOpenDropdown(null);
-        }}
-      />
-
-      {/* 6. Reset */}
-      {hasActiveFilters && (
-        <motion.button
-          whileTap={{ scale: 0.94 }}
-          type="button"
-          onClick={() => {
-            onClearAll();
-            setOpenDropdown(null);
-          }}
-          className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
-        >
-          <X className="h-3.5 w-3.5" />
-          <span>Reset</span>
-        </motion.button>
-      )}
-    </div>
-  );
-}
-
-interface FilterDropdownProps {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  isActive: boolean;
-  isOpen: boolean;
-  align: "left" | "right";
-  widthClass?: string;
-  onToggle: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  options: { value: string | null; label: string; icon?: React.ComponentType<{ className?: string }> }[];
-  selectedValue: string | null;
-  onSelect: (value: string | null) => void;
-}
-
-function FilterDropdown({
-  label,
-  icon: Icon,
-  isActive,
-  isOpen,
-  align,
-  widthClass = "w-48",
-  onToggle,
-  options,
-  selectedValue,
-  onSelect,
-}: FilterDropdownProps) {
-  return (
-    <div className="relative">
-      <motion.button
-        whileTap={{ scale: 0.94 }}
-        type="button"
-        onClick={onToggle}
-        className={clsx(
-          "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-sm select-none",
-          isActive
-            ? "bg-blue-50/90 text-blue-600 border-blue-500/60 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-500/60"
-            : "bg-white text-zinc-700 border-zinc-200/90 shadow-sm hover:bg-zinc-50 dark:bg-[#141417] dark:text-zinc-300 dark:border-zinc-800/90 dark:hover:bg-[#1a1a1f]",
-        )}
-      >
-        <Icon className="h-3.5 w-3.5" />
-        <span className="max-w-[130px] truncate">{label}</span>
-        <ChevronDown
-          className={clsx(
-            "h-3 w-3 opacity-60 transition-transform duration-200",
-            isOpen && "rotate-180",
-          )}
-        />
-      </motion.button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className={clsx(
-              "absolute top-full z-50 mt-2 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200/90 bg-white/98 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800/90 dark:bg-[#141417]/98 max-h-56 overflow-y-auto space-y-0.5",
-              widthClass,
-              align === "right" ? "right-0" : "left-0",
-            )}
-          >
-            {options.map((opt) => {
-              const OptionIcon = opt.icon;
-              const isSelected = selectedValue === opt.value;
-              return (
-                <button
-                  key={opt.label}
-                  type="button"
-                  onClick={() => onSelect(opt.value)}
-                  className={clsx(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-colors text-left cursor-pointer",
-                    isSelected
-                      ? "bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400 font-semibold"
-                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
-                  )}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    {OptionIcon && <OptionIcon className="h-3.5 w-3.5 opacity-70 shrink-0" />}
-                    <span className="truncate">{opt.label}</span>
-                  </div>
-                  {isSelected && <Check className="h-3.5 w-3.5 shrink-0 ml-1" />}
-                </button>
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {categories.length > 0 && <select aria-label="Filter by category" value={category || ""} onChange={(event) => onCategoryChange(event.target.value || null)} className={selectClass}>
+        <option value="">All categories</option>
+        {categories.map((item) => <option key={item.id} value={item.slug}>{item.name}</option>)}
+      </select>}
+      <select aria-label="Filter by year" value={year || ""} onChange={(event) => onYearChange(event.target.value || null)} className={selectClass}>
+        <option value="">Any year</option>
+        {years.map((item) => <option key={item} value={item}>{item}</option>)}
+      </select>
+      {tags.length > 0 && <div ref={tagContainer} className="relative">
+        <button ref={tagTrigger} type="button" aria-expanded={tagsOpen} aria-controls="feed-tag-filter" onClick={() => setTagsOpen(!tagsOpen)} className={`${selectClass} flex items-center gap-2 !pr-3 ${selectedTags.length ? "border-accent text-accent" : ""}`}>
+          <Tag className="h-3.5 w-3.5" /> Tags {selectedTags.length > 0 && <span>({selectedTags.length})</span>}<ChevronDown className={`h-3 w-3 transition-transform ${tagsOpen ? "rotate-180" : ""}`} />
+        </button>
+        <AnimatePresence>{tagsOpen && <motion.div id="feed-tag-filter" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="absolute left-0 top-full z-40 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-surface p-3 shadow-lg">
+          <input autoFocus aria-label="Search tags" placeholder="Find a tag" value={tagSearch} onChange={(event) => setTagSearch(event.target.value)} className="mb-2 min-h-11 w-full rounded-md border border-line bg-background px-3 text-sm text-foreground placeholder:text-muted" />
+          <div className="max-h-64 overflow-y-auto">
+            {filteredTags.length ? filteredTags.map((tag) => <button key={tag.id} type="button" aria-pressed={selectedTags.includes(tag.slug)} onClick={() => onTagToggle(tag.slug)} className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md px-2 text-left text-sm text-foreground hover:bg-background">
+              <span className="truncate">{tag.name}</span>{selectedTags.includes(tag.slug) && <Check className="h-4 w-4 shrink-0 text-accent" />}
+            </button>) : <p className="py-3 text-sm text-muted">No matching tags. Try another word.</p>}
+          </div>
+          <button type="button" onClick={() => { setTagsOpen(false); tagTrigger.current?.focus(); }} className="mt-2 min-h-11 w-full rounded-md bg-foreground text-sm text-background">Done</button>
+        </motion.div>}</AnimatePresence>
+      </div>}
+      <select aria-label="Sort media" value={sort} onChange={(event) => onSortChange(event.target.value)} className={selectClass}>
+        {SORT_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+      </select>
+      {hasFilters && <button type="button" onClick={onClearAll} className="flex min-h-11 items-center gap-1.5 px-2 text-xs text-muted hover:text-foreground"><X className="h-3.5 w-3.5" /> Reset</button>}
     </div>
   );
 }

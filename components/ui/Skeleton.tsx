@@ -10,22 +10,15 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function MediaCardSkeleton() {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl glass-card">
-      {/* 4:3 Thumbnail */}
-      <div className="aspect-[4/3] w-full bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
+    <div className="flex flex-col" aria-hidden="true">
+      <div className="aspect-video w-full rounded-lg bg-line animate-pulse" />
 
       {/* Card Info */}
-      <div className="p-3.5 sm:p-4 space-y-2.5">
+      <div className="pt-3 space-y-2.5">
         {/* Title (2 lines) */}
         <div className="space-y-1.5">
           <div className="h-4 w-full rounded-md bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
           <div className="h-4 w-3/4 rounded-md bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
-        </div>
-
-        {/* Description */}
-        <div className="space-y-1 pt-0.5">
-          <div className="h-3 w-5/6 rounded bg-zinc-200/60 dark:bg-zinc-800/60 animate-pulse" />
-          <div className="h-3 w-4/6 rounded bg-zinc-200/60 dark:bg-zinc-800/60 animate-pulse" />
         </div>
 
         {/* Tags */}
@@ -46,9 +39,9 @@ export function MediaCardSkeleton() {
 
 export function MediaListItemSkeleton() {
   return (
-    <div className="flex items-start gap-3 sm:gap-3.5 rounded-2xl glass-card p-2.5 sm:p-3 animate-pulse">
+    <div aria-hidden="true" className="flex items-start gap-3 sm:gap-5 border-b border-line py-4 animate-pulse">
       {/* Thumbnail */}
-      <div className="aspect-[16/10] w-32 sm:w-36 md:w-40 shrink-0 rounded-xl bg-zinc-200 dark:bg-zinc-800/80" />
+      <div className="aspect-video w-28 sm:w-48 shrink-0 rounded-md bg-line" />
 
       {/* Details */}
       <div className="flex flex-1 flex-col justify-between self-stretch gap-2 py-0.5 min-w-0">

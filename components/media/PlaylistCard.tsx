@@ -46,13 +46,11 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
 
   return (
     <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className="group relative block overflow-hidden rounded-2xl glass-card transition-all duration-300 select-none cursor-pointer"
+      className="group relative block rounded-lg select-none"
     >
       <Link href={`/playlists/${playlist.id}`} className="block">
         {/* 5-Cover Dynamic Collage Card */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-900 rounded-t-2xl">
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-[#10100f]">
           <PlaylistCoverCollage
             thumbnails={playlist.sampleThumbnails || []}
             totalCount={totalItems}
@@ -103,19 +101,19 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
         </div>
 
         {/* Info Section */}
-        <div className="p-3.5 sm:p-4">
-          <h3 className="line-clamp-2 text-xs sm:text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+        <div className="px-0.5 pt-3">
+          <h3 className="line-clamp-2 text-[15px] font-medium tracking-tight text-foreground leading-snug group-hover:underline underline-offset-4">
             {playlist.name}
           </h3>
 
-          <div className="mt-2 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted">
             {playlist.username && (
               <div className="flex items-center gap-1.5 truncate">
                 <User className="h-3.5 w-3.5 text-zinc-400" />
                 <span className="truncate">{playlist.username}</span>
               </div>
             )}
-            <span className="shrink-0 text-[11px] text-zinc-400">
+            <span className="shrink-0 text-[11px] text-muted">
               {playlist.createdAt ? new Date(playlist.createdAt).toLocaleDateString() : ""}
             </span>
           </div>

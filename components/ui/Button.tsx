@@ -17,7 +17,7 @@ export function Button({
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center rounded-xl font-medium transition-colors",
+        "inline-flex min-h-11 items-center justify-center rounded-md font-medium transition-colors",
         "focus:outline-none focus:ring-2 focus:ring-offset-2",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         BUTTON_VARIANT_STYLES[variant],

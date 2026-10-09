@@ -8,9 +8,9 @@ export const MODAL_SIZE_STYLES = {
 
 export const BUTTON_VARIANT_STYLES = {
   primary:
-    "bg-zinc-900 text-white shadow-sm hover:bg-zinc-800 focus:ring-zinc-900 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus:ring-zinc-100 transition-all duration-300",
+    "bg-foreground text-background hover:opacity-90 focus:ring-accent transition-colors duration-200",
   secondary:
-    "bg-white border border-zinc-200/60 text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 focus:ring-zinc-200 dark:bg-zinc-900/50 dark:border-zinc-700/50 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:border-zinc-600 shadow-sm transition-all duration-300",
+    "bg-surface border border-line text-foreground hover:border-muted focus:ring-accent transition-colors duration-200",
   ghost:
     "bg-transparent text-zinc-600 hover:bg-zinc-100 focus:ring-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-all duration-300",
   danger:

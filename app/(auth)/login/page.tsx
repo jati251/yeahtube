@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { YeahTubeIcon } from "@/components/ui/BrandLogo";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useLoginMutation } from "@/services/queries";
@@ -38,17 +39,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 px-4 dark:from-zinc-950 dark:to-black">
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-xl">
+          <Link href="/" aria-label="Back to YeahTube" className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-lg border border-line bg-surface">
             <YeahTubeIcon size={44} />
-          </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
-            YeahTube
+          </Link>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            Welcome back.
           </h1>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-muted">
             Sign in to your account
           </p>
         </div>
@@ -59,7 +60,7 @@ export default function LoginPage() {
           method="POST"
           action="/api/auth/login"
           onSubmit={handleSubmit}
-          className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+          className="rounded-lg border border-line bg-surface p-6 sm:p-7"
         >
           <div className="space-y-4">
             <Input
@@ -102,7 +103,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <p className="mt-4 text-center text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="mt-5 text-center text-xs text-muted">
           Only whitelisted users can access this application.
         </p>
       </div>

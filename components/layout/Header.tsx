@@ -11,7 +11,7 @@ import { UserNav } from "./UserNav";
 import { MobileDrawer } from "./MobileDrawer";
 import { HeaderUpload } from "@/components/upload/HeaderUpload";
 import { HeaderProps } from "@/types";
-import { motion } from "framer-motion";
+import { motion, LayoutGroup } from "framer-motion";
 
 export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
   const pathname = usePathname();
@@ -25,15 +25,17 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-50 glass-header">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-[76px] max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:gap-8 lg:px-10">
           {/* Mobile menu button */}
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 lg:hidden transition-colors cursor-pointer"
-            aria-label="Toggle menu"
+            className="flex h-11 items-center gap-1.5 rounded-md px-2 text-muted hover:bg-surface lg:hidden transition-colors"
+            aria-label="Open menu"
+            aria-expanded={mobileMenuOpen}
           >
             <Menu className="h-5 w-5" />
+            <span className="text-xs sm:hidden">Menu</span>
           </motion.button>
 
           {/* Logo */}
@@ -45,10 +47,25 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
                 useAppStore.getState().triggerFeedReset();
               }
             }}
-            className="flex items-center"
+            className="flex shrink-0 items-center"
+            aria-label="YeahTube home"
           >
             <BrandLogo size="md" iconOnlyOnMobile />
           </Link>
+
+          <LayoutGroup id="desktop-navigation">
+            <nav aria-label="Main navigation" className="hidden h-full items-center gap-6 xl:flex">
+              {[{ href: "/", label: "Browse" }, { href: "/shorts", label: "Shorts" }, { href: "/trending", label: "Trending" }, { href: "/playlists", label: "Library" }, { href: "/history", label: "History" }].map((item) => {
+                const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={`relative flex h-full items-center text-[13px] font-medium transition-colors ${active ? "text-foreground" : "text-muted hover:text-foreground"}`}>
+                  {item.label}
+                  {active && <motion.span layoutId="active-navigation" className="absolute inset-x-0 bottom-0 h-0.5 bg-accent" transition={{ type: "spring", stiffness: 420, damping: 35 }} />}
+                </Link>;
+              })}
+            </nav>
+          </LayoutGroup>
+
+          <button onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" aria-expanded={mobileMenuOpen} className="hidden h-11 items-center gap-2 text-sm text-muted lg:flex xl:hidden"><Menu className="h-4 w-4" /> Menu</button>
 
           {/* Search bar (Desktop) */}
           <SearchBar />

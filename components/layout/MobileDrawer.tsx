@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
@@ -17,6 +17,25 @@ export function MobileDrawer({ isOpen, onClose, isAdmin }: MobileDrawerProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentType = searchParams.get("type");
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    drawerRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key !== "Tab") return;
+      const controls = drawerRef.current?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])");
+      if (!controls?.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => { document.removeEventListener("keydown", onKeyDown); previousFocus?.focus(); };
+  }, [isOpen, onClose]);
 
   useBodyScrollLock(isOpen);
 
@@ -35,17 +54,21 @@ export function MobileDrawer({ isOpen, onClose, isAdmin }: MobileDrawerProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden touch-none"
+            className="fixed inset-0 z-50 bg-black/60 xl:hidden touch-none"
             onClick={onClose}
           />
 
           {/* Drawer Container */}
           <motion.div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
-            className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200/90 bg-white/98 p-5 shadow-2xl backdrop-blur-xl dark:border-zinc-800/90 dark:bg-[#111114]/98 lg:hidden overscroll-contain"
+            className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-line bg-background p-5 xl:hidden overscroll-contain"
           >
             <div className="mb-8 flex items-center justify-between">
               <Link

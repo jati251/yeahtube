@@ -27,24 +27,15 @@ export const MediaListItem = React.memo(function MediaListItem({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const ThumbnailContent = (
-    <div className="relative aspect-[16/10] w-32 sm:w-36 md:w-40 shrink-0 overflow-hidden rounded-xl bg-zinc-900 shadow-sm cursor-pointer group/thumb">
+    <div className="relative aspect-video w-28 sm:w-48 shrink-0 overflow-hidden rounded-md bg-[#10100f] cursor-pointer group/thumb">
       {post.thumbnailUrl ? (
         <>
-          {/* Blurred ambient background glow */}
-          <NextImage
-            src={post.thumbnailUrl}
-            alt=""
-            fill
-            sizes="160px"
-            className="absolute inset-0 z-0 h-full w-full object-cover blur-sm scale-110 opacity-30 pointer-events-none"
-          />
-          {/* Foreground crisp thumbnail */}
           <NextImage
             src={post.thumbnailUrl}
             alt={post.title}
             fill
-            sizes="160px"
-            className="relative z-10 h-full w-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
+            sizes="(max-width: 639px) 112px, 192px"
+            className="relative z-10 h-full w-full object-contain"
             loading="lazy"
             decoding="async"
           />
@@ -86,16 +77,13 @@ export const MediaListItem = React.memo(function MediaListItem({
 
   return (
     <motion.div
-      whileTap={{ scale: 0.98 }}
-      whileHover={{ x: 2 }}
-      transition={{ duration: 0.15 }}
       onClick={() => {
         if (selectMode) {
           onToggleSelect?.(post.id);
         }
       }}
       className={clsx(
-        "group relative flex min-w-0 items-start gap-3 sm:gap-3.5 rounded-2xl glass-card premium-hover p-2.5 sm:p-3 transition-all duration-200",
+        "group relative flex min-w-0 items-start gap-3 border-b border-line py-4 sm:gap-5",
         selectMode && "select-none cursor-pointer",
         selectMode &&
           selected &&
@@ -110,6 +98,7 @@ export const MediaListItem = React.memo(function MediaListItem({
         >
           <input
             type="checkbox"
+            aria-label={`Select ${post.title}`}
             checked={selected || false}
             onChange={() => onToggleSelect?.(post.id)}
             className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-zinc-300"
@@ -140,7 +129,7 @@ export const MediaListItem = React.memo(function MediaListItem({
           ) : (
             <Link href={href} className="block group/title">
               <h3
-                className="line-clamp-2 text-xs sm:text-sm font-bold tracking-tight text-zinc-900 group-hover/title:text-blue-600 dark:text-zinc-50 dark:group-hover/title:text-blue-400 leading-snug break-words transition-colors"
+                className="line-clamp-2 text-sm sm:text-base font-medium tracking-tight text-foreground group-hover/title:underline underline-offset-4 leading-snug break-words"
                 title={post.title}
               >
                 {post.title}
@@ -154,23 +143,17 @@ export const MediaListItem = React.memo(function MediaListItem({
               <Link
                 href={`/user/${post.author.username}`}
                 onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600 hover:text-blue-600 dark:text-zinc-300 dark:hover:text-blue-400 truncate group/author"
+                className="flex min-h-7 min-w-0 items-center text-xs text-muted hover:text-foreground truncate group/author"
               >
-                <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[8px] font-bold text-white shadow-sm">
-                  {post.author.username.charAt(0).toUpperCase()}
-                </div>
                 <span className="truncate group-hover/author:underline">
                   @{post.author.username}
                 </span>
               </Link>
 
-              {post.channel && (
+              {post.channel === "private" && (
                 <span
                   className={clsx(
-                    "shrink-0 rounded px-1.5 py-0.2 text-[8px] font-bold tracking-wider uppercase border",
-                    post.channel === "public"
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200/70 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
-                      : "bg-amber-50 text-amber-700 border-amber-200/70 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50"
+                    "shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] text-muted"
                   )}
                 >
                   {post.channel}
@@ -181,7 +164,7 @@ export const MediaListItem = React.memo(function MediaListItem({
         </div>
 
         {/* Footer Meta Row: Views · Time · Category */}
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 truncate">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted">
           {post.views !== undefined && (
             <>
               <span className="shrink-0">{post.views.toLocaleString()} views</span>
@@ -209,7 +192,7 @@ export const MediaListItem = React.memo(function MediaListItem({
               e.preventDefault();
               setMenuOpen(!menuOpen);
             }}
-            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+            className="flex h-11 w-11 items-center justify-center rounded-md text-muted hover:bg-surface hover:text-foreground transition-colors"
             aria-label="More actions"
           >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">

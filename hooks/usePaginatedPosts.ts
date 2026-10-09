@@ -56,7 +56,7 @@ export function usePaginatedPosts({
   const shouldProvideInitialData = isInitialParams && initialPosts.length > 0;
 
   // Use TanStack Query
-  const { data, isFetching, refetch } = usePostsQuery(
+  const { data, isFetching, refetch, isError } = usePostsQuery(
     {
       ...fetchParams,
       page,
@@ -104,6 +104,7 @@ export function usePaginatedPosts({
       });
     },
     loading: isFetching,
+    isError: autoFetch && isError,
     page,
     total,
     totalPages,

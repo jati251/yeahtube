@@ -19,7 +19,7 @@ export function LibraryClient({ initialPlaylists }: LibraryClientProps) {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
@@ -32,20 +32,20 @@ export function LibraryClient({ initialPlaylists }: LibraryClientProps) {
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-blue-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-blue-500 shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer self-start sm:self-auto"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background hover:opacity-90 transition-opacity self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />
           New Playlist
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {playlists.length > 0 ? (
           playlists.map((playlist) => (
             <PlaylistCard key={playlist.id} playlist={playlist} />
           ))
         ) : (
-          <div className="col-span-full py-16 text-center rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-800">
+          <div className="col-span-full border-y border-line py-16 text-center">
             <ListVideo className="mx-auto h-12 w-12 text-zinc-400" />
             <h3 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">
               No playlists yet
@@ -55,7 +55,7 @@ export function LibraryClient({ initialPlaylists }: LibraryClientProps) {
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-2xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 shadow-md transition-colors cursor-pointer"
+              className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm text-background hover:opacity-90 transition-opacity"
             >
               <Plus className="h-4 w-4" />
               Create Playlist

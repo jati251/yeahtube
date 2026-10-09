@@ -22,15 +22,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={clsx(
-            "block w-full rounded-lg border px-4 py-2.5 text-sm",
+            "block min-h-11 w-full rounded-md border px-4 py-2.5 text-sm",
             "transition-all duration-200 ease-in-out",
-            "focus:outline-none focus:ring-[3px] focus:ring-zinc-950/10 focus:border-zinc-950 dark:focus:ring-zinc-300/10 dark:focus:border-zinc-300",
+            "focus:border-muted",
             error
               ? "border-red-500 focus:ring-red-500/30 focus:border-red-500"
-              : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700",
-            "bg-zinc-50 dark:bg-zinc-900/50",
-            "text-zinc-900 dark:text-zinc-100",
-            "placeholder-zinc-400 dark:placeholder-zinc-500",
+              : "border-line hover:border-muted",
+            "bg-background text-foreground placeholder:text-muted",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             className,
           )}

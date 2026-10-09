@@ -3,9 +3,9 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { Film, Image as ImageIcon, Clock } from "lucide-react";
+import { Film, Image as ImageIcon, Play } from "lucide-react";
 import { clsx } from "clsx";
-import { getQualityLabel, formatDuration, getTimeAgo } from "@/lib/media-utils";
+import { formatDuration, getTimeAgo } from "@/lib/media-utils";
 import { useAppStore } from "@/stores/appStore";
 import { MediaCardProps } from "@/types";
 import { motion } from "framer-motion";
@@ -21,7 +21,6 @@ export const MediaCard = React.memo(function MediaCard({
   deleting,
   priority = false,
 }: MediaCardProps) {
-  const quality = getQualityLabel(post.width, post.height);
   const href =
     post.mediaType === "video" ? `/watch?v=${post.slug || post.id}` : `/view/${post.id}`;
 
@@ -110,7 +109,7 @@ export const MediaCard = React.memo(function MediaCard({
 
   const ThumbnailContent = (
     <div
-      className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-900 rounded-t-2xl cursor-pointer"
+      className="relative aspect-video w-full overflow-hidden rounded-lg bg-[#10100f] cursor-pointer"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onTouchStart={(e) => {
@@ -137,24 +136,14 @@ export const MediaCard = React.memo(function MediaCard({
       )}
       {post.thumbnailUrl ? (
         <>
-          {/* Blurred ambient background */}
-          <NextImage
-            src={post.thumbnailUrl}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="absolute inset-0 z-0 h-full w-full object-cover blur-sm scale-105 opacity-30 pointer-events-none"
-          />
-
-          {/* Foreground crisp thumbnail */}
           <NextImage
             src={post.thumbnailUrl}
             alt={post.title}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 25vw"
             className={clsx(
-              "relative z-10 mx-auto h-full w-full object-contain transition-all duration-300",
-              isPlaying ? "scale-110 opacity-0" : "scale-100 group-hover:scale-105 opacity-100"
+              "relative z-10 mx-auto h-full w-full object-contain transition-opacity duration-200",
+              isPlaying ? "opacity-0" : "opacity-100"
             )}
             loading={priority ? "eager" : "lazy"}
             priority={priority}
@@ -171,47 +160,21 @@ export const MediaCard = React.memo(function MediaCard({
         </div>
       )}
 
-      {/* Badges */}
-      <div className="pointer-events-none absolute bottom-2 left-2 z-30 flex gap-2">
-        {quality && post.mediaType !== "video" ? (
-          <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium text-white shadow-sm ${quality.color}`}>
-            {quality.label}
-          </span>
-        ) : post.mediaType === "image" ? (
-          <span className="rounded-md px-2 py-0.5 text-[11px] font-medium text-white bg-zinc-800 shadow-sm dark:bg-zinc-700">
-            Photo
-          </span>
-        ) : post.mediaType === "video" ? (
-          <span className="rounded-md px-2 py-0.5 text-[11px] font-medium text-white bg-zinc-800 shadow-sm dark:bg-zinc-700">
-            Video
-          </span>
-        ) : post.mediaType === "mixed" ? (
-          <span className="rounded-md px-2 py-0.5 text-[11px] font-medium text-white bg-zinc-800 shadow-sm dark:bg-zinc-700">
-            Mixed
-          </span>
-        ) : null}
-
-        {post.duration && (
-          <span className="flex items-center gap-1 rounded-md bg-black/70 backdrop-blur-md px-2 py-0.5 text-[11px] font-medium text-white shadow-sm">
-            <Clock className="h-3 w-3" />
-            {formatDuration(post.duration)}
-          </span>
-        )}
+      <div className="pointer-events-none absolute bottom-2.5 right-2.5 z-30 flex items-center gap-1.5 rounded bg-black/85 px-2 py-1 text-[11px] font-medium tabular-nums text-white">
+        {post.mediaType === "video" ? <><Play className="h-2.5 w-2.5 fill-current" />{post.duration ? formatDuration(post.duration) : "Video"}</> : post.mediaType === "image" ? <><ImageIcon className="h-3 w-3" /> Photo</> : "Mixed"}
       </div>
     </div>
   );
 
   return (
     <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onClick={() => {
         if (selectMode) {
           onToggleSelect?.(post.id);
         }
       }}
       className={clsx(
-        "group relative flex flex-col min-w-0 overflow-hidden rounded-2xl glass-card transition-all duration-300",
+        "group relative flex min-w-0 flex-col rounded-lg",
         selectMode && "select-none cursor-pointer",
         selectMode && selected && "ring-2 ring-zinc-900 dark:ring-zinc-100 bg-zinc-50/50 dark:bg-zinc-800/50"
       )}
@@ -226,7 +189,8 @@ export const MediaCard = React.memo(function MediaCard({
             type="checkbox"
             checked={selected || false}
             onChange={() => onToggleSelect?.(post.id)}
-            className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-zinc-300"
+            aria-label={`Select ${post.title}`}
+            className="h-6 w-6 rounded border-line accent-accent"
           />
         </div>
       )}
@@ -241,53 +205,43 @@ export const MediaCard = React.memo(function MediaCard({
       )}
 
       {/* Info Section */}
-      <div className="flex-1 min-w-0 p-3 sm:p-4 flex flex-col justify-between">
+      <div className="flex min-w-0 flex-1 flex-col justify-between px-0.5 pt-3">
         <div>
           {/* Title and Description */}
           {selectMode ? (
             <div>
               <h3
-                className="line-clamp-2 text-xs sm:text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-snug break-words"
+                className="line-clamp-2 text-[15px] font-medium tracking-[-0.02em] text-foreground leading-snug break-words"
                 title={post.title}
               >
                 {post.title}
               </h3>
-              {post.description && (
-                <p className="mt-1 line-clamp-2 break-words text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  {post.description}
-                </p>
-              )}
             </div>
           ) : (
             <Link href={href} className="block group/title">
               <h3
-                className="line-clamp-2 text-xs sm:text-sm font-semibold tracking-tight text-zinc-900 group-hover/title:text-blue-600 dark:text-zinc-50 dark:group-hover/title:text-blue-400 leading-snug break-words transition-colors"
+                className="line-clamp-2 text-[15px] font-medium tracking-[-0.02em] text-foreground group-hover/title:underline underline-offset-4 leading-snug break-words"
                 title={post.title}
               >
                 {post.title}
               </h3>
-              {post.description && (
-                <p className="mt-1 line-clamp-2 break-words text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  {post.description}
-                </p>
-              )}
             </Link>
           )}
 
           {/* Tags */}
           {post.tags.length > 0 && (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {post.tags.slice(0, 3).map((tag) => (
+            <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1">
+              {post.tags.slice(0, 2).map((tag) => (
                 <span
                   key={tag.id}
-                  className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50"
+                  className="text-[11px] text-muted"
                 >
                   {tag.name}
                 </span>
               ))}
-              {post.tags.length > 3 && (
-                <span className="text-[10px] text-gray-400">
-                  +{post.tags.length - 3}
+              {post.tags.length > 2 && (
+                <span className="text-[11px] text-muted">
+                  +{post.tags.length - 2}
                 </span>
               )}
             </div>
@@ -301,23 +255,17 @@ export const MediaCard = React.memo(function MediaCard({
               <Link
                 href={`/user/${post.author.username}`}
                 onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 hover:text-blue-600 dark:text-zinc-300 dark:hover:text-blue-400 truncate group/author"
+                className="flex min-h-7 min-w-0 items-center text-xs text-muted hover:text-foreground truncate group/author"
               >
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[10px] font-bold text-white shadow-sm">
-                  {post.author.username.charAt(0).toUpperCase()}
-                </div>
                 <span className="truncate group-hover/author:underline">
                   @{post.author.username}
                 </span>
               </Link>
 
-              {post.channel && (
+              {post.channel === "private" && (
                 <span
                   className={clsx(
-                    "shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase border",
-                    post.channel === "public"
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50"
-                      : "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50"
+                    "shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] text-muted"
                   )}
                 >
                   {post.channel}
@@ -327,7 +275,7 @@ export const MediaCard = React.memo(function MediaCard({
           )}
 
           {/* Footer stats */}
-          <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[11px] text-muted">
             <p className="truncate" suppressHydrationWarning>{timeAgo}</p>
             {post.views !== undefined && (
               <p className="shrink-0">{post.views.toLocaleString()} views</p>
@@ -338,14 +286,14 @@ export const MediaCard = React.memo(function MediaCard({
 
       {/* Admin Menu */}
       {isAdmin && !selectMode && (
-        <div className="absolute right-2 top-2 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        <div className="absolute right-2 top-2 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
               setMenuOpen(!menuOpen);
             }}
-            className="rounded-lg bg-black/50 p-1.5 text-white hover:bg-black/70 sm:p-1 cursor-pointer"
+            className="flex h-11 w-11 items-center justify-center rounded-md bg-black/85 text-white hover:bg-black"
             aria-label="More actions"
           >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
