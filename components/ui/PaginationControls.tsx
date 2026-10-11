@@ -100,7 +100,7 @@ export const PaginationControls = React.memo(function PaginationControls({
 
   if (compact) {
     return (
-      <div className={clsx("flex items-center gap-1 sm:gap-1.5", className)}>
+      <div className={clsx("flex max-w-full items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none", className)}>
         <motion.button
           whileTap={!isFirst && !loading ? { scale: 0.9 } : undefined}
           whileHover={!isFirst && !loading ? { scale: 1.08 } : undefined}

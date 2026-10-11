@@ -17,14 +17,14 @@ export default async function MainLayout({
   ]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <Header
         username={user?.username}
         isAdmin={user?.isAdmin}
         categories={categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug }))}
       />
       <a href="#main-content" className="fixed left-4 top-2 z-[100] -translate-y-20 rounded-md bg-foreground px-4 py-3 text-background focus:translate-y-0">Skip to content</a>
-      <main id="main-content" className="pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
+      <main id="main-content" className="overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">{children}</main>
       <MobileNav />
       <GlobalPlayer />
     </div>

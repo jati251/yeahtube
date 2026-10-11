@@ -148,7 +148,7 @@ export function VideoPlayer({
       className={`group relative isolate bg-black select-none touch-none ${
         isFullscreenActive
           ? "!fixed !inset-0 !z-[99999] !h-screen !h-[100dvh] !w-screen !w-[100dvw] !rounded-none !aspect-auto"
-          : "aspect-video rounded-xl"
+          : "aspect-video rounded-none sm:rounded-xl"
       }`}
       onPointerMove={(e) => {
         if (e.pointerType === "mouse") showControlsTemporarily();
@@ -161,7 +161,7 @@ export function VideoPlayer({
       }}
     >
       {ambientLighting && <PlayerAmbient videoRef={videoRef} src={src} active={ambientEnabled && playing && !isFullscreenActive && !isPipActive && !reducedMotion} />}
-      <div className={`absolute inset-0 overflow-hidden bg-black ${isFullscreenActive ? "rounded-none" : "rounded-xl"}`}>
+      <div className={`absolute inset-0 overflow-hidden bg-black ${isFullscreenActive ? "rounded-none" : "rounded-none sm:rounded-xl"}`}>
         <video
           ref={videoRef}
           className="h-full w-full object-contain pointer-events-none"

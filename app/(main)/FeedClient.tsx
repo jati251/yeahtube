@@ -233,13 +233,13 @@ export function FeedClient({
             {loading || loadingPlaylists ? "Updating feed…" : `${(isPlaylistMode ? publicPlaylists.length : total).toLocaleString()} ${isPlaylistMode ? "playlists" : "items"}${hasFilters ? " matching your filters" : " to browse"}`}
           </span>
         </div>
-        <LayoutGroup id="feed-media-tabs"><div role="group" aria-label="Media type" className="mb-5 flex gap-5 border-b border-line sm:gap-8">
+        <LayoutGroup id="feed-media-tabs"><div role="group" aria-label="Media type" className="mb-5 flex gap-5 border-b border-line sm:gap-8 overflow-x-auto scrollbar-none">
           {[{ value: null, label: "Everything" }, { value: "video", label: "Videos" }, { value: "image", label: "Photos" }, { value: "playlist", label: "Playlists" }].map((item) => <button
             key={item.label}
             type="button"
             aria-pressed={activeMediaType === item.value}
             onClick={() => { setActiveMediaType(item.value); goToPage(1); }}
-            className={`relative min-h-12 pb-3 pt-2 text-[13px] font-medium transition-colors ${activeMediaType === item.value ? "text-foreground" : "text-muted hover:text-foreground"}`}
+            className={`relative min-h-12 shrink-0 pb-3 pt-2 text-[13px] font-medium transition-colors ${activeMediaType === item.value ? "text-foreground" : "text-muted hover:text-foreground"}`}
           >
             {item.label}
             {activeMediaType === item.value && <motion.span layoutId="media-type" className="absolute bottom-[-1px] inset-x-0 h-0.5 bg-accent" transition={{ type: "spring", stiffness: 450, damping: 35 }} />}

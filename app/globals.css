@@ -57,13 +57,17 @@
   @keyframes slide-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 }
 
-html { scroll-padding-top: 100px; }
+html {
+  scroll-padding-top: 100px;
+  overflow-x: hidden;
+}
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 ::selection { background: var(--accent); color: var(--on-accent); }
 button, [type="button"], [type="reset"], [type="submit"], [role="button"], select, summary { cursor: pointer; }
@@ -92,6 +96,9 @@ p { line-height: 1.6; }
 }
 .player-ambient[data-active="true"] { opacity: 0.28; }
 .dark .player-ambient[data-active="true"] { opacity: 0.7; }
+@media (max-width: 639px) {
+  .player-ambient { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .player-ambient { display: none; }
 }

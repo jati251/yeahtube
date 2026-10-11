@@ -71,11 +71,13 @@ export function Header({ username, isAdmin, categories = [] }: HeaderProps) {
           <SearchBar />
 
           {/* User Nav & Actions */}
-          <UserNav
-            username={username}
-            isAdmin={isAdmin}
-            onOpenUpload={() => setUploadOpen(true)}
-          />
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            <UserNav
+              username={username}
+              isAdmin={isAdmin}
+              onOpenUpload={() => setUploadOpen(true)}
+            />
+          </div>
         </div>
 
         {/* Mobile Search Bar */}

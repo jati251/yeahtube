@@ -140,9 +140,9 @@ export function WatchPageClient({
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+    <div className="mx-auto max-w-[1440px] px-4 pt-0 pb-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
       <div className="grid grid-cols-1 gap-x-8 gap-y-6 lg:grid-cols-12 xl:gap-x-10">
-        <div className="sticky top-[132px] z-30 -mx-4 sm:top-[76px] sm:mx-0 lg:static lg:col-span-8 lg:col-start-1 lg:row-start-1">
+        <div className="sticky top-[132px] z-30 -mx-4 bg-black sm:top-[76px] sm:mx-0 sm:bg-transparent lg:static lg:col-span-8 lg:col-start-1 lg:row-start-1">
           <VideoPlayer
             key={post.id}
             src={currentVideo.streamUrl}
@@ -208,22 +208,26 @@ export function WatchPageClient({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                <LikeDislike postId={post.id} />
+              <div className="flex max-w-full items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+                <div className="shrink-0">
+                  <LikeDislike postId={post.id} />
+                </div>
                 <motion.button
                   whileTap={{ scale: 0.94 }}
                   onClick={requireAuth(() => setShowSaveModal(true))}
-                  className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-accent-soft"
+                  className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-accent-soft"
                 >
                   <BookmarkPlus className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                   Save
                 </motion.button>
-                <ShareButton title={postData.title} />
+                <div className="shrink-0">
+                  <ShareButton title={postData.title} />
+                </div>
                 {canEdit && (
                   <motion.button
                     whileTap={{ scale: 0.94 }}
                     onClick={() => setShowEditModal(true)}
-                    className="flex min-h-11 items-center gap-2 rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-accent-soft"
+                    className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-line bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-accent-soft"
                   >
                     <Pencil className="h-4 w-4 text-zinc-600 dark:text-zinc-300" />
                     Edit
