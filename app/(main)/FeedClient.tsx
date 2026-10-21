@@ -370,7 +370,7 @@ export function FeedClient({
               <button type="button" onClick={() => isPlaylistMode ? refetchPlaylists() : refetch()} className="mt-4 min-h-11 rounded-md bg-foreground px-5 text-sm text-background">Try again</button>
             </div> : isPlaylistMode ? (
               loadingPlaylists ? (
-                <div role="status" aria-label="Loading playlists" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-pulse">
+                <div role="status" aria-label="Loading playlists" className="grid grid-cols-2 gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-pulse">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="aspect-video rounded-lg bg-line" />
                   ))}
@@ -391,7 +391,7 @@ export function FeedClient({
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-x-5 gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-fade-in">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-9 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-fade-in">
                   {publicPlaylists.map((playlist) => (
                     <PlaylistCard key={playlist.id} playlist={playlist} />
                   ))}

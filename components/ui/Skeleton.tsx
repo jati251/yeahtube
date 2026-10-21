@@ -14,23 +14,23 @@ export function MediaCardSkeleton() {
       <div className="aspect-video w-full rounded-lg bg-line animate-pulse" />
 
       {/* Card Info */}
-      <div className="pt-3 space-y-2.5">
+      <div className="pt-2 sm:pt-3 space-y-2 sm:space-y-2.5">
         {/* Title (2 lines) */}
-        <div className="space-y-1.5">
-          <div className="h-4 w-full rounded-md bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
-          <div className="h-4 w-3/4 rounded-md bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
+        <div className="space-y-1 sm:space-y-1.5">
+          <div className="h-3.5 sm:h-4 w-full rounded-md bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
+          <div className="h-3.5 sm:h-4 w-3/4 rounded-md bg-zinc-200 dark:bg-zinc-800/80 animate-pulse" />
         </div>
 
         {/* Tags */}
-        <div className="flex gap-1.5 pt-1">
-          <div className="h-4 w-12 rounded-md bg-zinc-200/70 dark:bg-zinc-800/70 animate-pulse" />
-          <div className="h-4 w-14 rounded-md bg-zinc-200/70 dark:bg-zinc-800/70 animate-pulse" />
+        <div className="flex gap-1.5 pt-0.5 sm:pt-1">
+          <div className="h-3 sm:h-4 w-10 sm:w-12 rounded-md bg-zinc-200/70 dark:bg-zinc-800/70 animate-pulse" />
+          <div className="h-3 sm:h-4 w-12 sm:w-14 rounded-md bg-zinc-200/70 dark:bg-zinc-800/70 animate-pulse" />
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-1 text-xs">
-          <div className="h-3 w-16 rounded bg-zinc-200/50 dark:bg-zinc-800/50 animate-pulse" />
-          <div className="h-3 w-12 rounded bg-zinc-200/50 dark:bg-zinc-800/50 animate-pulse" />
+        <div className="flex items-center justify-between pt-0.5 sm:pt-1 text-[10px] sm:text-xs">
+          <div className="h-2.5 sm:h-3 w-12 sm:w-16 rounded bg-zinc-200/50 dark:bg-zinc-800/50 animate-pulse" />
+          <div className="h-2.5 sm:h-3 w-10 sm:w-12 rounded bg-zinc-200/50 dark:bg-zinc-800/50 animate-pulse" />
         </div>
       </div>
     </div>

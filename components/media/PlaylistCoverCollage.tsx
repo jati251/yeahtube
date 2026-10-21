@@ -15,7 +15,7 @@ export function PlaylistCoverCollage({
     return (
       <div className="relative h-full w-full flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 overflow-hidden">
         <ListVideo className="h-12 w-12 text-zinc-400 dark:text-zinc-500 group-hover:scale-110 transition-transform duration-300" />
-        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/70 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
+        <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-xs font-semibold text-white backdrop-blur-sm">
           <ListVideo className="h-3 w-3" />
           {totalCount}
         </div>
@@ -31,12 +31,12 @@ export function PlaylistCoverCollage({
           src={validThumbnails[0].thumbnailUrl!}
           alt={playlistName}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
+        <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-xs font-semibold text-white backdrop-blur-sm">
           <ListVideo className="h-3 w-3" />
           {totalCount}
         </div>
@@ -60,7 +60,7 @@ export function PlaylistCoverCollage({
             />
           </div>
         ))}
-        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
+        <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-xs font-semibold text-white backdrop-blur-sm">
           <ListVideo className="h-3 w-3" />
           {totalCount}
         </div>
@@ -96,7 +96,7 @@ export function PlaylistCoverCollage({
             </div>
           ))}
         </div>
-        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
+        <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-xs font-semibold text-white backdrop-blur-sm">
           <ListVideo className="h-3 w-3" />
           {totalCount}
         </div>
@@ -120,7 +120,7 @@ export function PlaylistCoverCollage({
             />
           </div>
         ))}
-        <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
+        <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-xs font-semibold text-white backdrop-blur-sm">
           <ListVideo className="h-3 w-3" />
           {totalCount}
         </div>
@@ -175,7 +175,7 @@ export function PlaylistCoverCollage({
       </div>
 
       {/* Total Video Count Badge */}
-      <div className="absolute bottom-2 left-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-xs font-semibold text-white backdrop-blur-sm">
+      <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 z-10 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 sm:px-2 text-[10px] sm:text-xs font-semibold text-white backdrop-blur-sm">
         <ListVideo className="h-3 w-3" />
         {totalCount} {totalCount === 1 ? "item" : "items"}
       </div>

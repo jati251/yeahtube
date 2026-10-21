@@ -140,7 +140,7 @@ export const MediaCard = React.memo(function MediaCard({
             src={post.thumbnailUrl}
             alt={post.title}
             fill
-            sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 25vw"
+            sizes="(max-width: 639px) 50vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 25vw"
             className={clsx(
               "relative z-10 mx-auto h-full w-full object-contain transition-opacity duration-200",
               isPlaying ? "opacity-0" : "opacity-100"
@@ -160,8 +160,8 @@ export const MediaCard = React.memo(function MediaCard({
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-2.5 right-2.5 z-30 flex items-center gap-1.5 rounded bg-black/85 px-2 py-1 text-[11px] font-medium tabular-nums text-white">
-        {post.mediaType === "video" ? <><Play className="h-2.5 w-2.5 fill-current" />{post.duration ? formatDuration(post.duration) : "Video"}</> : post.mediaType === "image" ? <><ImageIcon className="h-3 w-3" /> Photo</> : "Mixed"}
+      <div className="pointer-events-none absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-30 flex items-center gap-1 sm:gap-1.5 rounded bg-black/85 px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-[11px] font-medium tabular-nums text-white">
+        {post.mediaType === "video" ? <><Play className="h-2 w-2 sm:h-2.5 sm:w-2.5 fill-current" />{post.duration ? formatDuration(post.duration) : "Video"}</> : post.mediaType === "image" ? <><ImageIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3" /> Photo</> : "Mixed"}
       </div>
     </div>
   );
@@ -205,13 +205,13 @@ export const MediaCard = React.memo(function MediaCard({
       )}
 
       {/* Info Section */}
-      <div className="flex min-w-0 flex-1 flex-col justify-between px-0.5 pt-3">
+      <div className="flex min-w-0 flex-1 flex-col justify-between px-0.5 pt-2 sm:pt-3">
         <div>
           {/* Title and Description */}
           {selectMode ? (
             <div>
               <h3
-                className="line-clamp-2 text-[15px] font-medium tracking-[-0.02em] text-foreground leading-snug break-words"
+                className="line-clamp-2 text-[13px] sm:text-[15px] font-medium tracking-[-0.02em] text-foreground leading-snug break-words"
                 title={post.title}
               >
                 {post.title}
@@ -220,7 +220,7 @@ export const MediaCard = React.memo(function MediaCard({
           ) : (
             <Link href={href} className="block group/title">
               <h3
-                className="line-clamp-2 text-[15px] font-medium tracking-[-0.02em] text-foreground group-hover/title:underline underline-offset-4 leading-snug break-words"
+                className="line-clamp-2 text-[13px] sm:text-[15px] font-medium tracking-[-0.02em] text-foreground group-hover/title:underline underline-offset-4 leading-snug break-words"
                 title={post.title}
               >
                 {post.title}
@@ -230,17 +230,17 @@ export const MediaCard = React.memo(function MediaCard({
 
           {/* Tags */}
           {post.tags.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1">
+            <div className="mt-1 sm:mt-1.5 flex flex-wrap gap-x-1.5 sm:gap-x-2 gap-y-0.5 sm:gap-y-1">
               {post.tags.slice(0, 2).map((tag) => (
                 <span
                   key={tag.id}
-                  className="text-[11px] text-muted"
+                  className="text-[10px] sm:text-[11px] text-muted truncate max-w-[70px] sm:max-w-none"
                 >
                   {tag.name}
                 </span>
               ))}
               {post.tags.length > 2 && (
-                <span className="text-[11px] text-muted">
+                <span className="text-[10px] sm:text-[11px] text-muted">
                   +{post.tags.length - 2}
                 </span>
               )}
@@ -251,11 +251,11 @@ export const MediaCard = React.memo(function MediaCard({
         <div>
           {/* Owner & Channel Info */}
           {post.author && (
-            <div className="mt-2.5 flex items-center justify-between gap-2">
+            <div className="mt-1.5 sm:mt-2.5 flex items-center justify-between gap-1.5 sm:gap-2">
               <Link
                 href={`/user/${post.author.username}`}
                 onClick={(e) => e.stopPropagation()}
-                className="flex min-h-7 min-w-0 items-center text-xs text-muted hover:text-foreground truncate group/author"
+                className="flex min-h-6 sm:min-h-7 min-w-0 items-center text-[11px] sm:text-xs text-muted hover:text-foreground truncate group/author"
               >
                 <span className="truncate group-hover/author:underline">
                   @{post.author.username}
@@ -265,7 +265,7 @@ export const MediaCard = React.memo(function MediaCard({
               {post.channel === "private" && (
                 <span
                   className={clsx(
-                    "shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] text-muted"
+                    "shrink-0 rounded border border-line px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] text-muted"
                   )}
                 >
                   {post.channel}
@@ -275,7 +275,7 @@ export const MediaCard = React.memo(function MediaCard({
           )}
 
           {/* Footer stats */}
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[11px] text-muted">
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 sm:gap-x-3 text-[10px] sm:text-[11px] text-muted">
             <p className="truncate" suppressHydrationWarning>{timeAgo}</p>
             {post.views !== undefined && (
               <p className="shrink-0">{post.views.toLocaleString()} views</p>
@@ -286,17 +286,17 @@ export const MediaCard = React.memo(function MediaCard({
 
       {/* Admin Menu */}
       {isAdmin && !selectMode && (
-        <div className="absolute right-2 top-2 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
+        <div className="absolute right-1.5 top-1.5 sm:right-2 sm:top-2 z-30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
               setMenuOpen(!menuOpen);
             }}
-            className="flex h-11 w-11 items-center justify-center rounded-md bg-black/85 text-white hover:bg-black"
+            className="flex h-8 w-8 sm:h-11 sm:w-11 items-center justify-center rounded-md bg-black/85 text-white hover:bg-black"
             aria-label="More actions"
           >
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
             </svg>
           </button>

@@ -58,26 +58,26 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
           />
 
           {/* Top Badges (Channel + Sharing) */}
-          <div className="absolute top-2.5 left-2.5 z-20 flex flex-wrap items-center gap-1.5">
+          <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 z-20 flex flex-wrap items-center gap-1 sm:gap-1.5">
             <div
-              className="flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md p-1.5 border border-white/10 shadow-sm"
+              className="flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md p-1 sm:p-1.5 border border-white/10 shadow-sm"
               title={playlist.channel === "public" ? "Public Channel" : "Private Channel"}
             >
               {playlist.channel === "public" ? (
-                <Globe className="h-3.5 w-3.5 text-emerald-400" />
+                <Globe className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-400" />
               ) : (
-                <Lock className="h-3.5 w-3.5 text-amber-400" />
+                <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
               )}
             </div>
 
             <div
-              className="flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md p-1.5 border border-white/10 shadow-sm"
+              className="flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md p-1 sm:p-1.5 border border-white/10 shadow-sm"
               title={isPublic ? "Shared" : "Personal"}
             >
               {isPublic ? (
-                <Users className="h-3.5 w-3.5 text-blue-400" />
+                <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-400" />
               ) : (
-                <Lock className="h-3.5 w-3.5 text-zinc-400" />
+                <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-zinc-400" />
               )}
             </div>
           </div>
@@ -88,32 +88,32 @@ export function PlaylistCard({ playlist }: PlaylistCardProps) {
             onClick={handleLike}
             disabled={likeMutation.isPending}
             className={clsx(
-              "absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur-md border shadow-md transition-all cursor-pointer",
+              "absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 z-20 flex items-center gap-1 sm:gap-1.5 rounded-full px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold backdrop-blur-md border shadow-md transition-all cursor-pointer",
               isLiked
                 ? "bg-rose-600/90 text-white border-rose-400/80 shadow-rose-900/30"
                 : "bg-black/60 text-white hover:bg-black/80 border-white/10",
             )}
             title={isLiked ? "Unlike playlist" : "Favorite playlist"}
           >
-            <Heart className={clsx("h-3.5 w-3.5", isLiked ? "fill-white text-white" : "text-white")} />
+            <Heart className={clsx("h-3 w-3 sm:h-3.5 sm:w-3.5", isLiked ? "fill-white text-white" : "text-white")} />
             <span>{currentLikes}</span>
           </motion.button>
         </div>
 
         {/* Info Section */}
-        <div className="px-0.5 pt-3">
-          <h3 className="line-clamp-2 text-[15px] font-medium tracking-tight text-foreground leading-snug group-hover:underline underline-offset-4">
+        <div className="px-0.5 pt-2 sm:pt-3">
+          <h3 className="line-clamp-2 text-[13px] sm:text-[15px] font-medium tracking-tight text-foreground leading-snug group-hover:underline underline-offset-4">
             {playlist.name}
           </h3>
 
-          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted">
+          <div className="mt-1.5 sm:mt-2 flex items-center justify-between gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-muted">
             {playlist.username && (
-              <div className="flex items-center gap-1.5 truncate">
-                <User className="h-3.5 w-3.5 text-zinc-400" />
+              <div className="flex items-center gap-1 sm:gap-1.5 truncate">
+                <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-zinc-400 shrink-0" />
                 <span className="truncate">{playlist.username}</span>
               </div>
             )}
-            <span className="shrink-0 text-[11px] text-muted">
+            <span className="shrink-0 text-[10px] sm:text-[11px] text-muted">
               {playlist.createdAt ? new Date(playlist.createdAt).toLocaleDateString() : ""}
             </span>
           </div>
